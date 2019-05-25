@@ -39,7 +39,7 @@ var stubZone RegisteredZone
 
 func init() {
 	stubZone = RegisteredZone{
-		Temperature: 21.2,
+		Temperature: 21.4,
 		TemperatureBounds: Bounds{
 			Min: new(float64),
 			Max: new(float64),
