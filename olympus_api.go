@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/formicidae-tracker/dieu"
+	"github.com/formicidae-tracker/zeus"
 	"github.com/formicidae-tracker/libarke/src-go/arke"
 )
 
@@ -28,10 +28,10 @@ type RegisteredZone struct {
 	Humidity          float64
 	HumidityBounds    Bounds
 	Alarms            []RegisteredAlarm
-	Current           *dieu.State
-	CurrentEnd        *dieu.State
-	Next              *dieu.State
-	NextEnd           *dieu.State
+	Current           *zeus.State
+	CurrentEnd        *zeus.State
+	Next              *zeus.State
+	NextEnd           *zeus.State
 	NextTime          *time.Time
 }
 
@@ -56,16 +56,16 @@ func init() {
 	*stubZone.HumidityBounds.Min = 40.0
 	*stubZone.HumidityBounds.Max = 75.0
 
-	alarms := []dieu.Alarm{
-		dieu.WaterLevelWarning,
-		dieu.WaterLevelCritical,
-		dieu.TemperatureOutOfBound,
-		dieu.HumidityOutOfBound,
-		dieu.TemperatureUnreachable,
-		dieu.HumidityUnreachable,
-		dieu.NewMissingDeviceAlarm("slcan0", arke.ZeusClass, 1),
-		dieu.NewMissingDeviceAlarm("slcan0", arke.CelaenoClass, 1),
-		dieu.NewMissingDeviceAlarm("slcan0", arke.HeliosClass, 1),
+	alarms := []zeus.Alarm{
+		zeus.WaterLevelWarning,
+		zeus.WaterLevelCritical,
+		zeus.TemperatureOutOfBound,
+		zeus.HumidityOutOfBound,
+		zeus.TemperatureUnreachable,
+		zeus.HumidityUnreachable,
+		zeus.NewMissingDeviceAlarm("slcan0", arke.ZeusClass, 1),
+		zeus.NewMissingDeviceAlarm("slcan0", arke.CelaenoClass, 1),
+		zeus.NewMissingDeviceAlarm("slcan0", arke.HeliosClass, 1),
 	}
 	for _, a := range alarms {
 		aa := RegisteredAlarm{
@@ -73,7 +73,7 @@ func init() {
 			On:       false,
 			Triggers: 0,
 		}
-		if a.Priority() == dieu.Warning {
+		if a.Priority() == zeus.Warning {
 			aa.Level = 1
 		} else {
 			aa.Level = 2

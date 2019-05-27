@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/formicidae-tracker/dieu"
+	"github.com/formicidae-tracker/zeus"
 )
 
 type ZoneNotFoundError string
@@ -33,10 +33,10 @@ type Hermes struct {
 	log   *log.Logger
 }
 
-func buildRegisteredAlarm(ae *dieu.AlarmEvent) RegisteredAlarm {
+func buildRegisteredAlarm(ae *zeus.AlarmEvent) RegisteredAlarm {
 	res := RegisteredAlarm{
 		Reason:     ae.Reason,
-		Level:      dieu.MapPriority(ae.Priority),
+		Level:      zeus.MapPriority(ae.Priority),
 		LastChange: &time.Time{},
 		Triggers:   0,
 		On:         false,
@@ -45,7 +45,7 @@ func buildRegisteredAlarm(ae *dieu.AlarmEvent) RegisteredAlarm {
 	return res
 }
 
-func (z *ZoneData) registerAlarm(ae *dieu.AlarmEvent) {
+func (z *ZoneData) registerAlarm(ae *zeus.AlarmEvent) {
 	if _, ok := z.alarmMap[ae.Reason]; ok == true {
 		return
 	}
@@ -55,7 +55,7 @@ func (z *ZoneData) registerAlarm(ae *dieu.AlarmEvent) {
 	z.zone.Alarms = append(z.zone.Alarms, buildRegisteredAlarm(ae))
 }
 
-func (h *Hermes) RegisterZone(reg *dieu.ZoneRegistration, err *dieu.HermesError) error {
+func (h *Hermes) RegisterZone(reg *zeus.ZoneRegistration, err *zeus.HermesError) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
@@ -87,11 +87,11 @@ func (h *Hermes) RegisterZone(reg *dieu.ZoneRegistration, err *dieu.HermesError)
 
 	h.zones[reg.Fullname()] = res
 
-	*err = dieu.HermesError("")
+	*err = zeus.HermesError("")
 	return nil
 }
 
-func (h *Hermes) ZoneIsRegistered(reg *dieu.ZoneUnregistration, ok *bool) error {
+func (h *Hermes) ZoneIsRegistered(reg *zeus.ZoneUnregistration, ok *bool) error {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
@@ -99,13 +99,13 @@ func (h *Hermes) ZoneIsRegistered(reg *dieu.ZoneUnregistration, ok *bool) error 
 	return nil
 }
 
-func (h *Hermes) UnregisterZone(reg *dieu.ZoneUnregistration, err *dieu.HermesError) error {
+func (h *Hermes) UnregisterZone(reg *zeus.ZoneUnregistration, err *zeus.HermesError) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	z, ok := h.zones[reg.Fullname()]
 	if ok == false {
-		*err = dieu.HermesError(ZoneNotFoundError(reg.Fullname()).Error())
+		*err = zeus.HermesError(ZoneNotFoundError(reg.Fullname()).Error())
 		return nil
 	}
 	h.log.Printf("Unregistering  %s", reg.Fullname())
@@ -113,38 +113,38 @@ func (h *Hermes) UnregisterZone(reg *dieu.ZoneUnregistration, err *dieu.HermesEr
 	close(z.climate.Inbound())
 	delete(h.zones, reg.Fullname())
 
-	*err = dieu.HermesError("")
+	*err = zeus.HermesError("")
 	return nil
 }
 
-func (h *Hermes) ReportClimate(cr *dieu.NamedClimateReport, err *dieu.HermesError) error {
+func (h *Hermes) ReportClimate(cr *zeus.NamedClimateReport, err *zeus.HermesError) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	z, ok := h.zones[cr.ZoneIdentifier]
 	if ok == false {
-		*err = dieu.HermesError(ZoneNotFoundError(cr.ZoneIdentifier).Error())
+		*err = zeus.HermesError(ZoneNotFoundError(cr.ZoneIdentifier).Error())
 		return nil
 	}
 
 	z.zone.Temperature = float64((*cr).Temperatures[0])
 	z.zone.Humidity = float64((*cr).Humidity)
-	z.climate.Inbound() <- dieu.ClimateReport{
+	z.climate.Inbound() <- zeus.ClimateReport{
 		Time:         cr.Time,
 		Humidity:     cr.Humidity,
-		Temperatures: [4]dieu.Temperature{cr.Temperatures[0], cr.Temperatures[1], cr.Temperatures[2], cr.Temperatures[3]},
+		Temperatures: [4]zeus.Temperature{cr.Temperatures[0], cr.Temperatures[1], cr.Temperatures[2], cr.Temperatures[3]},
 	}
-	*err = dieu.HermesError("")
+	*err = zeus.HermesError("")
 	return nil
 }
 
-func (h *Hermes) ReportAlarm(ae *dieu.AlarmEvent, err *dieu.HermesError) error {
+func (h *Hermes) ReportAlarm(ae *zeus.AlarmEvent, err *zeus.HermesError) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	z, ok := h.zones[ae.Zone]
 	if ok == false {
-		*err = dieu.HermesError(ZoneNotFoundError(ae.Zone).Error())
+		*err = zeus.HermesError(ZoneNotFoundError(ae.Zone).Error())
 		return nil
 	}
 	aIdx, ok := z.alarmMap[ae.Reason]
@@ -154,7 +154,7 @@ func (h *Hermes) ReportAlarm(ae *dieu.AlarmEvent, err *dieu.HermesError) error {
 	}
 
 	h.log.Printf("New alarm event %+v", ae)
-	if ae.Status == dieu.AlarmOn {
+	if ae.Status == zeus.AlarmOn {
 		if z.zone.Alarms[aIdx].On == false {
 			z.zone.Alarms[aIdx].Triggers += 1
 		}
@@ -166,22 +166,22 @@ func (h *Hermes) ReportAlarm(ae *dieu.AlarmEvent, err *dieu.HermesError) error {
 	*z.zone.Alarms[aIdx].LastChange = ae.Time
 	//TODO: notify
 
-	*err = dieu.HermesError("")
+	*err = zeus.HermesError("")
 	return nil
 }
 
-func (h *Hermes) ReportState(sr *dieu.StateReport, err *dieu.HermesError) error {
+func (h *Hermes) ReportState(sr *zeus.StateReport, err *zeus.HermesError) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	z, ok := h.zones[sr.Zone]
 	if ok == false {
-		*err = dieu.HermesError(ZoneNotFoundError(sr.Zone).Error())
+		*err = zeus.HermesError(ZoneNotFoundError(sr.Zone).Error())
 		return nil
 	}
 
 	if z.zone.Current == nil {
-		z.zone.Current = &dieu.State{}
+		z.zone.Current = &zeus.State{}
 	}
 	*z.zone.Current = sr.Current
 	z.zone.CurrentEnd = sr.CurrentEnd
@@ -195,7 +195,7 @@ func (h *Hermes) ReportState(sr *dieu.StateReport, err *dieu.HermesError) error 
 		z.zone.NextTime = nil
 	}
 
-	*err = dieu.HermesError("")
+	*err = zeus.HermesError("")
 	return nil
 }
 

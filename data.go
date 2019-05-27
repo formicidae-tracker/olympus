@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/formicidae-tracker/dieu"
+	"github.com/formicidae-tracker/zeus"
 	"github.com/dgryski/go-lttb"
 )
 
@@ -20,7 +20,7 @@ type ClimateReportTimeSerie struct {
 
 type ClimateReportManager interface {
 	Sample()
-	Inbound() chan<- dieu.ClimateReport
+	Inbound() chan<- zeus.ClimateReport
 	LastTenMinutes() ClimateReportTimeSerie
 	LastHour() ClimateReportTimeSerie
 	LastDay() ClimateReportTimeSerie
@@ -43,7 +43,7 @@ type request struct {
 }
 
 type climateReportManager struct {
-	inbound      chan dieu.ClimateReport
+	inbound      chan zeus.ClimateReport
 	requests     chan request
 	quit         chan struct{}
 	wg           sync.WaitGroup
@@ -87,7 +87,7 @@ func (d *rollingDownsampler) getPoints() []lttb.Point {
 	return lttb.LTTB(d.points, d.threshold)
 }
 
-func (m *climateReportManager) addReportUnsafe(r *dieu.ClimateReport) {
+func (m *climateReportManager) addReportUnsafe(r *zeus.ClimateReport) {
 	if m.start == nil {
 		m.start = &time.Time{}
 		*m.start = r.Time
@@ -178,7 +178,7 @@ func (m *climateReportManager) Sample() {
 	}
 }
 
-func (m *climateReportManager) Inbound() chan<- dieu.ClimateReport {
+func (m *climateReportManager) Inbound() chan<- zeus.ClimateReport {
 	return m.inbound
 }
 
@@ -225,7 +225,7 @@ const (
 
 func NewClimateReportManager() ClimateReportManager {
 	return &climateReportManager{
-		inbound:  make(chan dieu.ClimateReport),
+		inbound:  make(chan zeus.ClimateReport),
 		requests: make(chan request),
 		downsamplers: []rollingDownsampler{
 			newRollingDownsampler(10*time.Minute.Seconds(), tenMinutesSamples),
@@ -264,14 +264,14 @@ func setClimateReporterStub() {
 		for t := start; t.Before(end); t = t.Add(500 * time.Millisecond) {
 			ellapsed := t.Sub(start).Seconds()
 
-			toAdd := dieu.ClimateReport{
+			toAdd := zeus.ClimateReport{
 				Time:     t,
-				Humidity: dieu.Humidity(40.0 + 3*math.Cos(2*math.Pi/200.0*ellapsed) + 0.5*rand.NormFloat64()),
-				Temperatures: [4]dieu.Temperature{
-					dieu.Temperature(20.0 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
-					dieu.Temperature(20.5 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
-					dieu.Temperature(21.0 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
-					dieu.Temperature(21.5 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
+				Humidity: zeus.Humidity(40.0 + 3*math.Cos(2*math.Pi/200.0*ellapsed) + 0.5*rand.NormFloat64()),
+				Temperatures: [4]zeus.Temperature{
+					zeus.Temperature(20.0 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
+					zeus.Temperature(20.5 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
+					zeus.Temperature(21.0 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
+					zeus.Temperature(21.5 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
 				},
 			}
 			stubClimateReporter.Inbound() <- toAdd
