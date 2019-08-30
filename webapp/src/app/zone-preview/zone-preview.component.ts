@@ -3,6 +3,7 @@ import { Zone } from '../core/zone.model';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 
+
 @Component({
   selector: 'app-zone-preview',
   templateUrl: './zone-preview.component.html',
@@ -19,7 +20,7 @@ export class ZonePreviewComponent implements OnInit {
 
     ngOnInit() {
 		if ( this.zone.Name == "box" ) {
-			this.httpClient.get('/olympus/hls/'+ this.zone.Host + '.m3u8').subscribe(
+			this.httpClient.get('/olympus/hls/'+ this.zone.Host + '.m3u8',{responseType: 'text'}).subscribe(
 				(src) => {
 					this.imagePath = '/olympus/'+ this.zone.Host + '.png';
 				},
