@@ -23,4 +23,13 @@ export class ZoneService {
 			}));
 	}
 
+
+
+	hasStream(host: string): Observable<boolean> {
+		return this.httpClient.get<any>('/olympus/hls/' + host + '.m3u8').pipe(
+			map( item => {
+				return true;
+			}));
+	}
+
 }

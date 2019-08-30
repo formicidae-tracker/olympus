@@ -15,7 +15,7 @@ export class HomeComponent implements OnInit,OnDestroy {
 
     constructor(private zs : ZoneService, private title: Title) {
 		this.zones = [];
-    }
+	}
 
     ngOnInit() {
 		this.title.setTitle('Olympus: Home')
