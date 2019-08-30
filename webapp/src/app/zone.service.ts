@@ -22,14 +22,4 @@ export class ZoneService {
 				return this.adapter.adapt(item)
 			}));
 	}
-
-
-
-	hasStream(host: string): Observable<boolean> {
-		return this.httpClient.get<any>('/olympus/hls/' + host + '.m3u8').pipe(
-			map( item => {
-				return true;
-			}));
-	}
-
 }

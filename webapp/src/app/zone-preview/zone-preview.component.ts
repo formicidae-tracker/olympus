@@ -1,6 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { Zone } from '../core/zone.model';
-import { ZoneService } from '../zone.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 
 @Component({
@@ -13,18 +13,20 @@ export class ZonePreviewComponent implements OnInit {
 	imagePath: string
 
 
-    constructor(private zs : ZoneService) {
+    constructor(private httpClient : HttpClient) {
 		this.imagePath = '';
 	}
 
     ngOnInit() {
 		if ( this.zone.Name == "box" ) {
-			this.zs.hasStream(this.zone.Host).subscribe(
+			this.httpClient.get('/olympus/hls/'+ this.zone.Host + '.m3u8').subscribe(
 				(src) => {
-					if ( src == true ) {
-						this.imagePath = '/olympus/'+ this.zone.Host + '.png';
-					}
-				});
+					this.imagePath = '/olympus/'+ this.zone.Host + '.png';
+				},
+				(error) => {
+					this.imagePath = '';
+				},
+			);
 		}
     }
 }
