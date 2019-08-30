@@ -17,6 +17,7 @@ import { ZoneService } from './zone.service';
 import { ClimateChartComponent } from './climate-chart/climate-chart.component';
 import { AlarmComponent } from './alarm/alarm.component';
 import { StateComponent } from './state/state.component';
+import { VideoJsComponent } from './video-js/video-js.component';
 
 @NgModule({
     imports: [
@@ -33,7 +34,8 @@ import { StateComponent } from './state/state.component';
 		ZonePreviewComponent,
 		ClimateChartComponent,
 		AlarmComponent,
-		StateComponent
+		StateComponent,
+		VideoJsComponent
 	],
 	providers: [ZoneService],
 	bootstrap: [AppComponent]
