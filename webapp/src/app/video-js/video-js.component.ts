@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, OnDestroy, Input } from '@angular/core';
 
 import videojs from 'video.js';
 
@@ -7,7 +7,7 @@ import videojs from 'video.js';
 	templateUrl: './video-js.component.html',
 	styleUrls: ['./video-js.component.css']
 })
-export class VideoJsComponent implements OnInit,OnChanges {
+export class VideoJsComponent implements OnInit,OnChanges,OnDestroy {
 	public vjs: videojs.Player;
 	@Input() urlVideo: string;
 	@Input() urlPoster: string;
@@ -29,5 +29,11 @@ export class VideoJsComponent implements OnInit,OnChanges {
 			'poster' : this.urlPoster
 		};
 		this.vjs = videojs('my-player', options);
+	}
+
+	ngOnDestroy() {
+		if ( this.vjs != null ) {
+			this.vjs.dispose();
+		}
 	}
 }
