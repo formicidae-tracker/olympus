@@ -27,6 +27,9 @@ export class HomeComponent implements OnInit,OnDestroy {
 					this.zs.getZone(zd.Host,zd.Name).subscribe( (zone) => {
 						console.log(zone);
 						this.zones.push(zone);
+						this.zones.sort((a,b): number => {
+							return a.FullName().localeCompare(b.FullName());
+						});
 					})
 				}
 			});

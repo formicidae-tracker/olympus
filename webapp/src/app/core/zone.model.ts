@@ -50,6 +50,10 @@ export class Zone {
 		return 'success';
     }
 
+	FullName() {
+		return this.Host + '.' + this.Name;
+	}
+
     humidityStatus() {
 		if (this.Humidity < this.HumidityBounds.Min ) {
 			return 'danger';

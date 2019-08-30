@@ -15,7 +15,7 @@ export class ZoneComponent implements OnInit,OnDestroy {
     zoneName: string
     hostName: string
 	zone: Zone
-	notFound: bool
+	notFound: boolean
 	update : Subscription;
 
     constructor(private route: ActivatedRoute,
