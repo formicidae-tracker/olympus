@@ -3,12 +3,12 @@ import { Zone } from '../core/zone.model';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 
-
 @Component({
   selector: 'app-zone-preview',
   templateUrl: './zone-preview.component.html',
   styleUrls: ['./zone-preview.component.css']
 })
+
 export class ZonePreviewComponent implements OnInit {
     @Input() zone: Zone;
 	imagePath: string

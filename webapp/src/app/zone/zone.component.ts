@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Bounds,Zone } from '../core/zone.model';
 import { Subscription,timer } from 'rxjs';
 import { ZoneService } from '../zone.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Component({
 	selector: 'app-zone',
@@ -17,12 +18,17 @@ export class ZoneComponent implements OnInit,OnDestroy {
 	zone: Zone
 	notFound: boolean
 	update : Subscription;
+	streamUrl: string
+
 
     constructor(private route: ActivatedRoute,
 				private title: Title,
-				private zoneService: ZoneService) {
+				private zoneService: ZoneService,
+				private httpClient: HttpClient,
+			   ) {
 		this.zone = null;
 		this.notFound = false;
+		this.streamUrl = '';
 	}
 
     ngOnInit() {
@@ -35,6 +41,16 @@ export class ZoneComponent implements OnInit,OnDestroy {
 					(zone) => {
 						this.zone = zone;
 						this.notFound = false;
+						if ( this.zone.Name == "box" ) {
+							this.httpClient.get('/olympus/hls/'+ this.zone.Host + '.m3u8',{responseType: 'text'}).subscribe(
+								(src) => {
+									this.streamUrl = '/olympus/'+ this.zone.Host + '.m3u8';
+								},
+								(error) => {
+									this.streamUrl = '';
+								},
+							);
+						}
 					},
 					(error)  => {
 						this.zone = null;
