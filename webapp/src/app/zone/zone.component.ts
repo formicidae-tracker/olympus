@@ -15,12 +15,14 @@ export class ZoneComponent implements OnInit,OnDestroy {
     zoneName: string
     hostName: string
 	zone: Zone
+	notFound: bool
 	update : Subscription;
 
     constructor(private route: ActivatedRoute,
 				private title: Title,
 				private zoneService: ZoneService) {
 		this.zone = null;
+		this.notFound = false;
 	}
 
     ngOnInit() {
@@ -32,9 +34,11 @@ export class ZoneComponent implements OnInit,OnDestroy {
 				.subscribe(
 					(zone) => {
 						this.zone = zone;
+						this.notFound = false;
 					},
 					(error)  => {
 						this.zone = null;
+						this.notFound = true;
 					},
 					() => {
 

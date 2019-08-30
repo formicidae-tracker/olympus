@@ -49,8 +49,17 @@
   </div>
 </div>
 <div *ngIf="zone == null">
-  <div class="jumbotron">
-	<h1>{{hostName}}.{{zoneName}} does not exists</h1>
-	<p>It seems that this Dieu finished its work</p>
+
+  <div *ngIf=" notFound == true">
+	<div class="jumbotron">
+	  <h1>{{hostName}}.{{zoneName}} does not exists</h1>
+	  <p>It seems that this Dieu finished its work</p>
+	</div>
+  </div>
+  <div *ngIf=" notFound == true">
+	<div class="jumbotron">
+	  <h1>Loading {{hostName}}.{{zoneName}}</h1>
+	  <p>Firefox is often really, really slow to load this page.</p>
+	</div>
   </div>
 </div>
