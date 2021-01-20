@@ -20,6 +20,7 @@ import (
 )
 
 type Options struct {
+	Version bool   `long:"version" description:"print current version and exit"`
 	Address string `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
 	RPC     int    `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
 	NoAvahi bool   `long:"no-avahi" short:"n" description:"Do not use avahi service broadcast"`
@@ -88,6 +89,11 @@ func Execute() error {
 
 	if _, err := flags.Parse(&opts); err != nil {
 		return err
+	}
+
+	if opts.Version == true {
+		fmt.Println(OLYMPUS_VERSION)
+		return nil
 	}
 
 	h := NewOlympus()
