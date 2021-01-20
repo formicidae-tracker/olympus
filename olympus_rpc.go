@@ -27,7 +27,7 @@ type ZoneData struct {
 	alarmMap map[string]int
 }
 
-type Hermes struct {
+type Olympus struct {
 	mutex *sync.RWMutex
 	zones map[string]*ZoneData
 	log   *log.Logger
@@ -55,7 +55,7 @@ func (z *ZoneData) registerAlarm(ae *zeus.AlarmEvent) {
 	z.zone.Alarms = append(z.zone.Alarms, buildRegisteredAlarm(ae))
 }
 
-func (h *Hermes) RegisterZone(reg *zeus.ZoneRegistration, err *zeus.HermesError) error {
+func (h *Olympus) RegisterZone(reg *zeus.ZoneRegistration, unused *int) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
@@ -87,11 +87,10 @@ func (h *Hermes) RegisterZone(reg *zeus.ZoneRegistration, err *zeus.HermesError)
 
 	h.zones[reg.Fullname()] = res
 
-	*err = zeus.HermesError("")
 	return nil
 }
 
-func (h *Hermes) ZoneIsRegistered(reg *zeus.ZoneUnregistration, ok *bool) error {
+func (h *Olympus) ZoneIsRegistered(reg *zeus.ZoneUnregistration, ok *bool) error {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
@@ -99,32 +98,29 @@ func (h *Hermes) ZoneIsRegistered(reg *zeus.ZoneUnregistration, ok *bool) error 
 	return nil
 }
 
-func (h *Hermes) UnregisterZone(reg *zeus.ZoneUnregistration, err *zeus.HermesError) error {
+func (h *Olympus) UnregisterZone(reg *zeus.ZoneUnregistration, unused *int) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	z, ok := h.zones[reg.Fullname()]
 	if ok == false {
-		*err = zeus.HermesError(ZoneNotFoundError(reg.Fullname()).Error())
-		return nil
+		return ZoneNotFoundError(reg.Fullname())
 	}
 	h.log.Printf("Unregistering  %s", reg.Fullname())
 	//it will close Sample go routine
 	close(z.climate.Inbound())
 	delete(h.zones, reg.Fullname())
 
-	*err = zeus.HermesError("")
 	return nil
 }
 
-func (h *Hermes) ReportClimate(cr *zeus.NamedClimateReport, err *zeus.HermesError) error {
+func (h *Olympus) ReportClimate(cr *zeus.NamedClimateReport, unused *int) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	z, ok := h.zones[cr.ZoneIdentifier]
 	if ok == false {
-		*err = zeus.HermesError(ZoneNotFoundError(cr.ZoneIdentifier).Error())
-		return nil
+		return ZoneNotFoundError(cr.ZoneIdentifier)
 	}
 
 	z.zone.Temperature = float64((*cr).Temperatures[0])
@@ -134,18 +130,17 @@ func (h *Hermes) ReportClimate(cr *zeus.NamedClimateReport, err *zeus.HermesErro
 		Humidity:     cr.Humidity,
 		Temperatures: [4]zeus.Temperature{cr.Temperatures[0], cr.Temperatures[1], cr.Temperatures[2], cr.Temperatures[3]},
 	}
-	*err = zeus.HermesError("")
+
 	return nil
 }
 
-func (h *Hermes) ReportAlarm(ae *zeus.AlarmEvent, err *zeus.HermesError) error {
+func (h *Olympus) ReportAlarm(ae *zeus.AlarmEvent, unused *int) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	z, ok := h.zones[ae.Zone]
 	if ok == false {
-		*err = zeus.HermesError(ZoneNotFoundError(ae.Zone).Error())
-		return nil
+		return ZoneNotFoundError(ae.Zone)
 	}
 	aIdx, ok := z.alarmMap[ae.Reason]
 	if ok == false {
@@ -166,18 +161,16 @@ func (h *Hermes) ReportAlarm(ae *zeus.AlarmEvent, err *zeus.HermesError) error {
 	*z.zone.Alarms[aIdx].LastChange = ae.Time
 	//TODO: notify
 
-	*err = zeus.HermesError("")
 	return nil
 }
 
-func (h *Hermes) ReportState(sr *zeus.StateReport, err *zeus.HermesError) error {
+func (h *Olympus) ReportState(sr *zeus.StateReport, unused *int) error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	z, ok := h.zones[sr.Zone]
 	if ok == false {
-		*err = zeus.HermesError(ZoneNotFoundError(sr.Zone).Error())
-		return nil
+		return ZoneNotFoundError(sr.Zone)
 	}
 
 	if z.zone.Current == nil {
@@ -195,11 +188,10 @@ func (h *Hermes) ReportState(sr *zeus.StateReport, err *zeus.HermesError) error 
 		z.zone.NextTime = nil
 	}
 
-	*err = zeus.HermesError("")
 	return nil
 }
 
-func (h *Hermes) getZones() []RegisteredZone {
+func (h *Olympus) getZones() []RegisteredZone {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
@@ -215,7 +207,7 @@ func (h *Hermes) getZones() []RegisteredZone {
 	return res
 }
 
-func (h *Hermes) getZone(host, name string) (*RegisteredZone, error) {
+func (h *Olympus) getZone(host, name string) (*RegisteredZone, error) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
@@ -229,7 +221,7 @@ func (h *Hermes) getZone(host, name string) (*RegisteredZone, error) {
 	return res, nil
 }
 
-func (h *Hermes) getClimateReport(host, name, window string) (ClimateReportTimeSerie, error) {
+func (h *Olympus) getClimateReport(host, name, window string) (ClimateReportTimeSerie, error) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
@@ -254,8 +246,8 @@ func (h *Hermes) getClimateReport(host, name, window string) (ClimateReportTimeS
 
 }
 
-func NewHermes() *Hermes {
-	return &Hermes{
+func NewOlympus() *Olympus {
+	return &Olympus{
 		mutex: &sync.RWMutex{},
 		zones: make(map[string]*ZoneData),
 		log:   log.New(os.Stderr, "[rpc] :", log.LstdFlags),

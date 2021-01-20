@@ -90,7 +90,7 @@ func Execute() error {
 		return err
 	}
 
-	h := NewHermes()
+	h := NewOlympus()
 
 	router := mux.NewRouter()
 
