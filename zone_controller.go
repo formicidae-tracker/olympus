@@ -9,6 +9,21 @@ import (
 	"github.com/formicidae-tracker/zeus"
 )
 
+type ZoneReport struct {
+	Host              string
+	Name              string
+	NumAux            int
+	Temperature       float64
+	TemperatureBounds Bounds
+	Humidity          float64
+	HumidityBounds    Bounds
+	Current           *zeus.State
+	CurrentEnd        *zeus.State
+	Next              *zeus.State
+	NextEnd           *zeus.State
+	NextTime          *time.Time
+}
+
 type ZoneLogger interface {
 	StateChannel() chan<- zeus.StateReport
 	ReportChannel() chan<- zeus.ClimateReport
@@ -17,11 +32,21 @@ type ZoneLogger interface {
 	Done() <-chan struct{}
 	GetClimateReportSeries(window string) ClimateReportTimeSerie
 	GetAlarmsEventLog() []zeus.AlarmEvent
+	GetReport() ZoneReport
 	Close() error
 }
 
+const (
+	climateTenMinute = iota
+	climateHour
+	climateDay
+	climateWeek
+	logs
+	report
+)
+
 type namedRequest struct {
-	request string
+	request int
 	result  chan interface{}
 }
 
@@ -34,10 +59,12 @@ type zoneLogger struct {
 	sampler ClimateReportSampler
 	logs    []zeus.AlarmEvent
 
-	requests chan namedRequest
+	requests      chan namedRequest
+	currentReport ZoneReport
 }
 
-func NewZoneLogger() ZoneLogger {
+func NewZoneLogger(reg zeus.ZoneRegistration) ZoneLogger {
+
 	return &zoneLogger{
 		done:     make(chan struct{}),
 		timeout:  make(chan struct{}),
@@ -45,12 +72,31 @@ func NewZoneLogger() ZoneLogger {
 		reports:  make(chan zeus.ClimateReport, 10),
 		alarms:   make(chan zeus.AlarmEvent, 10),
 		requests: make(chan namedRequest),
+		sampler:  NewClimateReportSampler(reg.NumAux),
+		currentReport: ZoneReport{
+			Host:        reg.Host,
+			Name:        reg.Name,
+			NumAux:      reg.NumAux,
+			Temperature: 0.0,
+			TemperatureBounds: Bounds{
+				Min: reg.MinTemperature,
+				Max: reg.MaxTemperature,
+			},
+			Humidity: 0.0,
+			HumidityBounds: Bounds{
+				Min: reg.MinHumidity,
+				Max: reg.MaxHumidity,
+			},
+		},
 	}
-
 }
 
 func (l *zoneLogger) pushClimate(cr zeus.ClimateReport) {
 	l.sampler.Add(cr)
+	if len(cr.Temperatures) > 0 {
+		l.currentReport.Temperature = float64(cr.Temperatures[0])
+	}
+	l.currentReport.Humidity = float64(cr.Humidity)
 }
 
 func (l *zoneLogger) pushLog(ae zeus.AlarmEvent) {
@@ -67,12 +113,35 @@ func (l *zoneLogger) pushLog(ae zeus.AlarmEvent) {
 	}
 }
 
-func (l *zoneLogger) pushState(ae zeus.StateReport) {
-
+func (l *zoneLogger) pushState(sr zeus.StateReport) {
+	l.currentReport.Current = &sr.Current
+	l.currentReport.CurrentEnd = sr.CurrentEnd
+	if sr.Next != nil && sr.NextTime != nil {
+		l.currentReport.Next = sr.Next
+		l.currentReport.NextTime = sr.NextTime
+		l.currentReport.NextEnd = sr.NextEnd
+	} else {
+		l.currentReport.Next = nil
+		l.currentReport.NextEnd = nil
+		l.currentReport.NextTime = nil
+	}
 }
 
 func (l *zoneLogger) handleRequest(r namedRequest) {
-	close(r.result)
+	requestHandlers := map[int]func() interface{}{
+		climateTenMinute: func() interface{} { return l.sampler.LastTenMinutes() },
+		climateHour:      func() interface{} { return l.sampler.LastHour() },
+		climateDay:       func() interface{} { return l.sampler.LastDay() },
+		climateWeek:      func() interface{} { return l.sampler.LastWeek() },
+		logs:             func() interface{} { return l.copyLogs() },
+		report:           func() interface{} { return l.currentReport },
+	}
+	defer close(r.result)
+	h, ok := requestHandlers[r.request]
+	if ok == false {
+		return
+	}
+	r.result <- h()
 }
 
 func (l *zoneLogger) mainLoop() {
@@ -143,16 +212,23 @@ func (l *zoneLogger) Done() <-chan struct{} {
 
 func (l *zoneLogger) GetClimateReportSeries(window string) ClimateReportTimeSerie {
 	returnChannel := make(chan interface{})
-	l.requests <- namedRequest{result: returnChannel}
+	l.requests <- namedRequest{request: l.fromWindow(window), result: returnChannel}
 	res := <-returnChannel
 	return res.(ClimateReportTimeSerie)
 }
 
 func (l *zoneLogger) GetAlarmsEventLog() []zeus.AlarmEvent {
 	returnChannel := make(chan interface{})
-	l.requests <- namedRequest{result: returnChannel}
+	l.requests <- namedRequest{request: logs, result: returnChannel}
 	res := <-returnChannel
 	return res.([]zeus.AlarmEvent)
+}
+
+func (l *zoneLogger) GetReport() ZoneReport {
+	returnChannel := make(chan interface{})
+	l.requests <- namedRequest{request: report, result: returnChannel}
+	res := <-returnChannel
+	return res.(ZoneReport)
 }
 
 func (l *zoneLogger) Close() (err error) {

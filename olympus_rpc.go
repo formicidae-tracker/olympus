@@ -187,7 +187,6 @@ func (h *Olympus) ReportState(sr *zeus.StateReport, unused *int) error {
 		z.zone.NextEnd = nil
 		z.zone.NextTime = nil
 	}
-
 	return nil
 }
 
