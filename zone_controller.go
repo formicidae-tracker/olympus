@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -49,12 +50,25 @@ func NewZoneLogger() ZoneLogger {
 }
 
 func (l *zoneLogger) pushClimate(cr zeus.ClimateReport) {
+	l.sampler.Add(cr)
 }
 
 func (l *zoneLogger) pushLog(ae zeus.AlarmEvent) {
+	needSort := false
+	if len(l.logs) > 0 {
+		needSort = l.logs[len(l.logs)-1].Time.After(ae.Time)
+	}
+	ae.Zone = ""
+	l.logs = append(l.logs, ae)
+	if needSort == true {
+		sort.Slice(l.logs, func(i int, j int) bool {
+			return l.logs[i].Time.Before(l.logs[j].Time)
+		})
+	}
 }
 
 func (l *zoneLogger) pushState(ae zeus.StateReport) {
+
 }
 
 func (l *zoneLogger) handleRequest(r namedRequest) {
@@ -93,7 +107,7 @@ func (l *zoneLogger) mainLoop() {
 			l.pushState(sr)
 		case req := <-l.requests:
 			l.handleRequest(req)
-		case <-tick:
+		case <-tick.C:
 			if seen == false {
 				once.Do(func() {
 					close(l.timeout)
