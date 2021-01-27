@@ -65,7 +65,9 @@ func (l *zoneLogger) mainLoop() {
 	defer close(l.done)
 
 	once := sync.Once{}
-	dp, deadline := NewDeadlinePusher(20 * time.Second)
+	seen := false
+	tick := time.NewTicker(20 * time.Second)
+	defer tick.Stop()
 	for {
 		select {
 		case cr, ok := <-l.reports:
@@ -73,33 +75,31 @@ func (l *zoneLogger) mainLoop() {
 				l.reports = nil
 				continue
 			}
-			deadline = dp.Push()
+			seen = true
 			l.pushClimate(cr)
 		case ae, ok := <-l.alarms:
 			if ok == false {
 				l.alarms = nil
 				continue
 			}
-			deadline = dp.Push()
+			seen = true
 			l.pushLog(ae)
 		case sr, ok := <-l.states:
 			if ok == false {
 				l.states = nil
 				continue
 			}
-			deadline = dp.Push()
+			seen = true
 			l.pushState(sr)
 		case req := <-l.requests:
 			l.handleRequest(req)
-		case now := <-deadline:
-			deadline = dp.Check(now)
-			if deadline != nil {
-				continue
+		case <-tick:
+			if seen == false {
+				once.Do(func() {
+					close(l.timeout)
+				})
 			}
-			// we need to do it
-			once.Do(func() {
-				close(l.timeout)
-			})
+			seen = false
 		}
 		if l.reports == nil && l.alarms == nil && l.states == nil {
 			return
