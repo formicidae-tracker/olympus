@@ -36,7 +36,7 @@ type Olympus struct {
 func buildRegisteredAlarm(ae *zeus.AlarmEvent) RegisteredAlarm {
 	res := RegisteredAlarm{
 		Reason:     ae.Reason,
-		Level:      zeus.MapPriority(ae.Priority),
+		Level:      zeus.MapPriority(ae.Flags),
 		LastChange: &time.Time{},
 		Triggers:   0,
 		On:         false,
@@ -78,7 +78,7 @@ func (h *Olympus) RegisterZone(reg *zeus.ZoneRegistration, unused *int) error {
 				nil, nil,
 			},
 		},
-		climate:  NewClimateReportManager(),
+		climate:  NewClimateReportManager(reg.NumAux),
 		alarmMap: make(map[string]int),
 	}
 	go func() {
@@ -128,7 +128,7 @@ func (h *Olympus) ReportClimate(cr *zeus.NamedClimateReport, unused *int) error 
 	z.climate.Inbound() <- zeus.ClimateReport{
 		Time:         cr.Time,
 		Humidity:     cr.Humidity,
-		Temperatures: [4]zeus.Temperature{cr.Temperatures[0], cr.Temperatures[1], cr.Temperatures[2], cr.Temperatures[3]},
+		Temperatures: cr.Temperatures,
 	}
 
 	return nil

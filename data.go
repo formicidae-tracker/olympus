@@ -6,16 +6,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/formicidae-tracker/zeus"
 	"github.com/dgryski/go-lttb"
+	"github.com/formicidae-tracker/zeus"
 )
 
 type ClimateReportTimeSerie struct {
-	Humidity        []lttb.Point
-	TemperatureAnt  []lttb.Point
-	TemperatureAux1 []lttb.Point
-	TemperatureAux2 []lttb.Point
-	TemperatureAux3 []lttb.Point
+	NumAux         int
+	Humidity       []lttb.Point
+	TemperatureAnt []lttb.Point
+	TemperatureAux [][]lttb.Point
 }
 
 type ClimateReportManager interface {
@@ -47,7 +46,8 @@ type climateReportManager struct {
 	requests     chan request
 	quit         chan struct{}
 	wg           sync.WaitGroup
-	downsamplers []rollingDownsampler
+	numAux       int
+	downsamplers [][]*rollingDownsampler
 	start        *time.Time
 }
 
@@ -58,8 +58,8 @@ type rollingDownsampler struct {
 	points    []lttb.Point
 }
 
-func newRollingDownsampler(period float64, nbSamples int) rollingDownsampler {
-	res := rollingDownsampler{
+func newRollingDownsampler(period float64, nbSamples int) *rollingDownsampler {
+	res := &rollingDownsampler{
 		xPeriod:   period,
 		threshold: nbSamples,
 		points:    make([]lttb.Point, 0, nbSamples),
@@ -92,37 +92,62 @@ func (m *climateReportManager) addReportUnsafe(r *zeus.ClimateReport) {
 		m.start = &time.Time{}
 		*m.start = r.Time
 	}
+	if len(r.Temperatures) != 1+m.numAux {
+		return
+	}
 	ellapsed := r.Time.Sub(*m.start).Seconds()
 	for i := 0; i < int(NbWindow); i++ {
-		m.downsamplers[5*i].add(lttb.Point{X: ellapsed, Y: float64(r.Humidity)})
-		for j := 0; j < 4; j++ {
-			m.downsamplers[5*i+j+1].add(lttb.Point{X: ellapsed, Y: float64(r.Temperatures[j])})
+		for _, downsamplers := range m.downsamplers {
+			downsamplers[0].add(lttb.Point{X: ellapsed, Y: float64(r.Humidity)})
+			for i, d := range downsamplers[1:] {
+				d.add(lttb.Point{X: ellapsed, Y: float64(r.Temperatures[i])})
+			}
 		}
 	}
 }
 
 const (
-	humidityTenMinutesIdx = iota
-	temperatureAntTenMinutesIdx
-	temperatureAux1TenMinutesIdx
-	temperatureAux2TenMinutesIdx
-	temperatureAux3TenMinutesIdx
-	humidityHourIdx
-	temperatureAntHourIdx
-	temperatureAux1HourIdx
-	temperatureAux2HourIdx
-	temperatureAux3HourIdx
-	humidityDayIdx
-	temperatureAntDayIdx
-	temperatureAux1DayIdx
-	temperatureAux2DayIdx
-	temperatureAux3DayIdx
-	humidityWeekIdx
-	temperatureAntWeekIdx
-	temperatureAux1WeekIdx
-	temperatureAux2WeekIdx
-	temperatureAux3WeekIdx
+	TenMinutesIdx = 0
+	HourIdx       = 1
+	DayIdx        = 2
+	WeekIdx       = 3
 )
+
+func windowToIndex(w window) int {
+	switch w {
+	case tenMinutes:
+		return TenMinutesIdx
+	case hour:
+		return HourIdx
+	case day:
+		return DayIdx
+	case week:
+		return WeekIdx
+	default:
+		return -1
+	}
+}
+
+func (m *climateReportManager) reportSeries(w window) ClimateReportTimeSerie {
+	idx := windowToIndex(w)
+	if idx == -1 {
+		return ClimateReportTimeSerie{}
+	}
+	d := m.downsamplers[idx]
+	res := ClimateReportTimeSerie{
+		NumAux:         m.numAux,
+		Humidity:       d[0].getPoints(),
+		TemperatureAnt: d[1].getPoints(),
+		TemperatureAux: nil,
+	}
+	if m.numAux > 0 {
+		for _, auxD := range d[2:] {
+			res.TemperatureAux = append(res.TemperatureAux, auxD.getPoints())
+		}
+	}
+
+	return res
+}
 
 func (m *climateReportManager) Sample() {
 	m.quit = make(chan struct{})
@@ -133,42 +158,7 @@ func (m *climateReportManager) Sample() {
 	for {
 		select {
 		case r := <-m.requests:
-			switch r.w {
-			case tenMinutes:
-				r.result <- ClimateReportTimeSerie{
-					Humidity:        m.downsamplers[humidityTenMinutesIdx].getPoints(),
-					TemperatureAnt:  m.downsamplers[temperatureAntTenMinutesIdx].getPoints(),
-					TemperatureAux1: m.downsamplers[temperatureAux1TenMinutesIdx].getPoints(),
-					TemperatureAux2: m.downsamplers[temperatureAux2TenMinutesIdx].getPoints(),
-					TemperatureAux3: m.downsamplers[temperatureAux3TenMinutesIdx].getPoints(),
-				}
-			case hour:
-				r.result <- ClimateReportTimeSerie{
-					Humidity:        m.downsamplers[humidityHourIdx].getPoints(),
-					TemperatureAnt:  m.downsamplers[temperatureAntHourIdx].getPoints(),
-					TemperatureAux1: m.downsamplers[temperatureAux1HourIdx].getPoints(),
-					TemperatureAux2: m.downsamplers[temperatureAux2HourIdx].getPoints(),
-					TemperatureAux3: m.downsamplers[temperatureAux3HourIdx].getPoints(),
-				}
-			case day:
-				r.result <- ClimateReportTimeSerie{
-					Humidity:        m.downsamplers[humidityDayIdx].getPoints(),
-					TemperatureAnt:  m.downsamplers[temperatureAntDayIdx].getPoints(),
-					TemperatureAux1: m.downsamplers[temperatureAux1DayIdx].getPoints(),
-					TemperatureAux2: m.downsamplers[temperatureAux2DayIdx].getPoints(),
-					TemperatureAux3: m.downsamplers[temperatureAux3DayIdx].getPoints(),
-				}
-			case week:
-				r.result <- ClimateReportTimeSerie{
-					Humidity:        m.downsamplers[humidityWeekIdx].getPoints(),
-					TemperatureAnt:  m.downsamplers[temperatureAntWeekIdx].getPoints(),
-					TemperatureAux1: m.downsamplers[temperatureAux1WeekIdx].getPoints(),
-					TemperatureAux2: m.downsamplers[temperatureAux2WeekIdx].getPoints(),
-					TemperatureAux3: m.downsamplers[temperatureAux3WeekIdx].getPoints(),
-				}
-			default:
-				r.result <- ClimateReportTimeSerie{}
-			}
+			r.result <- m.reportSeries(r.w)
 		case r, ok := <-m.inbound:
 			if ok == false {
 				return
@@ -223,40 +213,38 @@ const (
 	weekSamples       = 500
 )
 
-func NewClimateReportManager() ClimateReportManager {
-	return &climateReportManager{
+func NewClimateReportManager(numAux int) ClimateReportManager {
+	res := &climateReportManager{
+		numAux:   numAux,
 		inbound:  make(chan zeus.ClimateReport),
 		requests: make(chan request),
-		downsamplers: []rollingDownsampler{
-			newRollingDownsampler(10*time.Minute.Seconds(), tenMinutesSamples),
-			newRollingDownsampler(10*time.Minute.Seconds(), tenMinutesSamples),
-			newRollingDownsampler(10*time.Minute.Seconds(), tenMinutesSamples),
-			newRollingDownsampler(10*time.Minute.Seconds(), tenMinutesSamples),
-			newRollingDownsampler(10*time.Minute.Seconds(), tenMinutesSamples),
-			newRollingDownsampler(time.Hour.Seconds(), hourSamples),
-			newRollingDownsampler(time.Hour.Seconds(), hourSamples),
-			newRollingDownsampler(time.Hour.Seconds(), hourSamples),
-			newRollingDownsampler(time.Hour.Seconds(), hourSamples),
-			newRollingDownsampler(time.Hour.Seconds(), hourSamples),
-			newRollingDownsampler(24*time.Hour.Seconds(), daySamples),
-			newRollingDownsampler(24*time.Hour.Seconds(), daySamples),
-			newRollingDownsampler(24*time.Hour.Seconds(), daySamples),
-			newRollingDownsampler(24*time.Hour.Seconds(), daySamples),
-			newRollingDownsampler(24*time.Hour.Seconds(), daySamples),
-			newRollingDownsampler(7*24*time.Hour.Seconds(), weekSamples),
-			newRollingDownsampler(7*24*time.Hour.Seconds(), weekSamples),
-			newRollingDownsampler(7*24*time.Hour.Seconds(), weekSamples),
-			newRollingDownsampler(7*24*time.Hour.Seconds(), weekSamples),
-			newRollingDownsampler(7*24*time.Hour.Seconds(), weekSamples),
-		},
 	}
+	cData := []struct {
+		NbSample int
+		Window   time.Duration
+	}{
+		{500, 10 * time.Minute},
+		{500, 1 * time.Hour},
+		{500, 24 * time.Hour},
+		{500, 7 * 24 * time.Hour},
+	}
+	for _, d := range cData {
+		var dsamplers []*rollingDownsampler
+		dsamplers = append(dsamplers, newRollingDownsampler(d.Window.Seconds(), d.NbSample))
+		dsamplers = append(dsamplers, newRollingDownsampler(d.Window.Seconds(), d.NbSample))
+		for i := 0; i < numAux; i++ {
+			dsamplers = append(dsamplers, newRollingDownsampler(d.Window.Seconds(), d.NbSample))
+		}
+		res.downsamplers = append(res.downsamplers, dsamplers)
+	}
+	return res
 }
 
 var stubClimateReporter ClimateReportManager
 
 func setClimateReporterStub() {
 
-	stubClimateReporter = NewClimateReportManager()
+	stubClimateReporter = NewClimateReportManager(3)
 	end := time.Now()
 	start := end.Add(-7 * 24 * time.Hour)
 	go stubClimateReporter.Sample()
@@ -267,7 +255,7 @@ func setClimateReporterStub() {
 			toAdd := zeus.ClimateReport{
 				Time:     t,
 				Humidity: zeus.Humidity(40.0 + 3*math.Cos(2*math.Pi/200.0*ellapsed) + 0.5*rand.NormFloat64()),
-				Temperatures: [4]zeus.Temperature{
+				Temperatures: []zeus.Temperature{
 					zeus.Temperature(20.0 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
 					zeus.Temperature(20.5 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
 					zeus.Temperature(21.0 + 0.5*math.Cos(2*math.Pi/1800.0*ellapsed) + 0.1*rand.NormFloat64()),
@@ -277,8 +265,10 @@ func setClimateReporterStub() {
 			stubClimateReporter.Inbound() <- toAdd
 		}
 		toPrint := []interface{}{}
-		for _, d := range stubClimateReporter.(*climateReportManager).downsamplers {
-			toPrint = append(toPrint, len(d.points))
+		for _, dsamplers := range stubClimateReporter.(*climateReportManager).downsamplers {
+			for _, d := range dsamplers {
+				toPrint = append(toPrint, len(d.points))
+			}
 		}
 	}()
 }

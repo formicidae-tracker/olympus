@@ -3,8 +3,8 @@ package main
 import (
 	"time"
 
-	"github.com/formicidae-tracker/zeus"
 	"github.com/formicidae-tracker/libarke/src-go/arke"
+	"github.com/formicidae-tracker/zeus"
 )
 
 type RegisteredAlarm struct {
@@ -23,6 +23,7 @@ type Bounds struct {
 type RegisteredZone struct {
 	Host              string
 	Name              string
+	NumAux            int
 	Temperature       float64
 	TemperatureBounds Bounds
 	Humidity          float64
@@ -73,10 +74,10 @@ func init() {
 			On:       false,
 			Triggers: 0,
 		}
-		if a.Priority() == zeus.Warning {
-			aa.Level = 1
-		} else {
+		if a.Flags()&zeus.Emergency != 0 {
 			aa.Level = 2
+		} else {
+			aa.Level = 1
 		}
 
 		stubZone.Alarms = append(stubZone.Alarms, aa)
