@@ -47,44 +47,8 @@ type climateReportManager struct {
 	quit         chan struct{}
 	wg           sync.WaitGroup
 	numAux       int
-	downsamplers [][]*rollingDownsampler
+	downsamplers [][]DataRollingSampler
 	start        *time.Time
-}
-
-type rollingDownsampler struct {
-	xPeriod   float64
-	threshold int
-	sampled   bool
-	points    []lttb.Point
-}
-
-func newRollingDownsampler(period float64, nbSamples int) *rollingDownsampler {
-	res := &rollingDownsampler{
-		xPeriod:   period,
-		threshold: nbSamples,
-		points:    make([]lttb.Point, 0, nbSamples),
-	}
-	return res
-}
-
-func (d *rollingDownsampler) add(p lttb.Point) {
-	d.points = append(d.points, p)
-	idx := 0
-	last := d.points[len(d.points)-1].X
-	for {
-		if (last - d.points[idx].X) <= d.xPeriod {
-			break
-		}
-		idx += 1
-	}
-
-	if idx != 0 {
-		d.points = d.points[idx:]
-	}
-}
-
-func (d *rollingDownsampler) getPoints() []lttb.Point {
-	return lttb.LTTB(d.points, d.threshold)
 }
 
 func (m *climateReportManager) addReportUnsafe(r *zeus.ClimateReport) {
@@ -95,12 +59,12 @@ func (m *climateReportManager) addReportUnsafe(r *zeus.ClimateReport) {
 	if len(r.Temperatures) != 1+m.numAux {
 		return
 	}
-	ellapsed := r.Time.Sub(*m.start).Seconds()
+	ellapsed := r.Time.Sub(*m.start)
 	for i := 0; i < int(NbWindow); i++ {
 		for _, downsamplers := range m.downsamplers {
-			downsamplers[0].add(lttb.Point{X: ellapsed, Y: float64(r.Humidity)})
+			downsamplers[0].Add(ellapsed, float64(r.Humidity))
 			for i, d := range downsamplers[1:] {
-				d.add(lttb.Point{X: ellapsed, Y: float64(r.Temperatures[i])})
+				d.Add(ellapsed, float64(r.Temperatures[i]))
 			}
 		}
 	}
@@ -136,13 +100,13 @@ func (m *climateReportManager) reportSeries(w window) ClimateReportTimeSerie {
 	d := m.downsamplers[idx]
 	res := ClimateReportTimeSerie{
 		NumAux:         m.numAux,
-		Humidity:       d[0].getPoints(),
-		TemperatureAnt: d[1].getPoints(),
+		Humidity:       d[0].TimeSerie(),
+		TemperatureAnt: d[1].TimeSerie(),
 		TemperatureAux: nil,
 	}
 	if m.numAux > 0 {
 		for _, auxD := range d[2:] {
-			res.TemperatureAux = append(res.TemperatureAux, auxD.getPoints())
+			res.TemperatureAux = append(res.TemperatureAux, auxD.TimeSerie())
 		}
 	}
 
@@ -229,11 +193,11 @@ func NewClimateReportManager(numAux int) ClimateReportManager {
 		{500, 7 * 24 * time.Hour},
 	}
 	for _, d := range cData {
-		var dsamplers []*rollingDownsampler
-		dsamplers = append(dsamplers, newRollingDownsampler(d.Window.Seconds(), d.NbSample))
-		dsamplers = append(dsamplers, newRollingDownsampler(d.Window.Seconds(), d.NbSample))
+		var dsamplers []DataRollingSampler
+		dsamplers = append(dsamplers, NewRollingSampler(d.Window, d.NbSample))
+		dsamplers = append(dsamplers, NewRollingSampler(d.Window, d.NbSample))
 		for i := 0; i < numAux; i++ {
-			dsamplers = append(dsamplers, newRollingDownsampler(d.Window.Seconds(), d.NbSample))
+			dsamplers = append(dsamplers, NewRollingSampler(d.Window, d.NbSample))
 		}
 		res.downsamplers = append(res.downsamplers, dsamplers)
 	}
@@ -267,7 +231,7 @@ func setClimateReporterStub() {
 		toPrint := []interface{}{}
 		for _, dsamplers := range stubClimateReporter.(*climateReportManager).downsamplers {
 			for _, d := range dsamplers {
-				toPrint = append(toPrint, len(d.points))
+				toPrint = append(toPrint, len(d.(*rollingDownsampler).points))
 			}
 		}
 	}()
