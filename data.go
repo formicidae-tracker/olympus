@@ -6,16 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgryski/go-lttb"
 	"github.com/formicidae-tracker/zeus"
 )
-
-type ClimateReportTimeSerie struct {
-	NumAux         int
-	Humidity       []lttb.Point
-	TemperatureAnt []lttb.Point
-	TemperatureAux [][]lttb.Point
-}
 
 type ClimateReportManager interface {
 	Sample()
@@ -99,7 +91,6 @@ func (m *climateReportManager) reportSeries(w window) ClimateReportTimeSerie {
 	}
 	d := m.downsamplers[idx]
 	res := ClimateReportTimeSerie{
-		NumAux:         m.numAux,
 		Humidity:       d[0].TimeSerie(),
 		TemperatureAnt: d[1].TimeSerie(),
 		TemperatureAux: nil,
