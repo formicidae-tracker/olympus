@@ -34,3 +34,16 @@ func (s *DataRollingSamplerSuite) TestSamplesData(c *C) {
 	}
 
 }
+
+func (s *DataRollingSamplerSuite) TestAlwaysXSortData(c *C) {
+	sampler := NewRollingSampler(time.Minute, 60)
+	for i := 0; i < 120; i++ {
+		t := time.Duration(rand.Intn(60000)) * time.Millisecond
+		sampler.Add(t, 1.0)
+	}
+	result := sampler.TimeSerie()
+	for i := 1; i < len(result); i++ {
+		c.Check(result[i-1].X <= result[i].X, Equals, true, Commentf(" at index %i in %v", i, result))
+	}
+
+}

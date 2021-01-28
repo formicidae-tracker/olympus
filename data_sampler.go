@@ -17,36 +17,37 @@ type DataRollingSampler interface {
 }
 
 type rollingDownsampler struct {
-	xPeriod   float64
-	threshold int
-	points    []lttb.Point
+	window           float64
+	samples          int
+	samplesThreshold int
+	points           []lttb.Point
 }
 
 func NewRollingSampler(window time.Duration, nbSamples int) DataRollingSampler {
 	res := &rollingDownsampler{
-		xPeriod:   window.Seconds(),
-		threshold: nbSamples,
-		points:    make([]lttb.Point, 0, nbSamples),
+		window:           window.Seconds(),
+		samples:          int(0.9 * float64(nbSamples)),
+		samplesThreshold: nbSamples,
+		points:           make([]lttb.Point, 0, nbSamples),
 	}
 	return res
 }
 
 func (d *rollingDownsampler) Add(t time.Duration, v float64) {
-	d.points = append(d.points, lttb.Point{t.Seconds(), v})
-	idx := 0
-	last := d.points[len(d.points)-1].X
-	for {
-		if (last - d.points[idx].X) <= d.xPeriod {
-			break
-		}
-		idx += 1
-	}
+	x := t.Seconds()
+	i := BackLinearSearch(len(d.points), func(i int) bool { return d.points[i].X <= x }) + 1
+	d.points = append(d.points, lttb.Point{})
+	copy(d.points[i+1:], d.points[i:])
+	d.points[i] = lttb.Point{x, v}
 
-	if idx != 0 {
-		d.points = d.points[idx:]
-	}
+	last := d.points[len(d.points)-1].X
+	start := LinearSearch(len(d.points), func(i int) bool { return (last - d.points[i].X) <= d.window })
+	d.points = d.points[start:]
 }
 
 func (d *rollingDownsampler) TimeSerie() []lttb.Point {
-	return lttb.LTTB(d.points, d.threshold)
+	if len(d.points) >= d.samplesThreshold {
+		d.points = lttb.LTTB(d.points, d.samples)
+	}
+	return d.points
 }
