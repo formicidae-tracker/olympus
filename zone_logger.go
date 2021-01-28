@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
@@ -100,17 +99,12 @@ func (l *zoneLogger) pushClimate(cr zeus.ClimateReport) {
 }
 
 func (l *zoneLogger) pushLog(ae zeus.AlarmEvent) {
-	needSort := false
-	if len(l.logs) > 0 {
-		needSort = l.logs[len(l.logs)-1].Time.After(ae.Time)
-	}
 	ae.Zone = ""
-	l.logs = append(l.logs, ae)
-	if needSort == true {
-		sort.Slice(l.logs, func(i int, j int) bool {
-			return l.logs[i].Time.Before(l.logs[j].Time)
-		})
-	}
+	// insert sort the event, in most cases, it will simply append it
+	i := BackLinearSearch(len(l.logs), func(i int) bool { return l.logs[i].Time.Before(ae.Time) }) + 1
+	l.logs = append(l.logs, zeus.AlarmEvent{})
+	copy(l.logs[i+1:], l.logs[i:])
+	l.logs[i] = ae
 }
 
 func (l *zoneLogger) pushState(sr zeus.StateReport) {
@@ -133,7 +127,7 @@ func (l *zoneLogger) handleRequest(r namedRequest) {
 		climateHour:      func() interface{} { return l.sampler.LastHour() },
 		climateDay:       func() interface{} { return l.sampler.LastDay() },
 		climateWeek:      func() interface{} { return l.sampler.LastWeek() },
-		logs:             func() interface{} { return l.copyLogs() },
+		logs:             func() interface{} { return append([]zeus.AlarmEvent(nil), l.logs...) },
 		report:           func() interface{} { return l.currentReport },
 	}
 	defer close(r.result)
@@ -208,6 +202,26 @@ func (l *zoneLogger) Timeouted() <-chan struct{} {
 
 func (l *zoneLogger) Done() <-chan struct{} {
 	return l.done
+}
+
+var stringToRequestInt = map[string]int{
+	"10-minute":  climateTenMinute,
+	"10m":        climateTenMinute,
+	"10-minutes": climateTenMinute,
+	"1h":         climateHour,
+	"hour":       climateHour,
+	"1d":         climateDay,
+	"day":        climateDay,
+	"1w":         climateWeek,
+	"week":       climateWeek,
+}
+
+func (l *zoneLogger) fromWindow(window string) int {
+	rValue, ok := stringToRequestInt[window]
+	if ok == false {
+		return climateTenMinute
+	}
+	return rValue
 }
 
 func (l *zoneLogger) GetClimateReportSeries(window string) ClimateReportTimeSerie {
