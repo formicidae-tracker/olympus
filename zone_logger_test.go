@@ -83,10 +83,10 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 	for i := 0; i < 20; i++ {
 		t := start.Add(time.Duration(rand.Intn(2000000)) * time.Millisecond)
 		s.l.AlarmChannel() <- zeus.AlarmEvent{
-			Time:   t,
-			Reason: "foo",
-			Zone:   "should dissappear",
-			Status: zeus.AlarmStatus(i % 2),
+			Time:           t,
+			Reason:         "foo",
+			ZoneIdentifier: "should dissappear",
+			Status:         zeus.AlarmStatus(i % 2),
 		}
 	}
 	logs := s.l.GetAlarmsEventLog()

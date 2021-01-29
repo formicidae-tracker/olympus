@@ -6,7 +6,7 @@ require (
 	github.com/atuleu/golang-socketcan v0.2.1 // indirect
 	github.com/dgryski/go-lttb v0.0.0-20180810165845-318fcdf10a77
 	github.com/formicidae-tracker/libarke/src-go/arke v1.0.0
-	github.com/formicidae-tracker/zeus v0.3.0-rc2
+	github.com/formicidae-tracker/zeus v0.3.1-rc3
 	github.com/gorilla/mux v1.7.2
 	github.com/grandcat/zeroconf v0.0.0-20190424104450-85eadb44205c
 	github.com/jessevdk/go-flags v1.4.0

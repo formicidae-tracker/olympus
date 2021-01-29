@@ -93,7 +93,6 @@ func (l *zoneLogger) pushClimate(cr zeus.ClimateReport) {
 }
 
 func (l *zoneLogger) pushLog(ae zeus.AlarmEvent) {
-	ae.Zone = ""
 	// insert sort the event, in most cases, it will simply append it
 	i := BackLinearSearch(len(l.logs), func(i int) bool { return l.logs[i].Time.Before(ae.Time) }) + 1
 	l.logs = append(l.logs, AlarmEvent{})

@@ -19,6 +19,8 @@ github.com/formicidae-tracker/zeus v0.3.0-rc2/go.mod h1:awjn9gXmygLibinNPfWjEJeD
 github.com/formicidae-tracker/zeus v0.3.0/go.mod h1:awjn9gXmygLibinNPfWjEJeD20lIM8ZSEAqiAS108ho=
 github.com/formicidae-tracker/zeus v0.3.1-rc1 h1:KfU/7LdTpvigKxmJGJk84LxixtskkBjK6lkEiCZSzH0=
 github.com/formicidae-tracker/zeus v0.3.1-rc1/go.mod h1:awjn9gXmygLibinNPfWjEJeD20lIM8ZSEAqiAS108ho=
+github.com/formicidae-tracker/zeus v0.3.1-rc3 h1:kqy3ID2P30Nr3xOiZ4T0SQ+xxlHKG1gpgPuNfKMJR8w=
+github.com/formicidae-tracker/zeus v0.3.1-rc3/go.mod h1:awjn9gXmygLibinNPfWjEJeD20lIM8ZSEAqiAS108ho=
 github.com/go-test/deep v1.0.4/go.mod h1:wGDj63lr65AM2AQyKZd/NYHGb0R+1RLqB8NKt3aSFNA=
 github.com/golang/mock v1.2.0/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfbm0A=
 github.com/gorilla/mux v1.7.0/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=

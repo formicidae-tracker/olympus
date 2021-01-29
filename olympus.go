@@ -20,6 +20,13 @@ func (z ZoneNotFoundError) Error() string {
 	return fmt.Sprintf("olympus: unknown zone '%s'", z.Zone)
 }
 
+type ServiceEvent struct {
+	ZoneIdentifier string
+	Time           time.Time
+	On             bool
+	Graceful       bool
+}
+
 type Olympus struct {
 	mx    *sync.RWMutex
 	zones map[string]ZoneLogger
@@ -33,25 +40,25 @@ func (o *Olympus) GetZones() []ZoneReportSummary {
 	return o.getZones()
 }
 
-func (o *Olympus) GetClimateReport(zoneIdent, window string) (ClimateReportTimeSerie, error) {
+func (o *Olympus) GetClimateReport(zoneIdentifier, window string) (ClimateReportTimeSerie, error) {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
 
-	return o.getClimateReport(zoneIdent, window)
+	return o.getClimateReport(zoneIdentifier, window)
 }
 
-func (o *Olympus) GetZone(zoneIdent string) (ZoneReport, error) {
+func (o *Olympus) GetZone(zoneIdentifier string) (ZoneReport, error) {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
 
-	return o.getZoneReport(zoneIdent)
+	return o.getZoneReport(zoneIdentifier)
 }
 
-func (o *Olympus) GetAlarmEventLog(zoneIdent string) ([]AlarmEvent, error) {
+func (o *Olympus) GetAlarmEventLog(zoneIdentifier string) ([]AlarmEvent, error) {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
 
-	return o.getAlarmEventLog(zoneIdent)
+	return o.getAlarmEventLog(zoneIdentifier)
 }
 
 func (o *Olympus) RegisterZone(zr *zeus.ZoneRegistration, unused *int) error {
@@ -65,7 +72,7 @@ func (o *Olympus) UnregisterZone(zr *zeus.ZoneUnregistration, unused *int) error
 	o.mx.Lock()
 	defer o.mx.Unlock()
 
-	return o.unregisterZone(zeus.ZoneIdentifier(zr.Host, zr.Name))
+	return o.unregisterZone(zeus.ZoneIdentifier(zr.Host, zr.Name), true)
 }
 
 func (o *Olympus) ReportClimate(cr *zeus.NamedClimateReport, unused *int) error {
@@ -89,6 +96,20 @@ func (o *Olympus) ReportState(sr *zeus.StateReport, unused *int) error {
 	return o.reportState(*sr)
 }
 
+func (o *Olympus) RegisterTracker(hostname string, unused *int) error {
+	o.mx.Lock()
+	defer o.mx.RUnlock()
+
+	return fmt.Errorf("not yet implemented")
+}
+
+func (o *Olympus) UnregisterTracker(hostname string, unused *int) error {
+	o.mx.Lock()
+	defer o.mx.RUnlock()
+
+	return fmt.Errorf("not yet implemented")
+}
+
 func (o *Olympus) getZones() []ZoneReportSummary {
 	res := make([]ZoneReportSummary, 0, len(o.zones))
 	for _, z := range o.zones {
@@ -103,26 +124,26 @@ func (o *Olympus) getZones() []ZoneReportSummary {
 	return res
 }
 
-func (o *Olympus) getClimateReport(zoneName, window string) (ClimateReportTimeSerie, error) {
-	z, ok := o.zones[zoneName]
+func (o *Olympus) getClimateReport(zoneIdentifier, window string) (ClimateReportTimeSerie, error) {
+	z, ok := o.zones[zoneIdentifier]
 	if ok == false {
-		return ClimateReportTimeSerie{}, ZoneNotFoundError{zoneName}
+		return ClimateReportTimeSerie{}, ZoneNotFoundError{zoneIdentifier}
 	}
 	return z.GetClimateReportSeries(window), nil
 }
 
-func (o *Olympus) getZoneReport(zoneName string) (ZoneReport, error) {
-	z, ok := o.zones[zoneName]
+func (o *Olympus) getZoneReport(zoneIdentifier string) (ZoneReport, error) {
+	z, ok := o.zones[zoneIdentifier]
 	if ok == false {
-		return ZoneReport{}, ZoneNotFoundError{zoneName}
+		return ZoneReport{}, ZoneNotFoundError{zoneIdentifier}
 	}
 	return z.GetReport(), nil
 }
 
-func (o *Olympus) getAlarmEventLog(zoneName string) ([]AlarmEvent, error) {
-	z, ok := o.zones[zoneName]
+func (o *Olympus) getAlarmEventLog(zoneIdentifier string) ([]AlarmEvent, error) {
+	z, ok := o.zones[zoneIdentifier]
 	if ok == false {
-		return nil, ZoneNotFoundError{zoneName}
+		return nil, ZoneNotFoundError{zoneIdentifier}
 	}
 	return z.GetAlarmsEventLog(), nil
 }
@@ -137,32 +158,32 @@ func (o *Olympus) reportClimate(cr zeus.NamedClimateReport) error {
 }
 
 func (o *Olympus) reportAlarm(ae zeus.AlarmEvent) error {
-	z, ok := o.zones[ae.Zone]
+	z, ok := o.zones[ae.ZoneIdentifier]
 	if ok == false {
-		return ZoneNotFoundError{ae.Zone}
+		return ZoneNotFoundError{ae.ZoneIdentifier}
 	}
 	z.AlarmChannel() <- ae
 	return nil
 }
 
 func (o *Olympus) reportState(sr zeus.StateReport) error {
-	z, ok := o.zones[sr.Zone]
+	z, ok := o.zones[sr.ZoneIdentifier]
 	if ok == false {
-		return ZoneNotFoundError{sr.Zone}
+		return ZoneNotFoundError{sr.ZoneIdentifier}
 	}
 	z.StateChannel() <- sr
 	return nil
 }
 
-func (o *Olympus) unregisterZone(zoneName string) error {
-	z, ok := o.zones[zoneName]
+func (o *Olympus) unregisterZone(zoneIdentifier string, graceful bool) error {
+	z, ok := o.zones[zoneIdentifier]
 	if ok == false {
-		return ZoneNotFoundError{zoneName}
+		return ZoneNotFoundError{zoneIdentifier}
 	}
-	o.log.Printf("unregistering %s", zoneName)
+	o.log.Printf("unregistering %s", zoneIdentifier)
 	err := z.Close()
-	o.log.Printf("unregister %s: error: %s:", zoneName, err)
-	delete(o.zones, zoneName)
+	o.log.Printf("unregister %s: error: %s:", zoneIdentifier, err)
+	delete(o.zones, zoneIdentifier)
 
 	return nil
 }
@@ -175,7 +196,7 @@ func (o *Olympus) watchTimeout(logger ZoneLogger) {
 		o.log.Printf("%s timeouted, unregistering", logger.Fullname())
 		o.mx.Lock()
 		defer o.mx.Unlock()
-		err := o.unregisterZone(logger.Fullname())
+		err := o.unregisterZone(logger.Fullname(), false)
 		if err != nil {
 			o.log.Printf("timeout unregistering error: %s", err)
 		}
@@ -259,13 +280,13 @@ func (o *Olympus) fetchBackLog(logger ZoneLogger, zr *zeus.ZoneRegistration) {
 }
 
 func (o *Olympus) registerZone(zr *zeus.ZoneRegistration) error {
-	zoneName := zr.Fullname()
-	_, ok := o.zones[zoneName]
+	zoneIdentifier := zr.ZoneIdentifier()
+	_, ok := o.zones[zoneIdentifier]
 	if ok == true {
-		return fmt.Errorf("%s is already registered", zoneName)
+		return fmt.Errorf("%s is already registered", zoneIdentifier)
 	}
 	logger := NewZoneLogger(*zr, 30*time.Second)
-	o.zones[zoneName] = logger
+	o.zones[zoneIdentifier] = logger
 	go o.watchTimeout(logger)
 	go o.fetchBackLog(logger, zr)
 	return nil
