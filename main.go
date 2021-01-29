@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/formicidae-tracker/zeus"
 	"github.com/gorilla/mux"
 	"github.com/grandcat/zeroconf"
 	"github.com/jessevdk/go-flags"
@@ -101,13 +102,13 @@ func Execute() error {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/zones", func(w http.ResponseWriter, r *http.Request) {
-		res := h.getZones()
+		res := h.GetZones()
 		JSON(w, &res)
 	}).Methods("GET")
 
 	router.HandleFunc("/api/host/{hname}/zone/{zname}/climate-report", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		res, err := h.getClimateReport(vars["hname"], vars["zname"], r.URL.Query().Get("window"))
+		res, err := h.GetClimateReport(zeus.ZoneIdentifier(vars["hname"], vars["zname"]), r.URL.Query().Get("window"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -116,7 +117,7 @@ func Execute() error {
 
 	router.HandleFunc("/api/host/{hname}/zone/{zname}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		res, err := h.getZone(vars["hname"], vars["zname"])
+		res, err := h.GetZone(zeus.ZoneIdentifier(vars["hname"], vars["zname"]))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

@@ -4,15 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dgryski/go-lttb"
 	"github.com/formicidae-tracker/zeus"
 )
-
-type ClimateReportTimeSerie struct {
-	Humidity       []lttb.Point
-	TemperatureAnt []lttb.Point
-	TemperatureAux [][]lttb.Point
-}
 
 type ClimateReportSampler interface {
 	Add(zeus.ClimateReport) error
@@ -53,6 +46,7 @@ func (s *climateReportSampler) timeSerieUnsafe(samplers []DataRollingSampler) Cl
 		Humidity:       samplers[0].TimeSerie(),
 		TemperatureAnt: samplers[1].TimeSerie(),
 	}
+
 	if len(samplers) == 2 {
 		return res
 	}

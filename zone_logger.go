@@ -8,29 +8,15 @@ import (
 	"github.com/formicidae-tracker/zeus"
 )
 
-type ZoneReport struct {
-	Host              string
-	Name              string
-	NumAux            int
-	Temperature       float64
-	TemperatureBounds Bounds
-	Humidity          float64
-	HumidityBounds    Bounds
-	Current           *zeus.State
-	CurrentEnd        *zeus.State
-	Next              *zeus.State
-	NextEnd           *zeus.State
-	NextTime          *time.Time
-}
-
 type ZoneLogger interface {
+	Fullname() string
 	StateChannel() chan<- zeus.StateReport
 	ReportChannel() chan<- zeus.ClimateReport
 	AlarmChannel() chan<- zeus.AlarmEvent
 	Timeouted() <-chan struct{}
 	Done() <-chan struct{}
 	GetClimateReportSeries(window string) ClimateReportTimeSerie
-	GetAlarmsEventLog() []zeus.AlarmEvent
+	GetAlarmsEventLog() []AlarmEvent
 	GetReport() ZoneReport
 	Close() error
 }
@@ -56,38 +42,46 @@ type zoneLogger struct {
 	alarms        chan zeus.AlarmEvent
 
 	sampler ClimateReportSampler
-	logs    []zeus.AlarmEvent
+	logs    []AlarmEvent
 
 	requests      chan namedRequest
 	currentReport ZoneReport
+
+	timeoutPeriod time.Duration
 }
 
-func NewZoneLogger(reg zeus.ZoneRegistration) ZoneLogger {
+func NewZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneLogger {
 
-	return &zoneLogger{
-		done:     make(chan struct{}),
-		timeout:  make(chan struct{}),
-		states:   make(chan zeus.StateReport, 2),
-		reports:  make(chan zeus.ClimateReport, 10),
-		alarms:   make(chan zeus.AlarmEvent, 10),
-		requests: make(chan namedRequest),
-		sampler:  NewClimateReportSampler(reg.NumAux),
+	res := &zoneLogger{
+		done:          make(chan struct{}),
+		timeout:       make(chan struct{}),
+		states:        make(chan zeus.StateReport, 2),
+		reports:       make(chan zeus.ClimateReport, 10),
+		alarms:        make(chan zeus.AlarmEvent, 10),
+		requests:      make(chan namedRequest),
+		sampler:       NewClimateReportSampler(reg.NumAux),
+		timeoutPeriod: timeoutPeriod,
 		currentReport: ZoneReport{
-			Host:        reg.Host,
-			Name:        reg.Name,
-			NumAux:      reg.NumAux,
-			Temperature: 0.0,
-			TemperatureBounds: Bounds{
-				Min: reg.MinTemperature,
-				Max: reg.MaxTemperature,
+			ZoneReportSummary: ZoneReportSummary{
+				Host: reg.Host,
+				Name: reg.Name,
+
+				Temperature: 0.0,
+				TemperatureBounds: Bounds{
+					Min: reg.MinTemperature,
+					Max: reg.MaxTemperature,
+				},
+				Humidity: 0.0,
+				HumidityBounds: Bounds{
+					Min: reg.MinHumidity,
+					Max: reg.MaxHumidity,
+				},
 			},
-			Humidity: 0.0,
-			HumidityBounds: Bounds{
-				Min: reg.MinHumidity,
-				Max: reg.MaxHumidity,
-			},
+			NumAux: reg.NumAux,
 		},
 	}
+	go res.mainLoop()
+	return res
 }
 
 func (l *zoneLogger) pushClimate(cr zeus.ClimateReport) {
@@ -102,9 +96,14 @@ func (l *zoneLogger) pushLog(ae zeus.AlarmEvent) {
 	ae.Zone = ""
 	// insert sort the event, in most cases, it will simply append it
 	i := BackLinearSearch(len(l.logs), func(i int) bool { return l.logs[i].Time.Before(ae.Time) }) + 1
-	l.logs = append(l.logs, zeus.AlarmEvent{})
+	l.logs = append(l.logs, AlarmEvent{})
 	copy(l.logs[i+1:], l.logs[i:])
-	l.logs[i] = ae
+	l.logs[i] = AlarmEvent{
+		Reason: ae.Reason,
+		Level:  zeus.MapPriority(ae.Flags),
+		On:     ae.Status == zeus.AlarmOn,
+		Time:   ae.Time,
+	}
 }
 
 func (l *zoneLogger) pushState(sr zeus.StateReport) {
@@ -127,7 +126,7 @@ func (l *zoneLogger) handleRequest(r namedRequest) {
 		climateHour:      func() interface{} { return l.sampler.LastHour() },
 		climateDay:       func() interface{} { return l.sampler.LastDay() },
 		climateWeek:      func() interface{} { return l.sampler.LastWeek() },
-		logs:             func() interface{} { return append([]zeus.AlarmEvent(nil), l.logs...) },
+		logs:             func() interface{} { return append([]AlarmEvent(nil), l.logs...) },
 		report:           func() interface{} { return l.currentReport },
 	}
 	defer close(r.result)
@@ -143,9 +142,13 @@ func (l *zoneLogger) mainLoop() {
 
 	once := sync.Once{}
 	seen := false
-	tick := time.NewTicker(20 * time.Second)
+	tick := time.NewTicker(l.timeoutPeriod)
 	defer tick.Stop()
 	for {
+		if l.reports == nil && l.alarms == nil && l.states == nil {
+			return
+		}
+
 		select {
 		case cr, ok := <-l.reports:
 			if ok == false {
@@ -177,9 +180,6 @@ func (l *zoneLogger) mainLoop() {
 				})
 			}
 			seen = false
-		}
-		if l.reports == nil && l.alarms == nil && l.states == nil {
-			return
 		}
 	}
 }
@@ -231,11 +231,11 @@ func (l *zoneLogger) GetClimateReportSeries(window string) ClimateReportTimeSeri
 	return res.(ClimateReportTimeSerie)
 }
 
-func (l *zoneLogger) GetAlarmsEventLog() []zeus.AlarmEvent {
+func (l *zoneLogger) GetAlarmsEventLog() []AlarmEvent {
 	returnChannel := make(chan interface{})
 	l.requests <- namedRequest{request: logs, result: returnChannel}
 	res := <-returnChannel
-	return res.([]zeus.AlarmEvent)
+	return res.([]AlarmEvent)
 }
 
 func (l *zoneLogger) GetReport() ZoneReport {
@@ -248,7 +248,7 @@ func (l *zoneLogger) GetReport() ZoneReport {
 func (l *zoneLogger) Close() (err error) {
 	defer func() {
 		if recover() != nil {
-			err = fmt.Errorf("already closed")
+			err = fmt.Errorf("ZoneLogger: already closed")
 		}
 		<-l.done
 	}()
@@ -258,4 +258,8 @@ func (l *zoneLogger) Close() (err error) {
 	close(l.states)
 
 	return nil
+}
+
+func (l *zoneLogger) Fullname() string {
+	return l.currentReport.Fullname()
 }

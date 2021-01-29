@@ -33,21 +33,39 @@ func NewRollingSampler(window time.Duration, nbSamples int) DataRollingSampler {
 	return res
 }
 
-func (d *rollingDownsampler) Add(t time.Duration, v float64) {
-	x := t.Seconds()
+func (d *rollingDownsampler) outdated(x float64) bool {
+	if len(d.points) != 0 && (d.points[len(d.points)-1].X-x) > d.window {
+		return true
+	}
+	return false
+}
+
+func (d *rollingDownsampler) insertionSort(x, v float64) {
 	i := BackLinearSearch(len(d.points), func(i int) bool { return d.points[i].X <= x }) + 1
 	d.points = append(d.points, lttb.Point{})
 	copy(d.points[i+1:], d.points[i:])
 	d.points[i] = lttb.Point{x, v}
+}
 
+func (d *rollingDownsampler) rollOut() {
 	last := d.points[len(d.points)-1].X
 	start := LinearSearch(len(d.points), func(i int) bool { return (last - d.points[i].X) <= d.window })
 	d.points = d.points[start:]
+}
+
+func (d *rollingDownsampler) Add(t time.Duration, v float64) {
+	x := t.Seconds()
+	if d.outdated(x) == true {
+		// we may get back outdated data, we can skip it
+		return
+	}
+	d.insertionSort(x, v)
+	d.rollOut()
 }
 
 func (d *rollingDownsampler) TimeSerie() []lttb.Point {
 	if len(d.points) >= d.samplesThreshold {
 		d.points = lttb.LTTB(d.points, d.samples)
 	}
-	return d.points
+	return append([]lttb.Point(nil), d.points...)
 }
