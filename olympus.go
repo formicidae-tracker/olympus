@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/rpc"
@@ -15,6 +17,7 @@ import (
 	"time"
 
 	"github.com/formicidae-tracker/zeus"
+	"github.com/gorilla/mux"
 )
 
 type ZoneNotFoundError struct {
@@ -401,5 +404,73 @@ func (o *Olympus) unregisterTracker(hostname string, graceful bool) error {
 	o.trackingLogger.Log(hostname, false, graceful)
 	delete(o.watchers, hostname)
 	return nil
+
+}
+
+func (o *Olympus) route(router *mux.Router) {
+	router.HandleFunc("/api/zones", func(w http.ResponseWriter, r *http.Request) {
+		res := o.GetZones()
+		JSONify(w, &res)
+	}).Methods("GET")
+
+	router.HandleFunc("/api/host/{hname}/zone/{zname}/climate", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		res, err := o.GetClimateReport(zeus.ZoneIdentifier(vars["hname"], vars["zname"]), r.URL.Query().Get("window"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		JSONify(w, &res)
+	}).Methods("GET")
+
+	router.HandleFunc("/api/host/{hname}/zone/{zname}/alarms", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		res, err := o.GetAlarmEventLog(zeus.ZoneIdentifier(vars["hname"], vars["zname"]))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		JSONify(w, &res)
+	}).Methods("GET")
+
+	router.HandleFunc("/api/host/{hname}/zone/{zname}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		res, err := o.GetZone(zeus.ZoneIdentifier(vars["hname"], vars["zname"]))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		JSONify(w, &res)
+	}).Methods("GET")
+
+	router.HandleFunc("/api/tracking/{hname}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		err := o.UnregisterTracker(vars["hname"])
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Error(w, "OK", http.StatusOK)
+	}).Methods("DELETE")
+
+	router.HandleFunc("/api/tracking", func(w http.ResponseWriter, r *http.Request) {
+		data, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		args := LetoTrackingRegister{}
+		err = json.Unmarshal(data, &args)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = o.RegisterTracker(args.Host, args.URL)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Error(w, "OK", http.StatusOK)
+	}).Methods("POST")
 
 }

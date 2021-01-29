@@ -59,3 +59,7 @@ type ZoneClimateReport struct {
 	NextEnd    *zeus.State
 	NextTime   *time.Time
 }
+
+type LetoTrackingRegister struct {
+	Host, URL string
+}
