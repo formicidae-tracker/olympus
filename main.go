@@ -97,7 +97,7 @@ func Execute() error {
 		return nil
 	}
 
-	h := NewOlympus()
+	h := NewOlympus("http://localhost/olympus/")
 
 	router := mux.NewRouter()
 

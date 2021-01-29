@@ -9,7 +9,9 @@ import (
 )
 
 type ZoneLogger interface {
-	Fullname() string
+	Host() string
+	ZoneName() string
+	ZoneIdentifier() string
 	StateChannel() chan<- zeus.StateReport
 	ReportChannel() chan<- zeus.ClimateReport
 	AlarmChannel() chan<- zeus.AlarmEvent
@@ -17,7 +19,7 @@ type ZoneLogger interface {
 	Done() <-chan struct{}
 	GetClimateReportSeries(window string) ClimateReportTimeSerie
 	GetAlarmsEventLog() []AlarmEvent
-	GetReport() ZoneReport
+	GetReport() ZoneClimateReport
 	Close() error
 }
 
@@ -45,7 +47,8 @@ type zoneLogger struct {
 	logs    []AlarmEvent
 
 	requests      chan namedRequest
-	currentReport ZoneReport
+	host, name    string
+	currentReport ZoneClimateReport
 
 	timeoutPeriod time.Duration
 }
@@ -61,11 +64,11 @@ func NewZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneL
 		requests:      make(chan namedRequest),
 		sampler:       NewClimateReportSampler(reg.NumAux),
 		timeoutPeriod: timeoutPeriod,
-		currentReport: ZoneReport{
-			ZoneReportSummary: ZoneReportSummary{
-				Host: reg.Host,
-				Name: reg.Name,
+		host:          reg.Host,
+		name:          reg.Name,
 
+		currentReport: ZoneClimateReport{
+			ZoneClimateStatus: ZoneClimateStatus{
 				Temperature: 0.0,
 				TemperatureBounds: Bounds{
 					Min: reg.MinTemperature,
@@ -237,11 +240,11 @@ func (l *zoneLogger) GetAlarmsEventLog() []AlarmEvent {
 	return res.([]AlarmEvent)
 }
 
-func (l *zoneLogger) GetReport() ZoneReport {
+func (l *zoneLogger) GetReport() ZoneClimateReport {
 	returnChannel := make(chan interface{})
 	l.requests <- namedRequest{request: report, result: returnChannel}
 	res := <-returnChannel
-	return res.(ZoneReport)
+	return res.(ZoneClimateReport)
 }
 
 func (l *zoneLogger) Close() (err error) {
@@ -259,6 +262,14 @@ func (l *zoneLogger) Close() (err error) {
 	return nil
 }
 
-func (l *zoneLogger) Fullname() string {
-	return l.currentReport.Fullname()
+func (l *zoneLogger) Host() string {
+	return l.host
+}
+
+func (l *zoneLogger) ZoneName() string {
+	return l.name
+}
+
+func (l *zoneLogger) ZoneIdentifier() string {
+	return zeus.ZoneIdentifier(l.host, l.name)
 }

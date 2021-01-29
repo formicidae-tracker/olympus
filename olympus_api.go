@@ -14,6 +14,13 @@ type AlarmEvent struct {
 	Time   time.Time
 }
 
+type ServiceEvent struct {
+	Identifier string
+	Time       time.Time
+	On         bool
+	Graceful   bool
+}
+
 type Bounds struct {
 	Min *float64
 	Max *float64
@@ -25,25 +32,29 @@ type ClimateReportTimeSerie struct {
 	TemperatureAux [][]lttb.Point
 }
 
-type ZoneReportSummary struct {
-	Host              string
-	Name              string
+type ZoneClimateStatus struct {
 	Temperature       float64
 	Humidity          float64
 	TemperatureBounds Bounds
 	HumidityBounds    Bounds
 	ActiveAlarmLevels []int
 }
-type ZoneReport struct {
-	ZoneReportSummary
+
+type ZoneReportSummary struct {
+	Host string
+	Name string
+
+	Climate *ZoneClimateStatus
+
+	StreamURL string
+}
+
+type ZoneClimateReport struct {
+	ZoneClimateStatus
 	NumAux     int
 	Current    *zeus.State
 	CurrentEnd *zeus.State
 	Next       *zeus.State
 	NextEnd    *zeus.State
 	NextTime   *time.Time
-}
-
-func (r *ZoneReport) Fullname() string {
-	return zeus.ZoneIdentifier(r.Host, r.Name)
 }
