@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/rpc"
@@ -114,14 +112,14 @@ func (o *Olympus) ReportState(sr *zeus.StateReport, unused *int) error {
 	return o.reportState(*sr)
 }
 
-func (o *Olympus) RegisterTracker(hostname, streamURI string) error {
+func (o *Olympus) RegisterTracker(args LetoTrackingRegister, unused *int) error {
 	o.mxTracking.Lock()
 	defer o.mxTracking.Unlock()
 
-	return o.registerTracker(hostname, streamURI)
+	return o.registerTracker(args.Host, args.URL)
 }
 
-func (o *Olympus) UnregisterTracker(hostname string) error {
+func (o *Olympus) UnregisterTracker(hostname string, unused *int) error {
 	o.mxTracking.Lock()
 	defer o.mxTracking.Unlock()
 	return o.unregisterTracker(hostname, true)
@@ -382,7 +380,11 @@ func (o *Olympus) fetchOnlineTrackingError(streamServerBaseURL string) error {
 		}
 		URL := path.Clean(path.Join(streamServerBaseURL, l))
 		host := strings.TrimSuffix(path.Base(l), ext)
-		go o.RegisterTracker(host, URL)
+		go func() {
+			o.mxTracking.Lock()
+			defer o.mxTracking.Unlock()
+			o.registerTracker(host, URL)
+		}()
 	}
 }
 
@@ -442,35 +444,5 @@ func (o *Olympus) route(router *mux.Router) {
 		}
 		JSONify(w, &res)
 	}).Methods("GET")
-
-	router.HandleFunc("/api/tracking/{hname}", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		err := o.UnregisterTracker(vars["hname"])
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		http.Error(w, "OK", http.StatusOK)
-	}).Methods("DELETE")
-
-	router.HandleFunc("/api/tracking", func(w http.ResponseWriter, r *http.Request) {
-		data, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		args := LetoTrackingRegister{}
-		err = json.Unmarshal(data, &args)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = o.RegisterTracker(args.Host, args.URL)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		http.Error(w, "OK", http.StatusOK)
-	}).Methods("POST")
 
 }
