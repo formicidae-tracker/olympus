@@ -21,6 +21,33 @@ type ZoneNotFoundError struct {
 	Zone string
 }
 
+type multipleError []error
+
+func appendError(e multipleError, errors ...error) multipleError {
+	for _, err := range errors {
+		if err == nil {
+			continue
+		}
+		e = append(e, err)
+	}
+	return e
+}
+
+func (m multipleError) Error() string {
+	if len(m) == 0 {
+		return ""
+	}
+	if len(m) == 1 {
+		return m[0].Error()
+	}
+
+	res := "multiple errors:"
+	for _, e := range m {
+		res += "\n" + e.Error()
+	}
+	return res
+}
+
 func (z ZoneNotFoundError) Error() string {
 	return fmt.Sprintf("olympus: unknown zone '%s'", z.Zone)
 }
@@ -53,15 +80,17 @@ func (o *Olympus) Close() error {
 	defer o.mxTracking.Unlock()
 	defer o.mxClimate.Unlock()
 
+	var err multipleError = nil
+
 	for _, logger := range o.zones {
-		logger.Close()
+		err = appendError(err, logger.Close())
 	}
 	o.zones = nil
 	for _, watcher := range o.watchers {
-		watcher.Close()
+		err = appendError(err, watcher.Close())
 	}
 	o.watchers = nil
-	return nil
+	return err
 }
 
 func (o *Olympus) GetZones() []ZoneReportSummary {
@@ -146,21 +175,25 @@ func (o *Olympus) getZones() []ZoneReportSummary {
 	for _, z := range o.zones {
 		status := z.GetReport().ZoneClimateStatus
 		sum := ZoneReportSummary{
-			Host:      z.Host(),
-			Name:      z.ZoneName(),
-			StreamURL: o.watchers[z.Host()].StreamURL(),
-			Climate:   &status,
+			Host:    z.Host(),
+			Name:    z.ZoneName(),
+			Climate: &status,
 		}
+		if w, ok := o.watchers[z.Host()]; ok == true {
+			sum.StreamURL = w.StreamURL()
+		}
+
 		res = append(res, sum)
 	}
 	for host, watcher := range o.watchers {
-		if _, ok := o.zones[host]; ok == true {
-			res = append(res, ZoneReportSummary{
-				Host:      host,
-				Name:      "box",
-				StreamURL: watcher.StreamURL(),
-			})
+		if _, ok := o.zones[zeus.ZoneIdentifier(host, "box")]; ok == true {
+			continue
 		}
+		res = append(res, ZoneReportSummary{
+			Host:      host,
+			Name:      "box",
+			StreamURL: watcher.StreamURL(),
+		})
 	}
 
 	sort.Slice(res, func(i, j int) bool {
