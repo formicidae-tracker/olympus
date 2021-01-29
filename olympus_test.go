@@ -20,33 +20,32 @@ var _ = Suite(&OlympusSuite{})
 
 func (s *OlympusSuite) SetUpTest(c *C) {
 	s.o = NewOlympus("")
-	unused := 0
-	c.Check(s.o.RegisterZone(&zeus.ZoneRegistration{
+	c.Check(s.o.RegisterZone(zeus.ZoneRegistration{
 		Host:   "somehost",
 		Name:   "box",
 		NumAux: 0,
-	}, &unused), IsNil)
-	c.Check(s.o.RegisterZone(&zeus.ZoneRegistration{
+	}), IsNil)
+	c.Check(s.o.RegisterZone(zeus.ZoneRegistration{
 		Host:   "another",
 		Name:   "box",
 		NumAux: 0,
-	}, &unused), IsNil)
+	}), IsNil)
 
-	c.Check(s.o.RegisterZone(&zeus.ZoneRegistration{
+	c.Check(s.o.RegisterZone(zeus.ZoneRegistration{
 		Host:   "another",
 		Name:   "tunnel",
 		NumAux: 0,
-	}, &unused), IsNil)
+	}), IsNil)
 
 	c.Check(s.o.RegisterTracker(LetoTrackingRegister{
 		Host: "somehost",
 		URL:  "/somehost.m3u8",
-	}, &unused), IsNil)
+	}), IsNil)
 
 	c.Check(s.o.RegisterTracker(LetoTrackingRegister{
 		Host: "fifou",
 		URL:  "/fifou.m3u8",
-	}, &unused), IsNil)
+	}), IsNil)
 
 }
 
@@ -55,23 +54,22 @@ func (s *OlympusSuite) TearDownTest(c *C) {
 }
 
 func (s *OlympusSuite) TestReportClimate(c *C) {
-	unused := 0
-	c.Check(s.o.ReportClimate(&zeus.NamedClimateReport{
+	c.Check(s.o.ReportClimate(zeus.NamedClimateReport{
 		ZoneIdentifier: "isnotthere/zone/box",
-	}, &unused), ErrorMatches, "olympus: unknown zone '.*'")
+	}), ErrorMatches, "olympus: unknown zone '.*'")
 
-	c.Check(s.o.ReportClimate(&zeus.NamedClimateReport{
+	c.Check(s.o.ReportClimate(zeus.NamedClimateReport{
 		ZoneIdentifier: "somehost/zone/tunnel",
-	}, &unused), ErrorMatches, "olympus: unknown zone '.*'")
+	}), ErrorMatches, "olympus: unknown zone '.*'")
 
 	for i := 0; i < 20; i++ {
-		c.Check(s.o.ReportClimate(&zeus.NamedClimateReport{
+		c.Check(s.o.ReportClimate(zeus.NamedClimateReport{
 			ClimateReport: zeus.ClimateReport{
 				Humidity:     20.0,
 				Temperatures: []zeus.Temperature{20},
 			},
 			ZoneIdentifier: "somehost/zone/box",
-		}, &unused), IsNil)
+		}), IsNil)
 	}
 	start := time.Now()
 	series, _ := s.o.GetClimateReport("somehost/zone/box", "10m")

@@ -57,7 +57,7 @@ func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
 
 func setUpRpcServer(o *Olympus, opts Options) GracefulServer {
 	rpcRouter := rpc.NewServer()
-	rpcRouter.Register(o)
+	rpcRouter.RegisterName("Olympus", (*OlympusRPCWrapper)(o))
 	rpcRouter.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
 	rpcServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", opts.RPC),
@@ -85,6 +85,7 @@ func Execute() error {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
+		log.Printf("[http]: listening on %s", opts.Address)
 		err := httpServer.Run()
 		if err != nil {
 			log.Printf("[http]: unhandled error: %s", err)
@@ -94,6 +95,7 @@ func Execute() error {
 
 	wg.Add(1)
 	go func() {
+		log.Printf("[rpc]: listening on :%d", opts.RPC)
 		err := rpcServer.Run()
 		if err != nil {
 			log.Printf("[rpc]: unhandled error: %s", err)
@@ -120,7 +122,6 @@ func Execute() error {
 
 func main() {
 	if err := Execute(); err != nil {
-		log.Printf("Unhandled error: %s", err)
-		os.Exit(1)
+		log.Fatalf("Unhandled error: %s", err)
 	}
 }

@@ -90,6 +90,9 @@ func (o *Olympus) Close() error {
 		err = appendError(err, watcher.Close())
 	}
 	o.watchers = nil
+	if len(err) == 0 {
+		return nil
+	}
 	return err
 }
 
@@ -122,49 +125,49 @@ func (o *Olympus) GetAlarmEventLog(zoneIdentifier string) ([]AlarmEvent, error) 
 	return o.getAlarmEventLog(zoneIdentifier)
 }
 
-func (o *Olympus) RegisterZone(zr *zeus.ZoneRegistration, unused *int) error {
+func (o *Olympus) RegisterZone(zr zeus.ZoneRegistration) error {
 	o.mxClimate.Lock()
 	defer o.mxClimate.Unlock()
 
 	return o.registerZone(zr)
 }
 
-func (o *Olympus) UnregisterZone(zr *zeus.ZoneUnregistration, unused *int) error {
+func (o *Olympus) UnregisterZone(zr zeus.ZoneUnregistration) error {
 	o.mxClimate.Lock()
 	defer o.mxClimate.Unlock()
 
 	return o.unregisterZone(zr.Host, zr.Name, true)
 }
 
-func (o *Olympus) ReportClimate(cr *zeus.NamedClimateReport, unused *int) error {
+func (o *Olympus) ReportClimate(cr zeus.NamedClimateReport) error {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
 
-	return o.reportClimate(*cr)
+	return o.reportClimate(cr)
 }
 
-func (o *Olympus) ReportAlarm(ae *zeus.AlarmEvent, unused *int) error {
+func (o *Olympus) ReportAlarm(ae zeus.AlarmEvent) error {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
 
-	return o.reportAlarm(*ae)
+	return o.reportAlarm(ae)
 }
 
-func (o *Olympus) ReportState(sr *zeus.StateReport, unused *int) error {
+func (o *Olympus) ReportState(sr zeus.StateReport) error {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
 
-	return o.reportState(*sr)
+	return o.reportState(sr)
 }
 
-func (o *Olympus) RegisterTracker(args LetoTrackingRegister, unused *int) error {
+func (o *Olympus) RegisterTracker(args LetoTrackingRegister) error {
 	o.mxTracking.Lock()
 	defer o.mxTracking.Unlock()
 
 	return o.registerTracker(args.Host, args.URL)
 }
 
-func (o *Olympus) UnregisterTracker(hostname string, unused *int) error {
+func (o *Olympus) UnregisterTracker(hostname string) error {
 	o.mxTracking.Lock()
 	defer o.mxTracking.Unlock()
 	return o.unregisterTracker(hostname, true)
@@ -334,7 +337,7 @@ func (o *Olympus) fetchBackAlarmLog(logger ZoneLogger, c *rpc.Client, name strin
 	return nil
 }
 
-func (o *Olympus) fetchBackLogError(logger ZoneLogger, zr *zeus.ZoneRegistration) (err error) {
+func (o *Olympus) fetchBackLogError(logger ZoneLogger, zr zeus.ZoneRegistration) (err error) {
 	// race condition, since we are not behind the mutex anymore,
 	// logger could be closed before we finish fetching logs. We just recover in that case.
 	defer func() {
@@ -354,7 +357,7 @@ func (o *Olympus) fetchBackLogError(logger ZoneLogger, zr *zeus.ZoneRegistration
 	return o.fetchBackAlarmLog(logger, c, zr.Name, zr.SizeAlarmLog)
 }
 
-func (o *Olympus) fetchBackLog(logger ZoneLogger, zr *zeus.ZoneRegistration) {
+func (o *Olympus) fetchBackLog(logger ZoneLogger, zr zeus.ZoneRegistration) {
 	if len(zr.RPCAddress) == 0 || (zr.SizeClimateLog == 0 && zr.SizeAlarmLog == 0) {
 		return
 	}
@@ -363,14 +366,14 @@ func (o *Olympus) fetchBackLog(logger ZoneLogger, zr *zeus.ZoneRegistration) {
 	}
 }
 
-func (o *Olympus) registerZone(zr *zeus.ZoneRegistration) error {
+func (o *Olympus) registerZone(zr zeus.ZoneRegistration) error {
 	zoneIdentifier := zr.ZoneIdentifier()
 	_, ok := o.zones[zoneIdentifier]
 	if ok == true {
 		return fmt.Errorf("%s is already registered", zoneIdentifier)
 	}
 	o.climateLogger.Log(zr.Host+"."+zr.Name, true, true)
-	logger := NewZoneLogger(*zr)
+	logger := NewZoneLogger(zr)
 	o.zones[zoneIdentifier] = logger
 	go o.watchTimeout(logger, zr.Host, zr.Name)
 	go o.fetchBackLog(logger, zr)
