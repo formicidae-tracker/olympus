@@ -48,6 +48,23 @@ func NewOlympus(streamServerBaseURL string) *Olympus {
 	return res
 }
 
+func (o *Olympus) Close() error {
+	o.mxClimate.Lock()
+	o.mxTracking.Lock()
+	defer o.mxTracking.Unlock()
+	defer o.mxClimate.Unlock()
+
+	for _, logger := range o.zones {
+		logger.Close()
+	}
+	o.zones = nil
+	for _, watcher := range o.watchers {
+		watcher.Close()
+	}
+	o.watchers = nil
+	return nil
+}
+
 func (o *Olympus) GetZones() []ZoneReportSummary {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()

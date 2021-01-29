@@ -115,7 +115,7 @@ func Execute() error {
 
 	wg.Wait()
 
-	return nil
+	return o.Close()
 }
 
 func main() {
