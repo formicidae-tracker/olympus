@@ -80,29 +80,81 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 
 func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 	start := time.Now().Round(0)
-	for i := 0; i < 20; i++ {
-		t := start.Add(time.Duration(rand.Intn(2000000)) * time.Millisecond)
-		s.l.AlarmChannel() <- zeus.AlarmEvent{
-			Time:           t,
-			Reason:         "foo",
-			ZoneIdentifier: "should dissappear",
-			Status:         zeus.AlarmStatus(i % 2),
-		}
+
+	events := []zeus.AlarmEvent{
+		zeus.AlarmEvent{
+			Reason: "foo",
+			Flags:  zeus.Warning | zeus.InstantNotification,
+		},
+		zeus.AlarmEvent{
+			Reason: "bar",
+			Flags:  zeus.Emergency,
+		},
+		zeus.AlarmEvent{
+			Reason: "baz",
+			Flags:  zeus.Warning,
+		},
 	}
+
+	lastState := map[string]struct {
+		Time time.Time
+		On   bool
+	}{}
+
+	for i := 0; i < 200; i++ {
+		r := rand.Intn(2000000)
+		t := start.Add(time.Duration(r) * time.Millisecond)
+		on := r%2 == 0
+		ae := events[i%3]
+		ae.Time = t
+		ae.Status = zeus.AlarmStatus(r % 2)
+		ls := lastState[ae.Reason]
+		if ls.Time.Before(t) {
+			ls.Time = t
+			ls.On = on
+			lastState[ae.Reason] = ls
+		}
+		s.l.AlarmChannel() <- ae
+	}
+
 	logs := s.l.GetAlarmsEventLog()
-	for ; len(logs) < 20; logs = s.l.GetAlarmsEventLog() {
+	for ; len(logs) < 200; logs = s.l.GetAlarmsEventLog() {
 		if time.Now().After(start.Add(500*time.Millisecond)) == true {
 			c.Fatalf("Did not received all logs afer 500ms")
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	for i, _ := range logs {
+	for i, l := range logs {
+		switch l.Reason {
+		case "foo":
+			c.Check(l.Level, Equals, 1)
+		case "bar":
+			c.Check(l.Level, Equals, 2)
+		case "baz":
+			c.Check(l.Level, Equals, 1)
+		}
 		if i == 0 {
 			continue
 		}
 		c.Check(logs[i-1].Time.After(logs[i].Time), Equals, false)
+
 	}
 
+	expectedWarning := 0
+	expectedEmergency := 0
+	if lastState["bar"].On == true {
+		expectedEmergency = 1
+	}
+	if lastState["foo"].On == true {
+		expectedWarning += 1
+	}
+	if lastState["baz"].On == true {
+		expectedWarning += 1
+	}
+
+	reports := s.l.GetReport()
+	c.Check(reports.ActiveEmergencies, Equals, expectedEmergency)
+	c.Check(reports.ActiveWarnings, Equals, expectedWarning)
 }
 
 func (s *ZoneLoggerSuite) TestStressConcurrentAccess(c *C) {
