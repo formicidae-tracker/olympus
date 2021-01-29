@@ -37,7 +37,8 @@ type ZoneClimateStatus struct {
 	Humidity          float64
 	TemperatureBounds Bounds
 	HumidityBounds    Bounds
-	ActiveAlarmLevels []int
+	ActiveWarnings    int
+	ActiveEmergencies int
 }
 
 type ZoneReportSummary struct {

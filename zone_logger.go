@@ -51,6 +51,9 @@ type zoneLogger struct {
 	currentReport ZoneClimateReport
 
 	timeoutPeriod time.Duration
+
+	last                  map[string]int
+	warnings, emergencies map[string]bool
 }
 
 func NewZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneLogger {
@@ -66,6 +69,9 @@ func NewZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneL
 		timeoutPeriod: timeoutPeriod,
 		host:          reg.Host,
 		name:          reg.Name,
+		last:          make(map[string]int),
+		warnings:      make(map[string]bool),
+		emergencies:   make(map[string]bool),
 
 		currentReport: ZoneClimateReport{
 			ZoneClimateStatus: ZoneClimateStatus{
@@ -106,6 +112,21 @@ func (l *zoneLogger) pushLog(ae zeus.AlarmEvent) {
 		On:     ae.Status == zeus.AlarmOn,
 		Time:   ae.Time,
 	}
+	if i < l.last[ae.Reason] {
+		return
+	}
+	l.last[ae.Reason] = i
+	set := l.warnings
+	if ae.Flags&zeus.Emergency != 0 {
+		set = l.emergencies
+	}
+	if ae.Status == zeus.AlarmOn {
+		set[ae.Reason] = true
+	} else {
+		delete(set, ae.Reason)
+	}
+	l.currentReport.ActiveEmergencies = len(l.emergencies)
+	l.currentReport.ActiveWarnings = len(l.warnings)
 }
 
 func (l *zoneLogger) pushState(sr zeus.StateReport) {
