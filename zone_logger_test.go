@@ -15,8 +15,17 @@ type ZoneLoggerSuite struct {
 
 var _ = Suite(&ZoneLoggerSuite{})
 
+func pollClosed(c <-chan struct{}) bool {
+	select {
+	case <-c:
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *ZoneLoggerSuite) SetUpTest(c *C) {
-	s.l = NewZoneLogger(zeus.ZoneRegistration{
+	s.l = newZoneLogger(zeus.ZoneRegistration{
 		Host:   "foo",
 		Name:   "bar",
 		NumAux: 0,
@@ -217,19 +226,11 @@ func (s *ZoneLoggerSuite) TestStressConcurrentAccess(c *C) {
 }
 
 func (s *ZoneLoggerSuite) TestSignalTimeout(c *C) {
-	pollTimeout := func() bool {
-		select {
-		case <-s.l.Timeouted():
-			return true
-		default:
-			return false
-		}
-	}
 	period := s.l.(*zoneLogger).timeoutPeriod
-	c.Check(pollTimeout(), Equals, false)
+	c.Check(pollClosed(s.l.Timeouted()), Equals, false)
 	for i := 0; i < 10; i++ {
 		s.l.StateChannel() <- zeus.StateReport{}
-		c.Check(pollTimeout(), Equals, false)
+		c.Check(pollClosed(s.l.Timeouted()), Equals, false)
 		// if we maitain communication for much less than the time
 		// period, we should not timeout
 		time.Sleep(period / 4)
@@ -238,7 +239,7 @@ func (s *ZoneLoggerSuite) TestSignalTimeout(c *C) {
 	// if we do nothing for more than the timeout period, we should
 	// timeout
 	time.Sleep(2 * period)
-	c.Check(pollTimeout(), Equals, true)
+	c.Check(pollClosed(s.l.Timeouted()), Equals, true)
 	// timeouting twice won't panic
 	time.Sleep(2 * period)
 }

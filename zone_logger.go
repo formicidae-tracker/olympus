@@ -56,7 +56,11 @@ type zoneLogger struct {
 	warnings, emergencies map[string]bool
 }
 
-func NewZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneLogger {
+func NewZoneLogger(reg zeus.ZoneRegistration) ZoneLogger {
+	return newZoneLogger(reg, 30*time.Second)
+}
+
+func newZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneLogger {
 
 	res := &zoneLogger{
 		done:          make(chan struct{}),

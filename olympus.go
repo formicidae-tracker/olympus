@@ -12,7 +12,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/formicidae-tracker/zeus"
 	"github.com/gorilla/mux"
@@ -338,7 +337,7 @@ func (o *Olympus) registerZone(zr *zeus.ZoneRegistration) error {
 		return fmt.Errorf("%s is already registered", zoneIdentifier)
 	}
 	o.climateLogger.Log(zr.Host+"."+zr.Name, true, true)
-	logger := NewZoneLogger(*zr, 30*time.Second)
+	logger := NewZoneLogger(*zr)
 	o.zones[zoneIdentifier] = logger
 	go o.watchTimeout(logger, zr.Host, zr.Name)
 	go o.fetchBackLog(logger, zr)

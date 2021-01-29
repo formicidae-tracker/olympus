@@ -18,18 +18,24 @@ type TrackingWatcher interface {
 type trackingWatcher struct {
 	done, timeouted, stop chan struct{}
 	URL, host             string
+	period                time.Duration
 }
 
-func NewTrackingWatcher(host, URL string) TrackingWatcher {
+func newTrackingWatcher(host, URL string, period time.Duration) TrackingWatcher {
 	res := &trackingWatcher{
 		done:      make(chan struct{}),
 		stop:      make(chan struct{}),
 		timeouted: make(chan struct{}),
 		URL:       URL,
 		host:      host,
+		period:    period,
 	}
 	go res.watch()
 	return res
+}
+
+func NewTrackingWatcher(host, URL string) TrackingWatcher {
+	return newTrackingWatcher(host, URL, 20*time.Second)
 }
 
 func (l *trackingWatcher) Done() <-chan struct{} {
@@ -62,7 +68,7 @@ func (l *trackingWatcher) Close() (err error) {
 func (l *trackingWatcher) watch() {
 	defer close(l.done)
 
-	ticker := time.NewTicker(20 * time.Second)
+	ticker := time.NewTicker(l.period)
 	defer ticker.Stop()
 	once := sync.Once{}
 	for {
