@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Zone,ZoneAdapter } from './core/zone.model';
-import { Alarm,AlarmLevel } from './core/alarm.model';
+import { Zone,ZoneAdapter } from '@models/zone';
+import { Alarm,AlarmLevel } from '@models/alarm';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { HttpClient, HttpHeaders } from '@angular/common/http';

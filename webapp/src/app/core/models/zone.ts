@@ -1,30 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Adapter } from './adapter';
 
-import { State,StateAdapter } from './state.model';
-import { Alarm,AlarmLevel,CompareAlarm,AlarmAdapter} from './alarm.model';
+import { State,StateAdapter } from '@models/state';
+import { Alarm,AlarmLevel,CompareAlarm,AlarmAdapter} from '@models/alarm';
+import { Bounds,BoundsAdapter } from './bounds';
 
-export class Bounds {
-	constructor(public Min: number,
-				public Max: number) {}
-}
-
-
-@Injectable({
-    providedIn: 'root'
-})
-export class BoundsAdapter implements Adapter<Bounds> {
-	adapt(item: any): Bounds {
-		let res = new Bounds(0,100);
-		if (item.Min != null) {
-			res.Min = item.Min;
-		}
-		if (item.Max != null) {
-			res.Max = item.Max;
-		}
-		return res;
-	}
-}
 
 export class Zone {
 	constructor(public Host: string,

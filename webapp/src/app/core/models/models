@@ -1,0 +1,19 @@
+  /home/atuleu/devel/github.com/formicidae-tracker/olympus/webapp/src/app/core/models:
+  total used in directory 68 available 55826360
+  drwxrwxr-x 2 atuleu atuleu 4096 Jan 30 20:54 .
+  drwxrwxr-x 3 atuleu atuleu 4096 Jan 30 18:28 ..
+  -rw-rw-r-- 1 atuleu atuleu   54 Jan 20 18:11 adapter.ts
+  -rw-rw-r-- 1 atuleu atuleu 1127 Jan 20 18:11 alarm.ts
+  -rw-rw-r-- 1 atuleu atuleu  175 Jan 30 18:55 bounds.spec.ts
+  -rw-rw-r-- 1 atuleu atuleu  178 Jan 30 18:52 bounds.spec.ts~
+  -rw-rw-r-- 1 atuleu atuleu  490 Jan 30 18:58 bounds.ts
+  -rw-rw-r-- 1 atuleu atuleu  208 Jan 30 18:40 bounds.ts~
+  -rw-rw-r-- 1 atuleu atuleu  549 Jan 20 18:11 state.ts
+  -rw-rw-r-- 1 atuleu atuleu  858 Jan 30 20:54 zone-climate-status.ts
+  -rw-rw-r-- 1 atuleu atuleu  854 Jan 30 18:51 zone-climate-status.ts~
+  -rw-rw-r-- 1 atuleu atuleu 3188 Jan 20 18:11 zone.model.ts~
+  -rw-rw-r-- 1 atuleu atuleu  216 Jan 30 19:56 zone-summary.spec.ts
+  -rw-rw-r-- 1 atuleu atuleu  175 Jan 30 18:34 zone-summary.spec.ts~
+  -rw-rw-r-- 1 atuleu atuleu  322 Jan 30 19:57 zone-summary.ts
+  -rw-rw-r-- 1 atuleu atuleu  214 Jan 30 19:38 zone-summary.ts~
+  -rw-rw-r-- 1 atuleu atuleu 2823 Jan 30 18:40 zone.ts

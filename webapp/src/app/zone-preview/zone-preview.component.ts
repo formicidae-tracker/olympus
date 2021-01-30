@@ -1,5 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { Zone } from '../core/zone.model';
+import { Zone } from '@models/zone';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 

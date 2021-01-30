@@ -3,7 +3,7 @@ import { Adapter } from './adapter';
 
 export enum AlarmLevel {
 	Warning = 1,
-	Critical
+	Critical = 2,
 }
 
 export class Alarm {

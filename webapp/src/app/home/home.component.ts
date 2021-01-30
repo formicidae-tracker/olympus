@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ZoneService } from '../zone.service';
-import { Zone }  from '../core/zone.model';
+import { Zone }  from '@models/zone';
 import { Subscription,timer } from 'rxjs';
 @Component({
     selector: 'app-home',

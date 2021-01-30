@@ -1,18 +1,24 @@
 {
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "../out-tsc/spec",
-    "types": [
-      "jasmine",
-      "node"
-    ]
-  },
-  "files": [
-    "test.ts",
-    "polyfills.ts"
-  ],
-  "include": [
-    "**/*.spec.ts",
-    "**/*.d.ts"
-  ]
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"outDir": "../out-tsc/spec",
+		"types": [
+			"jasmine",
+			"node"
+		],
+		"paths": {
+			"@models/*":["src/app/core/models/*"]
+		}
+	},
+	"files": [
+		"test.ts",
+		"polyfills.ts"
+	],
+	"include": [
+		"**/*.spec.ts",
+		"**/*.d.ts"
+	],
+	"exclude": [
+		"**/.#*"
+	]
 }

@@ -1,7 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Title} from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
-import { Bounds,Zone } from '../core/zone.model';
+import { Bounds } from '@models/bounds';
+import { Zone } from '@models/zone';
 import { Subscription,timer } from 'rxjs';
 import { ZoneService } from '../zone.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';

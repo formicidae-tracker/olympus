@@ -1,5 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { State }  from '../core/state.model';
+import { State }  from '@models/state';
 
 
 @Component({
