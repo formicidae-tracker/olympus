@@ -139,6 +139,14 @@ func (o *Olympus) UnregisterZone(zr zeus.ZoneUnregistration) error {
 	return o.unregisterZone(zr.Host, zr.Name, true)
 }
 
+func (o *Olympus) ZoneIsRegistered(hostname, zoneName string) bool {
+	o.mxClimate.RLock()
+	defer o.mxClimate.RUnlock()
+
+	_, res := o.zones[zeus.ZoneIdentifier(hostname, zoneName)]
+	return res
+}
+
 func (o *Olympus) ReportClimate(cr zeus.NamedClimateReport) error {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
@@ -269,7 +277,9 @@ func (o *Olympus) unregisterZone(hostName, zoneName string, graceful bool) error
 	o.climateLogger.Log(hostName+"."+zoneName, false, graceful)
 	o.log.Printf("unregistering %s", zoneIdentifier)
 	err := z.Close()
-	o.log.Printf("unregister %s: error: %s:", zoneIdentifier, err)
+	if err != nil {
+		o.log.Printf("unregister %s: error: %s:", zoneIdentifier, err)
+	}
 	delete(o.zones, zoneIdentifier)
 
 	return nil
@@ -361,6 +371,7 @@ func (o *Olympus) fetchBackLog(logger ZoneLogger, zr zeus.ZoneRegistration) {
 	if len(zr.RPCAddress) == 0 || (zr.SizeClimateLog == 0 && zr.SizeAlarmLog == 0) {
 		return
 	}
+	o.log.Printf("%s declared backlog data {ClimateReport:%d,AlarmEvent:%d}, fetching it", logger.ZoneIdentifier(), zr.SizeClimateLog, zr.SizeAlarmLog)
 	if err := o.fetchBackLogError(logger, zr); err != nil {
 		o.log.Printf("could not fetch backlog for %s: %s", logger.ZoneIdentifier(), err)
 	}
@@ -372,6 +383,7 @@ func (o *Olympus) registerZone(zr zeus.ZoneRegistration) error {
 	if ok == true {
 		return fmt.Errorf("%s is already registered", zoneIdentifier)
 	}
+	o.log.Printf("registering new zone %s", zoneIdentifier)
 	o.climateLogger.Log(zr.Host+"."+zr.Name, true, true)
 	logger := NewZoneLogger(zr)
 	o.zones[zoneIdentifier] = logger

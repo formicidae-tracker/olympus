@@ -31,3 +31,8 @@ func (o *OlympusRPCWrapper) RegisterTracker(args LetoTrackingRegister, unused *i
 func (o *OlympusRPCWrapper) UnregisterTracker(hostname string, unused *int) error {
 	return (*Olympus)(o).UnregisterTracker(hostname)
 }
+
+func (o *OlympusRPCWrapper) ZoneIsRegistered(args zeus.ZoneUnregistration, reply *bool) error {
+	*reply = (*Olympus)(o).ZoneIsRegistered(args.Host, args.Name)
+	return nil
+}
