@@ -28,7 +28,7 @@ export class ClimateChartComponent implements AfterViewInit,OnInit,OnDestroy {
 	chart : any;
 	update: Subscription;
 
-	@ViewChild('climateChartMonitor')
+	@ViewChild('climateChartMonitor', { static: true })
 	public monitor: ElementRef
 
 	@Input() hostName: string;

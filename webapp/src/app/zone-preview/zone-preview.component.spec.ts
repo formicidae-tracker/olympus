@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 
 import { ZonePreviewComponent } from './zone-preview.component';
 
@@ -6,7 +6,7 @@ describe('ZonePreviewComponent', () => {
   let component: ZonePreviewComponent;
   let fixture: ComponentFixture<ZonePreviewComponent>;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ ZonePreviewComponent ]
     })

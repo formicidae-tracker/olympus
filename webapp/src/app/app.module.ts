@@ -24,7 +24,7 @@ import { VideoJsComponent } from './video-js/video-js.component';
   		NgbModule,
 		BrowserModule,
 		HttpClientModule,
-        RouterModule.forRoot(ROUTES)
+        RouterModule.forRoot(ROUTES, { relativeLinkResolution: 'legacy' })
 	],
 	declarations: [
 		AppComponent,
