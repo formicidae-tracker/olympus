@@ -154,7 +154,7 @@ func (l *zoneLogger) handleRequest(r namedRequest) {
 		climateDay:       func() interface{} { return l.sampler.LastDay() },
 		climateWeek:      func() interface{} { return l.sampler.LastWeek() },
 		logs:             func() interface{} { return append([]AlarmEvent(nil), l.logs...) },
-		report:           func() interface{} { return l.currentReport },
+		report:           func() interface{} { return l.currentReport.makeCopy() },
 	}
 	defer close(r.result)
 	h, ok := requestHandlers[r.request]

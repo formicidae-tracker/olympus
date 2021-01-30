@@ -31,7 +31,11 @@ func (l *serviceLogger) Log(identifier string, on, graceful bool) {
 }
 
 func (l *serviceLogger) Logs() [][]ServiceEvent {
-	return l.logs
+	res := make([][]ServiceEvent, len(l.logs))
+	for i, logs := range l.logs {
+		res[i] = append([]ServiceEvent(nil), logs...)
+	}
+	return res
 }
 
 func (l *serviceLogger) find(on bool) []string {

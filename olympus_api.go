@@ -21,6 +21,11 @@ type ServiceEvent struct {
 	Graceful   bool
 }
 
+type ServiceLogs struct {
+	Climates [][]ServiceEvent
+	Tracking [][]ServiceEvent
+}
+
 type Bounds struct {
 	Min *float64
 	Max *float64
@@ -62,4 +67,32 @@ type ZoneClimateReport struct {
 
 type LetoTrackingRegister struct {
 	Host, URL string
+}
+
+func (r *ZoneClimateReport) makeCopy() ZoneClimateReport {
+	res := ZoneClimateReport{
+		ZoneClimateStatus: r.ZoneClimateStatus,
+		NumAux:            r.NumAux,
+	}
+	if r.Current != nil {
+		res.Current = &zeus.State{}
+		*res.Current = zeus.SanitizeState(*r.Current)
+	}
+	if r.CurrentEnd != nil {
+		res.CurrentEnd = &zeus.State{}
+		*res.CurrentEnd = zeus.SanitizeState(*r.CurrentEnd)
+	}
+	if r.Next != nil {
+		res.Next = &zeus.State{}
+		*res.Next = zeus.SanitizeState(*r.Next)
+	}
+	if r.NextEnd != nil {
+		res.NextEnd = &zeus.State{}
+		*res.NextEnd = zeus.SanitizeState(*r.NextEnd)
+	}
+	if r.NextTime != nil {
+		res.NextTime = &time.Time{}
+		*res.NextTime = *r.NextTime
+	}
+	return res
 }
