@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/formicidae-tracker/zeus"
 	"github.com/gorilla/mux"
@@ -384,9 +385,13 @@ func (o *Olympus) fetchBackLog(logger ZoneLogger, zr zeus.ZoneRegistration) {
 		return
 	}
 	o.log.Printf("%s declared backlog data {ClimateReport:%d,AlarmEvent:%d}, fetching it", logger.ZoneIdentifier(), zr.SizeClimateLog, zr.SizeAlarmLog)
+	start := time.Now()
 	if err := o.fetchBackLogError(logger, zr); err != nil {
 		o.log.Printf("could not fetch backlog for %s: %s", logger.ZoneIdentifier(), err)
+	} else {
+		o.log.Printf("%s fetching took %s", logger.ZoneIdentifier(), time.Since(start))
 	}
+
 }
 
 func (o *Olympus) registerZone(zr zeus.ZoneRegistration) error {
