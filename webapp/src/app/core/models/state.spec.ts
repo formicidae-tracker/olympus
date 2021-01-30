@@ -31,5 +31,4 @@ describe('State' , () => {
 		expect(s.UVLight).toBe(0);
 	});
 
-
 });
