@@ -20,6 +20,10 @@ export class ZoneClimateStatus {
 export class ZoneClimateStatusAdapter implements Adapter<ZoneClimateStatus> {
 	constructor(private boundsAdapter: BoundsAdapter) {}
 	adapt(item: any) : ZoneClimateStatus {
+		if ( item == null ) {
+			return null;
+		}
+
 		return new ZoneClimateStatus(item.Temperature,
 									 item.Humidity,
 									 this.boundsAdapter.adapt(item.TemperatureBounds),

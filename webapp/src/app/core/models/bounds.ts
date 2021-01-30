@@ -4,7 +4,13 @@ import { Adapter } from './adapter';
 
 export class Bounds {
 	constructor(public Min: number,
-				public Max: number) {}
+				public Max: number) {
+		if (this.Min > this.Max ) {
+			let tmp = this.Min;
+			this.Min = this.Max;
+			this.Max = tmp;
+		}
+	}
 }
 
 @Injectable({
@@ -12,6 +18,7 @@ export class Bounds {
 })
 
 export class BoundsAdapter implements Adapter<Bounds> {
+	constructor(){}
 	adapt(item: any): Bounds {
 		let res = new Bounds(0,100);
 		if (item == null) {
