@@ -96,6 +96,18 @@ func (o *Olympus) Close() error {
 	return err
 }
 
+func (o *Olympus) GetServiceLogs() ServiceLogs {
+	o.mxClimate.RLock()
+	defer o.mxClimate.RUnlock()
+	o.mxTracking.RLock()
+	defer o.mxTracking.RUnlock()
+	return ServiceLogs{
+		Climates: o.climateLogger.Logs(),
+		Tracking: o.trackingLogger.Logs(),
+	}
+
+}
+
 func (o *Olympus) GetZones() []ZoneReportSummary {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
@@ -476,6 +488,11 @@ func (o *Olympus) unregisterTracker(hostname string, graceful bool) error {
 func (o *Olympus) route(router *mux.Router) {
 	router.HandleFunc("/api/zones", func(w http.ResponseWriter, r *http.Request) {
 		res := o.GetZones()
+		JSONify(w, &res)
+	}).Methods("GET")
+
+	router.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
+		res := o.GetServiceLogs()
 		JSONify(w, &res)
 	}).Methods("GET")
 
