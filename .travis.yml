@@ -1,0 +1,23 @@
+dist: focal
+sudo: false
+language: node_js
+node_js:
+  - "10"
+
+addons:
+  apt:
+    sources:
+      - google-chrome
+    packages:
+      - google-chrome-stable
+
+cache:
+  directories:
+     - ./webapp/node_modules
+
+install:
+  - cd webapp && npm install
+
+script:
+  - cd webapp && npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI
+  - npm run e2e -- --protractor-config=e2e/protractor-ci.conf.js
