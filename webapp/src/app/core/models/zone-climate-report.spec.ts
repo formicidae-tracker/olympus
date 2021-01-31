@@ -44,8 +44,8 @@ describe('ZoneClimateReport', () => {
 							   "NextTime":null
 							  })
 		expect(s).toBeTruthy();
-		expect(s.Temperature).toBe(20);
-		expect(s.Humidity).toBe(12.1);
+		expect(s.ClimateStatus.Temperature).toBe(20);
+		expect(s.ClimateStatus.Humidity).toBe(12.1);
 		expect(s.CurrentEnd).toBe(null);
 		expect(s.Next).toBe(null);
 		expect(s.NextEnd).toBe(null);

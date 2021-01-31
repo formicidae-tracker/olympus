@@ -7,7 +7,9 @@
 			"node"
 		],
 		"paths": {
-			"@models/*":["src/app/core/models/*"]
+			"@models/*":["src/app/core/models/*"],
+			"@services/*":["src/app/core/services/*"],
+			"@environments/*":["src/environments/*"]
 		}
 	},
 	"files": [

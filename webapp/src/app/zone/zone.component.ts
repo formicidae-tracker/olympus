@@ -1,11 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Title} from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
-import { Bounds } from '@models/bounds';
-import { Zone } from '@models/zone';
+import { ZoneClimateReport } from '@models/zone-climate-report';
 import { Subscription,timer } from 'rxjs';
-import { ZoneService } from '../zone.service';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { ZoneService } from '@services/zone';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
 	selector: 'app-zone',
@@ -16,7 +15,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 export class ZoneComponent implements OnInit,OnDestroy {
     zoneName: string
     hostName: string
-	zone: Zone
+	zone: ZoneClimateReport
 	notFound: boolean
 	update : Subscription;
 	streamUrl: string
@@ -42,10 +41,10 @@ export class ZoneComponent implements OnInit,OnDestroy {
 					(zone) => {
 						this.zone = zone;
 						this.notFound = false;
-						if ( this.zone.Name == "box" ) {
-							this.httpClient.get('/olympus/hls/'+ this.zone.Host + '.m3u8',{responseType: 'text'}).subscribe(
+						if ( this.zoneName == "box" ) {
+							this.httpClient.get('/olympus/hls/'+ this.hostName + '.m3u8',{responseType: 'text'}).subscribe(
 								(src) => {
-									this.streamUrl = '/olympus/'+ this.zone.Host + '.m3u8';
+									this.streamUrl = '/olympus/'+ this.hostName + '.m3u8';
 								},
 								(error) => {
 									this.streamUrl = '';

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { ZoneService } from '../zone.service';
-import { Zone }  from '@models/zone';
+import { ZoneService } from '@services/zone';
+import { ZoneSummaryReport }  from '@models/zone-summary-report';
 import { Subscription,timer } from 'rxjs';
 @Component({
     selector: 'app-home',
@@ -9,7 +9,7 @@ import { Subscription,timer } from 'rxjs';
     styleUrls: ['./home.component.css']
 })
 export class HomeComponent implements OnInit,OnDestroy {
-    zones: Zone[];
+    zones: ZoneSummaryReport[];
 	update: Subscription;
 
 
@@ -22,16 +22,7 @@ export class HomeComponent implements OnInit,OnDestroy {
 
 		this.update = timer(0,20000).subscribe(x => {
 			this.zs.list().subscribe( (list) => {
-				this.zones = [];
-				for( let zd of list)  {
-					this.zs.getZone(zd.Host,zd.Name).subscribe( (zone) => {
-						console.log(zone);
-						this.zones.push(zone);
-						this.zones.sort((a,b): number => {
-							return a.FullName().localeCompare(b.FullName());
-						});
-					})
-				}
+				this.zones = list;
 			});
 		})
     }
