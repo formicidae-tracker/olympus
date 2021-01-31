@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { ZoneService } from '@services/zone';
+import { OlympusService } from '@services/olympus';
 import { ZoneSummaryReport }  from '@models/zone-summary-report';
 import { Subscription,timer } from 'rxjs';
 @Component({
@@ -13,7 +13,7 @@ export class HomeComponent implements OnInit,OnDestroy {
 	update: Subscription;
 
 
-    constructor(private zs : ZoneService, private title: Title) {
+    constructor(private olympus : OlympusService, private title: Title) {
 		this.zones = [];
 	}
 
@@ -21,7 +21,7 @@ export class HomeComponent implements OnInit,OnDestroy {
 		this.title.setTitle('Olympus: Home')
 
 		this.update = timer(0,20000).subscribe(x => {
-			this.zs.list().subscribe( (list) => {
+			this.olympus.zoneSummaries().subscribe( (list) => {
 				this.zones = list;
 			});
 		})

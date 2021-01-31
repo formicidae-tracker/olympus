@@ -3,8 +3,7 @@ import { Title} from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { ZoneClimateReport } from '@models/zone-climate-report';
 import { Subscription,timer } from 'rxjs';
-import { ZoneService } from '@services/zone';
-import { HttpClient } from '@angular/common/http';
+import { OlympusService } from '@services/olympus';
 
 @Component({
 	selector: 'app-zone',
@@ -23,9 +22,7 @@ export class ZoneComponent implements OnInit,OnDestroy {
 
     constructor(private route: ActivatedRoute,
 				private title: Title,
-				private zoneService: ZoneService,
-				private httpClient: HttpClient,
-			   ) {
+				private olympus: OlympusService) {
 		this.zone = null;
 		this.notFound = false;
 		this.streamUrl = '';
@@ -36,21 +33,22 @@ export class ZoneComponent implements OnInit,OnDestroy {
         this.hostName = this.route.snapshot.paramMap.get('hostName');
         this.title.setTitle('Olympus: '+this.hostName+'.'+this.zoneName)
 		this.update = timer(0,5000).subscribe( (x) => {
-			this.zoneService.getZone(this.hostName,this.zoneName)
+			if ( this.zoneName == 'box' ) {
+				this.olympus.streamURL(this.hostName)
+					.subscribe(
+						(streamURL) => {
+							this.streamUrl = streamURL;
+						},
+						(error) => {
+							this.streamUrl = '';
+						}
+					);
+			}
+			this.olympus.zoneClimate(this.hostName,this.zoneName)
 				.subscribe(
 					(zone) => {
 						this.zone = zone;
 						this.notFound = false;
-						if ( this.zoneName == "box" ) {
-							this.httpClient.get('/olympus/hls/'+ this.hostName + '.m3u8',{responseType: 'text'}).subscribe(
-								(src) => {
-									this.streamUrl = '/olympus/'+ this.hostName + '.m3u8';
-								},
-								(error) => {
-									this.streamUrl = '';
-								},
-							);
-						}
 					},
 					(error)  => {
 						this.zone = null;

@@ -9,11 +9,12 @@ import { environment } from '@environments/environment';
 @Injectable({
   providedIn: 'root'
 })
-export class ZoneService {
+
+export class OlympusService {
     constructor(private httpClient: HttpClient) {
     }
 
-    list(): Observable<ZoneSummaryReport[]> {
+    zoneSummaries(): Observable<ZoneSummaryReport[]> {
 		return this.httpClient.get<any[]>(environment.apiEndpoint+'/zones').pipe(
 			map(item => {
 				let items = item as any[];
@@ -25,10 +26,37 @@ export class ZoneService {
 			}));
 	}
 
-	getZone(host: string, zone: string): Observable<ZoneClimateReport> {
+	zoneClimate(host: string, zone: string): Observable<ZoneClimateReport> {
 		return this.httpClient.get<any>(environment.apiEndpoint+'/host/'+host+'/zone/'+zone).pipe(
 			map(item => {
 				return ZoneClimateReport.adapt(item)
 			}));
+	}
+
+	streamURL(host: string): Observable<string> {
+		return this.httpClient.get<any>(environment.apiEndpoint+'/tracking/host/'+host).pipe(
+			map(item => {
+				return item.StreamURL;
+			}),
+		);
+	}
+
+}
+
+
+export class MockOlympusService {
+	constructor() {
+	}
+
+	zoneClimate(host: string,zone: string): Observable<ZoneClimateReport> {
+		return null;
+	}
+
+	zoneSummaries(): Observable<ZoneSummaryReport> {
+		return null;
+	}
+
+	streamURL(host: string): Observable<string> {
+		return null;
 	}
 }

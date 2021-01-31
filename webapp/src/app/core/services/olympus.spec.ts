@@ -1,17 +1,17 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { ZoneService } from './zone';
+import { OlympusService } from './olympus';
 
-describe('ZoneService', () => {
+describe('OlympusService', () => {
 	beforeEach(() => TestBed.configureTestingModule({
 		imports: [ HttpClientTestingModule ],
-		providers: [ZoneService]
+		providers: [OlympusService]
 
 	}));
 
   it('should be created', () => {
-    const service: ZoneService = TestBed.inject(ZoneService);
+    const service: OlympusService = TestBed.inject(OlympusService);
     expect(service).toBeTruthy();
   });
 });
