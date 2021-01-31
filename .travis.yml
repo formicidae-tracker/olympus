@@ -1,5 +1,10 @@
+branches:
+  only: ['master']
+notifications:
+  email: false
+
+os: linux
 dist: focal
-sudo: false
 language: node_js
 node_js:
   - "10"
