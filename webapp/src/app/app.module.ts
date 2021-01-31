@@ -13,7 +13,7 @@ import { ZoneComponent } from './zone/zone.component';
 import { PageNotFoundComponent } from './page-not-found/page-not-found.component';
 import { ZonePreviewComponent } from './zone-preview/zone-preview.component';
 
-import { ZoneService } from './zone.service';
+import { OlympusService } from '@services/olympus';
 import { ClimateChartComponent } from './climate-chart/climate-chart.component';
 import { AlarmComponent } from './alarm/alarm.component';
 import { StateComponent } from './state/state.component';
@@ -37,7 +37,7 @@ import { VideoJsComponent } from './video-js/video-js.component';
 		StateComponent,
 		VideoJsComponent
 	],
-	providers: [ZoneService],
+	providers: [OlympusService],
 	bootstrap: [AppComponent]
 })
 export class AppModule { }
