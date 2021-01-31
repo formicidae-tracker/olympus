@@ -1,8 +1,3 @@
-import { Injectable } from '@angular/core';
-import { Adapter } from './adapter';
-
-
-
 export class State {
 	public Name: string;
 	public Humidity: number;
@@ -30,15 +25,8 @@ export class State {
 		}
 		return v;
 	}
-}
 
-
-
-@Injectable({
-    providedIn: 'root'
-})
-export class StateAdapter implements Adapter<State> {
-	adapt(item: any): State {
+	static adapt(item: any): State {
 		if ( item == null ) {
 			return null;
 		}
@@ -49,4 +37,5 @@ export class StateAdapter implements Adapter<State> {
 						 item.VisibleLight,
 						 item.UVLight);
 	}
+
 }

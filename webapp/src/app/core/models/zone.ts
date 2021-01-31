@@ -1,9 +1,6 @@
-import { Injectable } from '@angular/core';
-import { Adapter } from './adapter';
-
-import { State,StateAdapter } from '@models/state';
-import { Alarm,AlarmLevel,CompareAlarm,AlarmAdapter} from '@models/alarm';
-import { Bounds,BoundsAdapter } from './bounds';
+import { State } from '@models/state';
+import { Alarm,AlarmLevel,CompareAlarm} from '@models/alarm';
+import { Bounds } from './bounds';
 
 
 export class Zone {
@@ -76,23 +73,11 @@ export class Zone {
 		return res;
 	}
 
-}
-
-
-@Injectable({
-    providedIn: 'root'
-})
-export class ZoneAdapter implements Adapter<Zone> {
-
-	constructor(private alarmAdapter: AlarmAdapter,
-				private boundsAdapter: BoundsAdapter,
-				private stateAdapter: StateAdapter) {}
-
-	adapt(item: any): Zone {
+	static adapt(item: any): Zone {
 		let alarms: Alarm[] = [];
 		if (item.Alarms != null) {
 			for ( let a of item.Alarms ) {
-				alarms.push(this.alarmAdapter.adapt(a));
+				alarms.push(Alarm.adapt(a));
 			}
 		}
 		let current: State = null;
@@ -101,28 +86,28 @@ export class ZoneAdapter implements Adapter<Zone> {
 		let nextEnd: State = null;
 		let nextTime: Date = null;
 		if (item.Current != null) {
-			current = this.stateAdapter.adapt(item.Current);
+			current = State.adapt(item.Current);
 		}
 		if (item.CurrentEnd != null ) {
-			currentEnd = this.stateAdapter.adapt(item.CurrentEnd);
+			currentEnd = State.adapt(item.CurrentEnd);
 		}
 
 		if ( item.Next != null && item.NextTime != null ) {
-			next = this.stateAdapter.adapt(item.Next);
+			next = State.adapt(item.Next);
 			nextTime = new Date(item.NextTime);
 		}
 
 		if ( item.NextEnd != null ) {
-			nextEnd = this.stateAdapter.adapt(item.NextEnd);
+			nextEnd = State.adapt(item.NextEnd);
 		}
 
 		return new Zone(
 			item.Host,
 			item.Name,
 			item.Temperature,
-			this.boundsAdapter.adapt(item.TemperatureBounds),
+			Bounds.adapt(item.TemperatureBounds),
 			item.Humidity,
-			this.boundsAdapter.adapt(item.HumidityBounds),
+			Bounds.adapt(item.HumidityBounds),
 			alarms,
 			current,
 			currentEnd,

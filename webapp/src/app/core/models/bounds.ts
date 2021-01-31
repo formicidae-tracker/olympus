@@ -1,6 +1,3 @@
-import { Injectable } from '@angular/core';
-import { Adapter } from './adapter';
-
 
 export class Bounds {
 	constructor(public Min: number,
@@ -11,15 +8,8 @@ export class Bounds {
 			this.Max = tmp;
 		}
 	}
-}
 
-@Injectable({
-    providedIn: 'root'
-})
-
-export class BoundsAdapter implements Adapter<Bounds> {
-	constructor(){}
-	adapt(item: any): Bounds {
+	static adapt(item: any): Bounds {
 		let res = new Bounds(0,100);
 		if (item == null) {
 			return res;

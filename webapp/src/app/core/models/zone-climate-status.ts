@@ -1,7 +1,4 @@
-import { Injectable } from '@angular/core';
-import { Adapter } from './adapter';
-
-import { Bounds,BoundsAdapter} from './bounds';
+import { Bounds} from './bounds';
 
 export class ZoneClimateStatus {
 	constructor(public Temperature: number,
@@ -11,23 +8,15 @@ export class ZoneClimateStatus {
 				public ActiveWarnings = 0,
 				public ActiveEmergencies = 0) {
 	}
-}
-
-@Injectable({
-    providedIn: 'root'
-})
-
-export class ZoneClimateStatusAdapter implements Adapter<ZoneClimateStatus> {
-	constructor(private boundsAdapter: BoundsAdapter) {}
-	adapt(item: any) : ZoneClimateStatus {
+	static adapt(item: any) : ZoneClimateStatus {
 		if ( item == null ) {
 			return null;
 		}
 
 		return new ZoneClimateStatus(item.Temperature,
 									 item.Humidity,
-									 this.boundsAdapter.adapt(item.TemperatureBounds),
-									 this.boundsAdapter.adapt(item.HumidityBounds),
+									 Bounds.adapt(item.TemperatureBounds),
+									 Bounds.adapt(item.HumidityBounds),
 									 item.ActiveWarnings,
 									 item.ActiveEmergencies);
 	}

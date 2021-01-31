@@ -1,6 +1,3 @@
-import { Injectable } from '@angular/core';
-import { Adapter } from './adapter';
-
 export enum AlarmLevel {
 	Warning = 1,
 	Critical = 2,
@@ -24,11 +21,17 @@ export class Alarm {
 		}
 		return 'danger';
 	}
+
+	static adapt(item: any): Alarm {
+		return new Alarm(
+			item.Reason,
+			item.On,
+			item.LastChange==null?null:new Date(item.LastChange),
+			item.Level,
+			item.Triggers
+		);
+	}
 }
-
-
-
-
 
 export function CompareAlarm(a :Alarm, b :Alarm){
 	if (a.On ==  b.On ) {
@@ -50,21 +53,4 @@ export function CompareAlarm(a :Alarm, b :Alarm){
 		return -1;
 	}
 	return 1;
-}
-
-
-
-@Injectable({
-    providedIn: 'root'
-})
-export class AlarmAdapter implements Adapter<Alarm> {
-	adapt(item: any): Alarm {
-		return new Alarm(
-			item.Reason,
-			item.On,
-			item.LastChange==null?null:new Date(item.LastChange),
-			item.Level,
-			item.Triggers
-		);
-	}
 }

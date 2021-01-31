@@ -1,4 +1,4 @@
-import {State,StateAdapter} from './state';
+import {State} from './state';
 
 describe('State' , () => {
 
@@ -16,13 +16,12 @@ describe('State' , () => {
 	})
 
 	it('should adapt from json', () => {
-		let adapter = new StateAdapter();
-		let s = adapter.adapt({"Name":"always-on",
-							   "Temperature":-1000,
-							   "Humidity":-1000,
-							   "Wind":-1000,
-							   "VisibleLight":100,
-							   "UVLight":0});
+		let s = State.adapt({"Name":"always-on",
+							 "Temperature":-1000,
+							 "Humidity":-1000,
+							 "Wind":-1000,
+							 "VisibleLight":100,
+							 "UVLight":0});
 		expect(s.Name).toBe('always-on');
 		expect(s.Temperature).toBeNaN();
 		expect(s.Humidity).toBeNaN();
