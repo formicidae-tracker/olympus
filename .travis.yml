@@ -6,8 +6,6 @@ node_js:
 
 addons:
   apt:
-    sources:
-      - google-chrome
     packages:
       - google-chrome-stable
 
@@ -19,5 +17,5 @@ install:
   - cd webapp && npm install
 
 script:
-  - cd webapp && npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI
-  - cd webapp && npm run e2e -- --protractor-config=e2e/protractor-ci.conf.js
+  - npm run test -- --no-watch --no-progress --browsers=ChromeHeadlessCI
+  - npm run e2e -- --protractor-config=e2e/protractor-ci.conf.js
