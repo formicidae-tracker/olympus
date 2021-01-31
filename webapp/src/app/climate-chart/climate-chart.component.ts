@@ -1,7 +1,7 @@
 import { Component, AfterViewInit, OnInit, OnDestroy, ElementRef,ViewChild, Input} from '@angular/core';
 import ResizeObserver from 'resize-observer-polyfill';
 import { Chart } from 'chart.js'
-import { ClimateReportService } from '../climate-report.service';
+import { OlympusService } from '@services/olympus';
 import { Subscription, timer } from 'rxjs';
 
 export enum TimeWindow {
@@ -34,7 +34,7 @@ export class ClimateChartComponent implements AfterViewInit,OnInit,OnDestroy {
 	@Input() hostName: string;
 	@Input() zoneName: string;
 
-	constructor(private climateReport: ClimateReportService) {
+	constructor(private olympus: OlympusService) {
 		this.timeWindow = TimeWindow.Day;
 	}
 
@@ -185,57 +185,57 @@ export class ClimateChartComponent implements AfterViewInit,OnInit,OnDestroy {
 		let window = '';
 		switch(this.timeWindow) {
 			case TimeWindow.Hour:
-				window = 'hour';
+				window = '1h';
 				break;
 			case TimeWindow.Week:
-				window = 'week';
+				window = '1w';
 				break
 			case TimeWindow.Day:
-				window = 'day';
+				window = '1d';
 				break;
 			case TimeWindow.TenMinutes:
-				window = 'ten-minutes';
-				break;
+				window = '10m';
 			default:
-				window = 'hour';
+				window = '1h';
 				break;
 		}
 
 
-		this.climateReport.getReport(this.hostName,this.zoneName,window).subscribe((cr) => {
-			this.chart.data.datasets[0].data = [];
-			this.chart.data.datasets[1].data = [];
-			this.chart.data.datasets[2].data = [];
-			this.chart.data.datasets[3].data = [];
-			this.chart.data.datasets[4].data = [];
-			let timeDiv = 3600.0;
-			let roundDiv = 10000.0;
-			if (this.timeWindow == TimeWindow.Hour || this.timeWindow == TimeWindow.TenMinutes ) {
-				timeDiv = 60.0;
-				roundDiv = 1000.0;
-				this.chart.options.scales.xAxes[0].scaleLabel.labelString = 'Time (m)';
-			} else {
-				this.chart.options.scales.xAxes[0].scaleLabel.labelString = 'Time (h)';
-			}
+		this.olympus.climateTimeSeries(this.hostName,this.zoneName,window)
+			.subscribe((cr) => {
+				this.chart.data.datasets[0].data = [];
+				this.chart.data.datasets[1].data = [];
+				this.chart.data.datasets[2].data = [];
+				this.chart.data.datasets[3].data = [];
+				this.chart.data.datasets[4].data = [];
+				let timeDiv = 3600.0;
+				let roundDiv = 10000.0;
+				if (this.timeWindow == TimeWindow.Hour || this.timeWindow == TimeWindow.TenMinutes ) {
+					timeDiv = 60.0;
+					roundDiv = 1000.0;
+					this.chart.options.scales.xAxes[0].scaleLabel.labelString = 'Time (m)';
+				} else {
+					this.chart.options.scales.xAxes[0].scaleLabel.labelString = 'Time (h)';
+				}
 
-			for (let h of cr.Humidity) {
-				this.chart.data.datasets[0].data.push({x:Math.round(roundDiv*h.X/timeDiv)/roundDiv,y:Math.round(100*h.Y)/100});
-			}
-			for (let t of cr.TemperatureAnt) {
-				this.chart.data.datasets[1].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
-			}
-			for (let t of cr.TemperatureAux1) {
-				this.chart.data.datasets[2].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
-			}
-			for (let t of cr.TemperatureAux2) {
-				this.chart.data.datasets[3].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
-			}
-			for (let t of cr.TemperatureAux3) {
-				this.chart.data.datasets[4].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
-			}
-			this.chart.update();
-			console.timeEnd('updateChart');
-		})
+				for (let h of cr.Humidity) {
+					this.chart.data.datasets[0].data.push({x:Math.round(roundDiv*h.X/timeDiv)/roundDiv,y:Math.round(100*h.Y)/100});
+				}
+				for (let t of cr.Temperature) {
+					this.chart.data.datasets[1].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
+				}
+				for (let t of cr.TemperatureAux[0] ) {
+					this.chart.data.datasets[2].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
+				}
+				for (let t of cr.TemperatureAux[1] ) {
+					this.chart.data.datasets[3].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
+				}
+				for (let t of cr.TemperatureAux[2] ) {
+					this.chart.data.datasets[4].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
+				}
+				this.chart.update();
+				console.timeEnd('updateChart');
+			})
 
 	}
 

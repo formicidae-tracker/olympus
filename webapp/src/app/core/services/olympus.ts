@@ -1,10 +1,14 @@
 import { Injectable } from '@angular/core';
 import { ZoneClimateReport } from '@models/zone-climate-report';
 import { ZoneSummaryReport } from '@models/zone-summary-report';
+import { ClimateTimeSeries } from '@models/climate-time-series';
+import { StreamInfo } from '@models/stream-info';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment';
+
+
 
 @Injectable({
   providedIn: 'root'
@@ -33,11 +37,17 @@ export class OlympusService {
 			}));
 	}
 
-	streamURL(host: string): Observable<string> {
+	streamURL(host: string): Observable<StreamInfo> {
 		return this.httpClient.get<any>(environment.apiEndpoint+'/tracking/host/'+host).pipe(
 			map(item => {
-				return item.StreamURL;
+				return new StreamInfo(item.StreamURL);
 			}),
+		);
+	}
+
+	climateTimeSeries(host: string, zone: string, window: string): Observable<ClimateTimeSeries> {
+		return this.httpClient.get<any>(environment.apiEndpoint+'/host/'+host+'/zone/'+zone+'/climate?window='+window).pipe(
+			map(item => { return ClimateTimeSeries.adapt(item); })
 		);
 	}
 
@@ -56,7 +66,11 @@ export class MockOlympusService {
 		return null;
 	}
 
-	streamURL(host: string): Observable<string> {
+	streamURL(host: string): Observable<StreamInfo> {
+		return null;
+	}
+
+	climateTimeSeries(host: string, zone: string, window: string): Observable<ClimateTimeSeries> {
 		return null;
 	}
 }

@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ZoneClimateReport } from '@models/zone-climate-report';
 import { Subscription,timer } from 'rxjs';
 import { OlympusService } from '@services/olympus';
+import { StreamInfo } from '@models/stream-info';
 
 @Component({
 	selector: 'app-zone',
@@ -17,7 +18,7 @@ export class ZoneComponent implements OnInit,OnDestroy {
 	zone: ZoneClimateReport
 	notFound: boolean
 	update : Subscription;
-	streamUrl: string
+	streamData: StreamInfo;
 
 
     constructor(private route: ActivatedRoute,
@@ -25,7 +26,7 @@ export class ZoneComponent implements OnInit,OnDestroy {
 				private olympus: OlympusService) {
 		this.zone = null;
 		this.notFound = false;
-		this.streamUrl = '';
+		this.streamData = new StreamInfo('');
 	}
 
     ngOnInit() {
@@ -37,10 +38,10 @@ export class ZoneComponent implements OnInit,OnDestroy {
 				this.olympus.streamURL(this.hostName)
 					.subscribe(
 						(streamURL) => {
-							this.streamUrl = streamURL;
+							this.streamData = streamURL;
 						},
 						(error) => {
-							this.streamUrl = '';
+							this.streamData = new StreamInfo('');
 						}
 					);
 			}

@@ -1,11 +1,11 @@
 import { ZoneClimateStatus } from './zone-climate-status';
-
+import { StreamInfo } from './stream-info';
 
 export class ZoneSummaryReport {
-	constructor(public Host: string,
-				public ZoneName: string,
-				public StreamURL: string  = '',
-				public Status: ZoneClimateStatus = null ) {
+	constructor(public host: string,
+				public zoneName: string,
+				public streamURL: StreamInfo  = new StreamInfo(''),
+				public status: ZoneClimateStatus = null ) {
 	}
 
 	static adapt(item: any): ZoneSummaryReport {

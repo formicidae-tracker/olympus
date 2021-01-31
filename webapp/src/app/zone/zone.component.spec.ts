@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { convertToParamMap,ActivatedRoute } from '@angular/router';
-import { of } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
 
 import { ZoneComponent } from './zone.component';
 
@@ -14,7 +13,7 @@ class MockActivatedRoute {
 	}
 	snapshot = {
 		paramMap: {
-			get: (key) => { return MockActivatedRoute.current[key]; }
+			get: (key: string) => { return MockActivatedRoute.current[key]; }
 		},
 	}
 }
