@@ -8,22 +8,20 @@ import { OlympusService,MockOlympusService } from '@services/olympus';
 
 
 class MockActivatedRoute {
-	public paramMap = of(convertToParamMap({
-	}));
+	static current = {
+		hostName: "",
+		zoneName: "",
+	}
+	snapshot = {
+		paramMap: {
+			get: (key) => { return MockActivatedRoute.current[key]; }
+		},
+	}
 }
 
 describe('ZoneComponent', () => {
 	let component: ZoneComponent;
 	let fixture: ComponentFixture<ZoneComponent>;
-
-	let activatedRouteMock = {
-		snapshot: {
-			paramMap:convertToParamMap({
-				hostName: "somehost",
-				zoneName: "box",
-			}),
-		},
-	};
 
 	beforeEach(waitForAsync(() => {
 		TestBed.configureTestingModule({
@@ -35,20 +33,101 @@ describe('ZoneComponent', () => {
 				},
 				{
 					provide: ActivatedRoute,
-					useValue: activatedRouteMock,
+					useClass: MockActivatedRoute,
 				},
 			],
 		})
 			.compileComponents();
 	}));
 
-	beforeEach(() => {
-		fixture = TestBed.createComponent(ZoneComponent);
-		component = fixture.componentInstance;
-		fixture.detectChanges();
+
+
+
+	describe('box zone with tracking', () => {
+		beforeEach(() => {
+			MockActivatedRoute.current = {
+				hostName: "somehost",
+				zoneName: "box",
+			};
+			fixture = TestBed.createComponent(ZoneComponent);
+			component = fixture.componentInstance;
+			fixture.detectChanges();
+		});
+
+		it('should create', () => {
+			expect(component).toBeTruthy();
+		});
+
 	});
 
-	it('should create', () => {
-		expect(component).toBeTruthy();
+	describe('box zone without tracking', () => {
+		beforeEach(() => {
+			MockActivatedRoute.current = {
+				hostName: "notracking",
+				zoneName: "box",
+			};
+			fixture = TestBed.createComponent(ZoneComponent);
+			component = fixture.componentInstance;
+			fixture.detectChanges();
+		});
+
+		it('should create', () => {
+			expect(component).toBeTruthy();
+		});
+
 	});
+
+	describe('tunnel zone without tracking', () => {
+		beforeEach(() => {
+			MockActivatedRoute.current = {
+				hostName: "somehost",
+				zoneName: "tunnel",
+			};
+			fixture = TestBed.createComponent(ZoneComponent);
+			component = fixture.componentInstance;
+			fixture.detectChanges();
+		});
+
+		it('should create', () => {
+			expect(component).toBeTruthy();
+		});
+
+	});
+
+	describe('box zone without climate', () => {
+		beforeEach(() => {
+			MockActivatedRoute.current = {
+				hostName: "tracking",
+				zoneName: "box",
+			};
+			fixture = TestBed.createComponent(ZoneComponent);
+			component = fixture.componentInstance;
+			fixture.detectChanges();
+		});
+
+		it('should create', () => {
+			expect(component).toBeTruthy();
+		});
+
+	});
+
+
+	describe('unexisting zone', () => {
+		beforeEach(() => {
+			MockActivatedRoute.current = {
+				hostName: "foo",
+				zoneName: "bar",
+			};
+			fixture = TestBed.createComponent(ZoneComponent);
+			component = fixture.componentInstance;
+			fixture.detectChanges();
+		});
+
+		it('should create', () => {
+			expect(component).toBeTruthy();
+		});
+
+	});
+
+
 });
