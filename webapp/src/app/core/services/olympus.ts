@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { ZoneClimateReport } from '@models/zone-climate-report';
 import { ZoneSummaryReport } from '@models/zone-summary-report';
 import { ClimateTimeSeries } from '@models/climate-time-series';
 import { StreamInfo } from '@models/stream-info';
@@ -10,6 +9,8 @@ import { environment } from '@environments/environment';
 import { ZoneClimateStatus } from '@models/zone-climate-status';
 import { State } from '@models/state';
 import { Bounds } from '@models/bounds';
+import { ZoneReport } from '@models/zone-report';
+import { ZoneClimateReport } from '@models/zone-climate-report';
 
 
 
@@ -33,19 +34,11 @@ export class OlympusService {
 			}));
 	}
 
-	zoneClimate(host: string, zone: string): Observable<ZoneClimateReport> {
+	zoneReport(host: string, zone: string): Observable<ZoneReport> {
 		return this.httpClient.get<any>(environment.apiEndpoint+'/host/'+host+'/zone/'+zone).pipe(
 			map(item => {
-				return ZoneClimateReport.adapt(item)
+				return ZoneReport.adapt(item)
 			}));
-	}
-
-	streamURL(host: string): Observable<StreamInfo> {
-		return this.httpClient.get<any>(environment.apiEndpoint+'/tracking/host/'+host).pipe(
-			map(item => {
-				return new StreamInfo(item.StreamURL);
-			}),
-		);
 	}
 
 	climateTimeSeries(host: string, zone: string, window: string): Observable<ClimateTimeSeries> {
@@ -78,7 +71,9 @@ export class MockOlympusService {
 					[{X:0,Y:21.4},{X:1,Y:21.5}],
 					null
 				),
-				streamInfo: new StreamInfo('https://olympus.com/olympus/hls/somehost.m3u8'),
+				alarms: null,
+				streamInfo: new StreamInfo('/olympus/hls/somehost.m3u8',
+										   '/olympus/somehost.png'),
 			},
 			tunnel: {
 				climate: new ZoneClimateReport(
@@ -90,11 +85,13 @@ export class MockOlympusService {
 					null,
 					null
 				),
+				alarms: null,
 				timeSeries: new ClimateTimeSeries(
 					null,
 					null,
 					null
 				),
+				streamInfo: null
 			},
 		},
 		notracking: {
@@ -113,53 +110,58 @@ export class MockOlympusService {
 					[{X:0,Y:21.4},{X:1,Y:21.5}],
 					null
 				),
-				streamInfo: new StreamInfo(''),
+				streamInfo: null,
+				alarms: null,
 			},
 		},
 		onlytracking: {
-			climate: {}
+			box: {
+				climate: null,
+				alarms: null,
+				timeSeries: null,
+				streamInfo: new StreamInfo('/olympus/hls/onlytracking.m3u8','/olympus/onlytracking.png'),
+			}
 		},
-
 	}
 
-	zoneClimate(host: string,zone: string): Observable<ZoneClimateReport> {
+	zoneReport(host: string,zone: string): Observable<ZoneReport> {
 		if ( this.staticData[host] == null
 			|| this.staticData[host][zone] == null) {
 			return throwError('olympus: unknown zone '+host+'/zone/'+zone);
 		}
-		return of(this.staticData[host][name]['climate'])
+		let z = this.staticData[host][zone];
+		return of(new ZoneReport(host,zone,z.climate,z.streamInfo,z.alarms));
 	}
 
 	zoneSummaries(): Observable<ZoneSummaryReport[]> {
 		return of([
 			new ZoneSummaryReport('notracking',
 								  'box',
-								  new StreamInfo(''),
+								  null,
 								  this.staticData.notracking.box.climate.ClimateStatus),
 			new ZoneSummaryReport('onlytracking',
 								  'box',
-								  new StreamInfo('https://olympus.com/olympus/hls/onlytracking.m3u8'),
+								  new StreamInfo('/olympus/hls/onlytracking.m3u8','/olympus/onlytracking.png'),
 								  null),
 			new ZoneSummaryReport('somehost',
 								  'box',
-								  new StreamInfo('https://olympus.com/olympus/hls/somehost.m3u8'),
+								  new StreamInfo('https://olympus.com/olympus/hls/somehost.m3u8','/olympus/somehost.png'),
 								  this.staticData.somehost.box.climate.ClimateStatus),
 			new ZoneSummaryReport('somehost',
 								  'tunnel',
-								  new StreamInfo(''),
+								  null,
 								  this.staticData.somehost.tunnel.climate.ClimateStatus),
 
 		]);
 	}
 
-	streamURL(host: string): Observable<StreamInfo> {
-		if ( this.staticData[host] == null || this.staticData[host].streamInfo.streamURL.length == 0 ) {
-			return throwError('no stream info for '+host);
-		}
-		return of(this.staticData[host].streamInfo);
-	}
 
 	climateTimeSeries(host: string, zone: string, window: string): Observable<ClimateTimeSeries> {
-		return ;
+		if ( this.staticData[host] == null
+			|| this.staticData[host][zone] == null
+			|| this.staticData[host][zone].timeSeries == null ) {
+			return throwError('unknown zone '+host+'/zone/'+zone);
+		}
+		return of(this.staticData[host][zone].timeSeries);
 	}
 }

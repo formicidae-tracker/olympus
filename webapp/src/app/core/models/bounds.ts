@@ -10,7 +10,7 @@ export class Bounds {
 	}
 
 	static adapt(item: any): Bounds {
-		let res = new Bounds(0,100);
+		let res = new Bounds(NaN,NaN);
 		if (item == null) {
 			return res;
 		}

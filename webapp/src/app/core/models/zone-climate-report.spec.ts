@@ -7,6 +7,10 @@ describe('ZoneClimateReport', () => {
 		expect(new ZoneClimateReport(null,0,null,null,null,null,null)).toBeTruthy();
 	});
 
+	it('should adapt from null', () => {
+		expect(ZoneClimateReport.adapt(null)).toBeNull();
+	});
+
 	it('should adapt from JSON', () => {
 		let s = ZoneClimateReport.adapt({"Temperature":20.0,
 										 "Humidity":12.1,

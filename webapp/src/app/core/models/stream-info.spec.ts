@@ -1,34 +1,30 @@
 import { StreamInfo } from './stream-info';
 
 
-describe('StreamData', () => {
+describe('StreamInfo', () => {
 
 	it('should create an instance',() => {
-		expect(new StreamInfo('/olympus/hls/someserver.m3u8')).toBeTruthy();
+		expect(new StreamInfo('/olympus/hls/someserver.m3u8','')).toBeTruthy();
 	});
 
-	it('should compute the thumbnail address from the streamURL',() => {
-		let testdata = [
-			{
-				streamURL:'https://example.com/hls/foo.m3u8',
-				thumbnailURL:'https://example.com/foo.png',
-			},
-			{
-				streamURL:'/olympus/hls/foo-bar.m3u8',
-				thumbnailURL:'/olympus/foo-bar.png',
-			},
-			{
-				streamURL:'',
-				thumbnailURL:'',
-			},
+	it('should adapt from null',() => {
+		expect(StreamInfo.adapt(null)).toBeNull()
+	});
 
-		]
+	it('should adapt without a thumbnail',() => {
+		let s = StreamInfo.adapt({StreamURL: 'foo.m3u8'});
 
-		for ( let d of testdata) {
-			let sd = new StreamInfo(d.streamURL);
-			expect(sd.streamURL).toBe(d.streamURL);
-			expect(sd.thumbnailURL).toBe(d.thumbnailURL);
-		}
+		expect(s).toBeTruthy();
+		expect(s.streamURL).toBe('foo.m3u8');
+		expect(s.thumbnailURL).toBe('');
+	});
+
+	it('should adapt with a thumbnail',() => {
+		let s = StreamInfo.adapt({StreamURL: 'foo.m3u8',ThumbnailURL:'foo.png'})
+
+		expect(s).toBeTruthy();
+		expect(s.streamURL).toBe('foo.m3u8');
+		expect(s.thumbnailURL).toBe('foo.png');
 
 	});
 

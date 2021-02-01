@@ -14,18 +14,18 @@ describe('Bounds', () => {
 		let b = Bounds.adapt(null);
 
 		expect(b).toBeTruthy();
-		expect(b.Min).toBe(0);
-		expect(b.Max).toBe(100);
+		expect(b.Min).toBeNaN();
+		expect(b.Max).toBeNaN();
 	});
 
 
 	it('should adapt from partial definition', () => {
 		let b = Bounds.adapt({"Min": 42});
 		expect(b.Min).toBe(42);
-		expect(b.Max).toBe(100);
+		expect(b.Max).toBeNaN();
 
 		b = Bounds.adapt({"Max": 42});
-		expect(b.Min).toBe(0);
+		expect(b.Min).toBeNaN();
 		expect(b.Max).toBe(42);
 	});
 

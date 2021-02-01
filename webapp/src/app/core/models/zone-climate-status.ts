@@ -3,10 +3,16 @@ import { Bounds} from './bounds';
 export class ZoneClimateStatus {
 	constructor(public Temperature: number,
 				public Humidity: number,
-				public TemperatureBounds: Bounds = null,
-				public HumidityBounds: Bounds = null,
+				public TemperatureBounds: Bounds = new Bounds(NaN,NaN),
+				public HumidityBounds: Bounds = new Bounds(NaN,NaN),
 				public ActiveWarnings = 0,
 				public ActiveEmergencies = 0) {
+		if ( this.Temperature <= -1000.0 ) {
+			this.Temperature = NaN;
+		}
+		if ( this.Humidity <= -1000.0 ) {
+			this.Humidity = NaN
+		}
 	}
 	static adapt(item: any) : ZoneClimateStatus {
 		if ( item == null ) {

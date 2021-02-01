@@ -4,7 +4,7 @@ import { StreamInfo } from './stream-info';
 export class ZoneSummaryReport {
 	constructor(public host: string,
 				public zoneName: string,
-				public streamURL: StreamInfo  = new StreamInfo(''),
+				public streamURL: StreamInfo  = null,
 				public status: ZoneClimateStatus = null ) {
 	}
 
