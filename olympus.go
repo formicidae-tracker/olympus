@@ -199,11 +199,10 @@ func (o *Olympus) UnregisterTracker(hostname string) error {
 func (o *Olympus) getZones() []ZoneReportSummary {
 	res := make([]ZoneReportSummary, 0, len(o.zones)+len(o.watchers))
 	for _, z := range o.zones {
-		status := z.GetReport().ZoneClimateStatus
 		sum := ZoneReportSummary{
 			Host:    z.Host(),
 			Name:    z.ZoneName(),
-			Climate: &status,
+			Climate: z.GetReport(),
 		}
 		if w, ok := o.watchers[z.Host()]; ok == true {
 			sum.Stream = w.Stream()

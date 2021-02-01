@@ -78,17 +78,15 @@ func newZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneL
 		emergencies:   make(map[string]bool),
 
 		currentReport: ZoneClimateReport{
-			ZoneClimateStatus: ZoneClimateStatus{
-				Temperature: -1000.0,
-				TemperatureBounds: Bounds{
-					Min: reg.MinTemperature,
-					Max: reg.MaxTemperature,
-				},
-				Humidity: -1000.0,
-				HumidityBounds: Bounds{
-					Min: reg.MinHumidity,
-					Max: reg.MaxHumidity,
-				},
+			Temperature: -1000.0,
+			TemperatureBounds: Bounds{
+				Min: reg.MinTemperature,
+				Max: reg.MaxTemperature,
+			},
+			Humidity: -1000.0,
+			HumidityBounds: Bounds{
+				Min: reg.MinHumidity,
+				Max: reg.MaxHumidity,
 			},
 			NumAux: reg.NumAux,
 		},

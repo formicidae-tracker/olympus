@@ -37,15 +37,6 @@ type ClimateReportTimeSerie struct {
 	TemperatureAux [][]lttb.Point
 }
 
-type ZoneClimateStatus struct {
-	Temperature       float64
-	Humidity          float64
-	TemperatureBounds Bounds
-	HumidityBounds    Bounds
-	ActiveWarnings    int
-	ActiveEmergencies int
-}
-
 type StreamInfo struct {
 	StreamURL    string
 	ThumbnailURL string
@@ -55,19 +46,24 @@ type ZoneReportSummary struct {
 	Host string
 	Name string
 
-	Climate *ZoneClimateStatus
+	Climate *ZoneClimateReport
 
 	Stream *StreamInfo
 }
 
 type ZoneClimateReport struct {
-	ZoneClimateStatus
-	NumAux     int
-	Current    *zeus.State
-	CurrentEnd *zeus.State
-	Next       *zeus.State
-	NextEnd    *zeus.State
-	NextTime   *time.Time
+	Temperature       float64
+	Humidity          float64
+	TemperatureBounds Bounds
+	HumidityBounds    Bounds
+	ActiveWarnings    int
+	ActiveEmergencies int
+	NumAux            int
+	Current           *zeus.State
+	CurrentEnd        *zeus.State
+	Next              *zeus.State
+	NextEnd           *zeus.State
+	NextTime          *time.Time
 }
 
 type ZoneReport struct {
@@ -84,7 +80,12 @@ type LetoTrackingRegister struct {
 
 func (r *ZoneClimateReport) makeCopy() *ZoneClimateReport {
 	res := &ZoneClimateReport{
-		ZoneClimateStatus: r.ZoneClimateStatus,
+		Temperature:       r.Temperature,
+		Humidity:          r.Humidity,
+		TemperatureBounds: r.TemperatureBounds,
+		HumidityBounds:    r.HumidityBounds,
+		ActiveWarnings:    r.ActiveWarnings,
+		ActiveEmergencies: r.ActiveEmergencies,
 		NumAux:            r.NumAux,
 	}
 	if r.Current != nil {
