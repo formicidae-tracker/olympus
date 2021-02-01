@@ -3,7 +3,7 @@ import {State} from './state';
 describe('State' , () => {
 
 	it('should create an instance', () => {
-		expect(new State('foo',12,23,56,0,10)).toBeTruthy();
+		expect(new State()).toBeTruthy();
 	});
 
 	it('should sets back undefined', () => {

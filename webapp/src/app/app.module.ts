@@ -5,9 +5,6 @@ import { HttpClientModule }    from '@angular/common/http';
 import { AppComponent } from './app.component';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 
-import { RouterModule } from '@angular/router';
-import { ROUTES } from './app.route';
-
 import { HomeComponent } from './home/home.component';
 import { ZoneComponent } from './zone/zone.component';
 import { PageNotFoundComponent } from './page-not-found/page-not-found.component';
@@ -18,13 +15,15 @@ import { ClimateChartComponent } from './climate-chart/climate-chart.component';
 import { AlarmComponent } from './alarm/alarm.component';
 import { StateComponent } from './state/state.component';
 import { VideoJsComponent } from './video-js/video-js.component';
+import { AlarmListComponent } from './alarm-list/alarm-list.component';
+import { AppRoutingModule } from './app-routing.module';
 
 @NgModule({
     imports: [
   		NgbModule,
 		BrowserModule,
 		HttpClientModule,
-        RouterModule.forRoot(ROUTES, { relativeLinkResolution: 'legacy' })
+        AppRoutingModule,
 	],
 	declarations: [
 		AppComponent,
@@ -35,7 +34,8 @@ import { VideoJsComponent } from './video-js/video-js.component';
 		ClimateChartComponent,
 		AlarmComponent,
 		StateComponent,
-		VideoJsComponent
+		VideoJsComponent,
+		AlarmListComponent
 	],
 	providers: [OlympusService],
 	bootstrap: [AppComponent]

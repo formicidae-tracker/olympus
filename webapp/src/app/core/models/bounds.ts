@@ -1,8 +1,7 @@
-
 export class Bounds {
 	private boundary: number;
-	constructor(public Min: number,
-				public Max: number) {
+	constructor(public Min: number = NaN,
+				public Max: number = NaN) {
 		this.boundary = 0;
 		if (isNaN(this.Min) == false
 			&& isNaN(this.Max) == false ) {
@@ -16,18 +15,21 @@ export class Bounds {
 	}
 
 	static adapt(item: any): Bounds {
-		let res = new Bounds(NaN,NaN);
+		let min: number = NaN;
+		let max: number = NaN;
 		if (item == null) {
-			return res;
+			return new Bounds(min,max);
 		}
 		if (item.Min != null) {
-			res.Min = item.Min;
+			min = item.Min;
 		}
 		if (item.Max != null) {
-			res.Max = item.Max;
+			max = item.Max;
 		}
-		return res;
+		return new Bounds(min,max);
 	}
+
+
 
 	status(v: number): string {
 		if ( isNaN(this.Min) == false ) {

@@ -5,12 +5,12 @@ export class State {
 	public wind: number;
 	public visibleLight: number;
 	public uvLight: number;
-	constructor(name: string,
-				humidity: number,
-				temperature:number,
-				wind: number,
-				visibleLight: number,
-				uvLight: number) {
+	constructor(name: string = '',
+				humidity: number = NaN,
+				temperature:number = NaN,
+				wind: number = NaN,
+				visibleLight: number = NaN,
+				uvLight: number = NaN) {
 		this.name = name;
 		this.humidity = this.checkUndefined(humidity);
 		this.temperature = this.checkUndefined(temperature);

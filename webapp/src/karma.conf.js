@@ -28,6 +28,7 @@ module.exports = function (config) {
 		browsers: ['Chrome'],
 		singleRun: false,
 		restartOnFileChange: true,
-		exclude: ['**/.#*']
+		exclude: ['**/.#*'],
+		browserNoActivityTimeout: 400000
   });
 };

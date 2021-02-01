@@ -24,10 +24,6 @@ export class ZonePreviewComponent implements OnInit {
 		return ['host',this.summary.host,'zone',this.summary.zoneName];
 	}
 
-	hasThumbnail(): boolean {
-		return this.summary.hasThumbnail()
-	}
-
 	zoneDisplayName(): string {
 		return this.summary.host + '.' + this.summary.zoneName;
 	}
@@ -37,12 +33,14 @@ export class ZonePreviewComponent implements OnInit {
 		    || this.summary.climate.current == null) {
 			return 'No climate control';
 		}
-		return 'Current state: \'' + this.summary.climate.current.name;
+		return 'Current state: \'' + this.summary.climate.current.name + '\'';
 	}
 
 	nextStateDescription(): string {
-		if ( this.summary.climate == null
-		    || this.summary.climate.next == null) {
+		if ( this.summary.climate == null ) {
+			return '';
+		}
+		if ( this.summary.climate.next == null ) {
 			return 'No next state';
 		}
 		return 'Next state: \'' + this.summary.climate.next.name + '\'';

@@ -22,6 +22,7 @@
 		"paths": {
 			"@models/*":["src/app/core/models/*"],
 			"@services/*":["src/app/core/services/*"],
+			"@modules/*":["src/app/core/modules/*"],
 			"@environments/*":["src/environments/*"]
 		}
 	}

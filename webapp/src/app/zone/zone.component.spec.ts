@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 
 import { ZoneComponent } from './zone.component';
-
+import { of } from 'rxjs';
 import { OlympusService,MockOlympusService } from '@services/olympus';
 
 
@@ -10,12 +10,10 @@ class MockActivatedRoute {
 	static current = {
 		hostName: "",
 		zoneName: "",
-	}
-	snapshot = {
-		paramMap: {
-			get: (key: string) => { return MockActivatedRoute.current[key]; }
-		},
-	}
+	};
+	paramMap = of({
+		get: (key: string) => { return MockActivatedRoute.current[key]; }
+	});
 }
 
 describe('ZoneComponent', () => {
@@ -119,6 +117,7 @@ describe('ZoneComponent', () => {
 			};
 			fixture = TestBed.createComponent(ZoneComponent);
 			component = fixture.componentInstance;
+
 			fixture.detectChanges();
 		});
 

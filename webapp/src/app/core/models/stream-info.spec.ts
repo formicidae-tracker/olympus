@@ -8,7 +8,7 @@ describe('StreamInfo', () => {
 	});
 
 	it('should adapt from null',() => {
-		expect(StreamInfo.adapt(null)).toBeNull()
+		expect(StreamInfo.adapt(null)).toEqual(new StreamInfo())
 	});
 
 	it('should adapt without a thumbnail',() => {

@@ -3,8 +3,8 @@ import { Title} from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription,timer } from 'rxjs';
 import { OlympusService } from '@services/olympus';
-import { StreamInfo } from '@models/stream-info';
 import { ZoneReport } from '@models/zone-report';
+import { map } from 'rxjs/operators';
 
 @Component({
 	selector: 'app-zone',
@@ -23,29 +23,38 @@ export class ZoneComponent implements OnInit,OnDestroy {
 				private title: Title,
 				private olympus: OlympusService) {
 		this.zone = null;
+		this.zoneName = '';
+		this.hostName = '';
+		this.update = null;
 	}
 
     ngOnInit() {
-        this.zoneName = this.route.snapshot.paramMap.get('zoneName');
-        this.hostName = this.route.snapshot.paramMap.get('hostName');
-        this.title.setTitle('Olympus: '+this.hostName+'.'+this.zoneName)
-		this.update = timer(0,5000).subscribe( (x) => {
-			this.olympus.zoneReport(this.hostName,this.zoneName)
-				.subscribe(
-					(zone) => {
-						this.zone = zone;
-					},
-					(error)  => {
-						this.zone = null;
-					},
-					() => {
+		this.route.paramMap.pipe(
+			map((params) => {
+				this.hostName = params.get('hostName');
+				this.zoneName = params.get('zoneName');
+				this.title.setTitle('Olympus: '+this.hostName+'.'+this.zoneName)
+				this.update = timer(0,5000).subscribe( () => {
+					this.olympus.zoneReport(this.hostName,this.zoneName)
+						.subscribe(
+							(zone) => {
+								this.zone = zone;
+							},
+							()  => {
+								this.zone = null;
+							},
+							() => {
 
-					});
-		});
+							});
+				});
+			}),
+		);
     }
 
 	ngOnDestroy() {
-		this.update.unsubscribe();
+		if ( this.update != null ) {
+			this.update.unsubscribe();
+		}
 	}
 
 }

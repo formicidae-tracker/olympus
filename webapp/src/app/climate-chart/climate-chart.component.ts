@@ -12,9 +12,9 @@ export enum TimeWindow {
 }
 
 @Component({
-  selector: 'app-climate-chart',
-  templateUrl: './climate-chart.component.html',
-  styleUrls: ['./climate-chart.component.css']
+	selector: 'app-climate-chart',
+	templateUrl: './climate-chart.component.html',
+	styleUrls: ['./climate-chart.component.css']
 })
 
 export class ClimateChartComponent implements AfterViewInit,OnInit,OnDestroy {
@@ -35,11 +35,13 @@ export class ClimateChartComponent implements AfterViewInit,OnInit,OnDestroy {
 	@Input() zoneName: string;
 
 	constructor(private olympus: OlympusService) {
+		this.hostName = '';
+		this.zoneName = '';
 		this.timeWindow = TimeWindow.Day;
 	}
 
 	ngOnInit() {
-		this.update = timer(0,10000).subscribe(  (x) => {
+		this.update = timer(0,10000).subscribe(  () => {
 			this.updateChart();
 		});
 	}
@@ -235,7 +237,7 @@ export class ClimateChartComponent implements AfterViewInit,OnInit,OnDestroy {
 				}
 				this.chart.update();
 				console.timeEnd('updateChart');
-			})
+			},() => {});
 
 	}
 

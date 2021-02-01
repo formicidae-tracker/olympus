@@ -35,9 +35,9 @@ describe('ZoneClimateReport', () => {
 		});
 		expect(s).toBeTruthy();
 		expect(s.temperature).toBe(22.01);
-		expect(s.temperatureBounds).toBe(new Bounds(20,31))
-		expect(s.humidity).toBe(12.1);
-		expect(s.humidityBounds).toBe(new Bounds(40,80))
+		expect(s.temperatureBounds).toEqual(new Bounds(20,31))
+		expect(s.humidity).toBe(59.81);
+		expect(s.humidityBounds).toEqual(new Bounds(40,80))
 		expect(s.numAux).toBe(0);
 		expect(s.activeWarnings).toBe(0);
 		expect(s.activeEmergencies).toBe(1);
@@ -69,8 +69,8 @@ describe('ZoneClimateReport', () => {
 			"NextTime":null});
 		expect(s.temperature).toBeNaN();
 		expect(s.humidity).toBeNaN();
-		expect(s.temperatureBounds).toBe(new Bounds(NaN,NaN));
-		expect(s.humidityBounds).toBe(new Bounds(NaN,NaN));
+		expect(s.temperatureBounds).toEqual(new Bounds(NaN,NaN));
+		expect(s.humidityBounds).toEqual(new Bounds(NaN,NaN));
 		expect(s.numAux).toBe(0);
 		expect(s.current).toBeTruthy();
 		expect(s.currentEnd).toBeNull();

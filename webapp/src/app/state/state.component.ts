@@ -16,13 +16,17 @@ export class StateComponent implements OnInit {
 
 
 	displayValue(v :number) :string {
-		if (v <= -1000.0) {
-			return 'n.a.';
+		if ( isNaN(v) == true ) {
+			return 'N.A.';
 		}
 		return (Math.round(100*v)/100).toString();
 	}
 
     constructor() {
+		this.stateA = new State();
+		this.stateB = new State();
+		this.currentTemperature = NaN;
+		this.currentHumidity = NaN;
 		this.displayCurrent = false;
 	}
 

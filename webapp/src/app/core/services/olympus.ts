@@ -138,20 +138,29 @@ export class MockOlympusService {
 		},
 	}
 
-	zoneReport(host: string,zone: string): Observable<ZoneReport> {
+	zoneReportStatic(host: string,zone: string): ZoneReport {
 		if ( this.staticData[host] == null
 			|| this.staticData[host][zone] == null) {
-			return throwError('olympus: unknown zone '+host+'/zone/'+zone);
+			return null;
 		}
 		let z = this.staticData[host][zone];
-		return of(new ZoneReport(host,zone,z.climate,z.streamInfo,z.alarms));
+		return new ZoneReport(host,zone,z.climate,z.streamInfo,z.alarms);
 	}
 
-	zoneSummaries(): Observable<ZoneSummaryReport[]> {
-		return of([
+	zoneReport(host: string,zone: string): Observable<ZoneReport> {
+		let res = this.zoneReportStatic(host,zone);
+		if ( res == null ) {
+			return throwError('mock olympus: zoneReport: unknown zone '+host+'/zone/'+zone);
+		}
+		return of(res);
+	}
+
+
+	zoneSummariesStatic(): ZoneSummaryReport[] {
+		return [
 			new ZoneSummaryReport('notracking',
 								  'box',
-								  null,
+								  new StreamInfo(),
 								  this.staticData.notracking.box.climate),
 			new ZoneSummaryReport('onlytracking',
 								  'box',
@@ -159,23 +168,34 @@ export class MockOlympusService {
 								  null),
 			new ZoneSummaryReport('somehost',
 								  'box',
-								  new StreamInfo('https://olympus.com/olympus/hls/somehost.m3u8','/olympus/somehost.png'),
+								  new StreamInfo('/olympus/hls/somehost.m3u8','/olympus/somehost.png'),
 								  this.staticData.somehost.box.climate),
 			new ZoneSummaryReport('somehost',
 								  'tunnel',
-								  null,
+								  new StreamInfo(),
 								  this.staticData.somehost.tunnel.climate),
 
-		]);
+		];
+	}
+	zoneSummaries(): Observable<ZoneSummaryReport[]> {
+		return of(this.zoneSummariesStatic());
 	}
 
-
-	climateTimeSeries(host: string, zone: string, window: string): Observable<ClimateTimeSeries> {
+	climateTimeSeriesStatic(host: string, zone: string, window: string): ClimateTimeSeries {
 		if ( this.staticData[host] == null
 			|| this.staticData[host][zone] == null
 			|| this.staticData[host][zone].timeSeries == null ) {
-			return throwError('unknown zone '+host+'/zone/'+zone);
+			return null;
 		}
-		return of(this.staticData[host][zone].timeSeries);
+		return this.staticData[host][zone].timeSeries;
 	}
+
+	climateTimeSeries(host: string, zone: string, window: string): Observable<ClimateTimeSeries> {
+		let res = this.climateTimeSeriesStatic(host,zone,window);
+		if ( res == null ) {
+			return throwError('mock olympus: climateSeries: unknown zone '+host+'/zone/'+zone);
+		}
+		return of(res);
+	}
+
 }
