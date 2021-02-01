@@ -1,22 +1,22 @@
 export class State {
-	public Name: string;
-	public Humidity: number;
-	public Temperature: number;
-	public Wind: number;
-	public VisibleLight: number;
-	public UVLight: number;
+	public name: string;
+	public humidity: number;
+	public temperature: number;
+	public wind: number;
+	public visibleLight: number;
+	public uvLight: number;
 	constructor(name: string,
 				humidity: number,
 				temperature:number,
 				wind: number,
 				visibleLight: number,
 				uvLight: number) {
-		this.Name = name;
-		this.Humidity = this.checkUndefined(humidity);
-		this.Temperature = this.checkUndefined(temperature);
-		this.Wind = this.checkUndefined(wind);
-		this.VisibleLight = this.checkUndefined(visibleLight);
-		this.UVLight = this.checkUndefined(uvLight);
+		this.name = name;
+		this.humidity = this.checkUndefined(humidity);
+		this.temperature = this.checkUndefined(temperature);
+		this.wind = this.checkUndefined(wind);
+		this.visibleLight = this.checkUndefined(visibleLight);
+		this.uvLight = this.checkUndefined(uvLight);
 	}
 
 	private checkUndefined(v: number): number{

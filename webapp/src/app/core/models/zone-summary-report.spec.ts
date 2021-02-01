@@ -1,4 +1,4 @@
-import { ZoneClimateStatus } from './zone-climate-status';
+import { ZoneClimateReport } from './zone-climate-report';
 import { ZoneSummaryReport } from './zone-summary-report';
 
 describe('ZoneSummaryReport', () => {
@@ -67,7 +67,7 @@ describe('ZoneSummaryReport', () => {
 		]
 
 		for ( let d of jsonData ) {
-			expect(ZoneClimateStatus.adapt(d)).toBeTruthy();
+			expect(ZoneClimateReport.adapt(d)).toBeTruthy();
 		}
 
 	});

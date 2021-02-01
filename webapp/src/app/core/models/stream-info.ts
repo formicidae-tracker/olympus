@@ -5,8 +5,16 @@ export class StreamInfo {
 
 	static adapt(item: any): StreamInfo {
 		if ( item == null ) {
-			return null;
+			return new StreamInfo();
 		}
 		return new StreamInfo(item.StreamURL,item.ThumbnailURL);
+	}
+
+	hasStream(): boolean {
+		return this.streamURL.length>0
+	}
+
+	hasThumbnail(): boolean {
+		return this.thumbnailURL.length>0
 	}
 }

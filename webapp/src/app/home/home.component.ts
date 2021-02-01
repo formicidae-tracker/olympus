@@ -9,20 +9,20 @@ import { Subscription,timer } from 'rxjs';
     styleUrls: ['./home.component.css']
 })
 export class HomeComponent implements OnInit,OnDestroy {
-    zones: ZoneSummaryReport[];
+    summaries: ZoneSummaryReport[];
 	update: Subscription;
 
 
     constructor(private olympus : OlympusService, private title: Title) {
-		this.zones = [];
+		this.summaries = [];
 	}
 
     ngOnInit() {
 		this.title.setTitle('Olympus: Home')
 
-		this.update = timer(0,20000).subscribe(x => {
+		this.update = timer(0,20000).subscribe(() => {
 			this.olympus.zoneSummaries().subscribe( (list) => {
-				this.zones = list;
+				this.summaries = list;
 			});
 		})
     }

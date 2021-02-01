@@ -6,7 +6,6 @@ import { Observable,throwError,of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment';
-import { ZoneClimateStatus } from '@models/zone-climate-status';
 import { State } from '@models/state';
 import { Bounds } from '@models/bounds';
 import { ZoneReport } from '@models/zone-report';
@@ -26,7 +25,7 @@ export class OlympusService {
 		return this.httpClient.get<any[]>(environment.apiEndpoint+'/zones').pipe(
 			map(item => {
 				let items = item as any[];
-				let res: ZoneSummaryReport[]
+				let res: ZoneSummaryReport[] = [];
 				for ( let i of items ) {
 					res.push(ZoneSummaryReport.adapt(i));
 				}
@@ -58,7 +57,12 @@ export class MockOlympusService {
 		somehost: {
 			box: {
 				climate: new ZoneClimateReport(
-					new ZoneClimateStatus(21.0,61.0,new Bounds(15,30),new Bounds(40,80),2,1),
+					21.0,
+					61.0,
+					new Bounds(15,30),
+					new Bounds(40,80),
+					2,
+					1,
 					0,
 					new State("day",60.0,21.5,100,100,100),
 					null,
@@ -77,7 +81,12 @@ export class MockOlympusService {
 			},
 			tunnel: {
 				climate: new ZoneClimateReport(
-					new ZoneClimateStatus(-1000.0,-1000.0,new Bounds(0,100),new Bounds(0,100),0,0),
+					-1000.0,
+						-1000.0,
+					new Bounds(0,100),
+					new Bounds(0,100),
+					0,
+					0,
 					0,
 					new State("always-on",-1000,-1000,100,100,-1000),
 					null,
@@ -97,7 +106,12 @@ export class MockOlympusService {
 		notracking: {
 			box: {
 				climate: new ZoneClimateReport(
-					new ZoneClimateStatus(21.0,61.0,new Bounds(15,30),new Bounds(40,80),2,1),
+					21.0,
+					61.0,
+					new Bounds(15,30),
+					new Bounds(40,80),
+					2,
+					1,
 					0,
 					new State("day",60.0,21.5,100,100,100),
 					null,
@@ -138,7 +152,7 @@ export class MockOlympusService {
 			new ZoneSummaryReport('notracking',
 								  'box',
 								  null,
-								  this.staticData.notracking.box.climate.ClimateStatus),
+								  this.staticData.notracking.box.climate),
 			new ZoneSummaryReport('onlytracking',
 								  'box',
 								  new StreamInfo('/olympus/hls/onlytracking.m3u8','/olympus/onlytracking.png'),
@@ -146,11 +160,11 @@ export class MockOlympusService {
 			new ZoneSummaryReport('somehost',
 								  'box',
 								  new StreamInfo('https://olympus.com/olympus/hls/somehost.m3u8','/olympus/somehost.png'),
-								  this.staticData.somehost.box.climate.ClimateStatus),
+								  this.staticData.somehost.box.climate),
 			new ZoneSummaryReport('somehost',
 								  'tunnel',
 								  null,
-								  this.staticData.somehost.tunnel.climate.ClimateStatus),
+								  this.staticData.somehost.tunnel.climate),
 
 		]);
 	}

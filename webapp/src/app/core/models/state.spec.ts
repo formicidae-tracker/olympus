@@ -8,11 +8,11 @@ describe('State' , () => {
 
 	it('should sets back undefined', () => {
 		let s = new State('foo',-1000,NaN,-1000,-1001,-1000);
-		expect(s.Humidity).toBeNaN();
-		expect(s.Temperature).toBeNaN();
-		expect(s.Wind).toBeNaN();
-		expect(s.VisibleLight).toBeNaN();
-		expect(s.UVLight).toBeNaN();
+		expect(s.humidity).toBeNaN();
+		expect(s.temperature).toBeNaN();
+		expect(s.wind).toBeNaN();
+		expect(s.visibleLight).toBeNaN();
+		expect(s.uvLight).toBeNaN();
 	})
 
 	it('should adapt from json', () => {
@@ -22,12 +22,12 @@ describe('State' , () => {
 							 "Wind":-1000,
 							 "VisibleLight":100,
 							 "UVLight":0});
-		expect(s.Name).toBe('always-on');
-		expect(s.Temperature).toBeNaN();
-		expect(s.Humidity).toBeNaN();
-		expect(s.Wind).toBeNaN();
-		expect(s.VisibleLight).toBe(100);
-		expect(s.UVLight).toBe(0);
+		expect(s.name).toBe('always-on');
+		expect(s.temperature).toBeNaN();
+		expect(s.humidity).toBeNaN();
+		expect(s.wind).toBeNaN();
+		expect(s.visibleLight).toBe(100);
+		expect(s.uvLight).toBe(0);
 	});
 
 });
