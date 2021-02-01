@@ -48,6 +48,15 @@ func HTTPLogWrap(h http.Handler) http.Handler {
 	})
 }
 
+func EnableCORS(origin string) func(h http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
 type GracefulServer interface {
 	Run() error
 	Close() error

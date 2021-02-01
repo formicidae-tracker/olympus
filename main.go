@@ -20,6 +20,7 @@ type Options struct {
 	Address             string `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
 	RPC                 int    `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
 	StreamServerAddress string `long:"stream-server" description:"address of the stream server" default:"http://localhost/olympus"`
+	AllowCORS           string `long:"allow-cors" description:"allow cors from domain"`
 }
 
 func setAngularRoute(router *mux.Router) {
@@ -48,6 +49,9 @@ func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
 	setAngularRoute(router)
 	router.Use(HTTPLogWrap)
 	router.Use(RecoverWrap)
+	if len(opts.AllowCORS) > 0 {
+		router.Use(EnableCORS(opts.AllowCORS))
+	}
 	httpServer := &http.Server{
 		Addr:    opts.Address,
 		Handler: router,
