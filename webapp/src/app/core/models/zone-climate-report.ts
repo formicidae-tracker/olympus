@@ -1,9 +1,11 @@
 
 import { ZoneClimateStatus } from './zone-climate-status';
 import { State } from './state';
+import { StreamInfo } from './stream-info';
 
-export class ZoneClimateReport {
+export class ZoneReport {
 	constructor(public ClimateStatus: ZoneClimateStatus,
+				public StreamInfo: StreamInfo,
 				public NumAux: number,
 				public Current: State,
 				public CurrentEnd: State,
