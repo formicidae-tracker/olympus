@@ -254,6 +254,7 @@ func (o *Olympus) getZoneReport(host, zoneName string) (ZoneReport, error) {
 	}
 	if okClimate == true {
 		res.Climate = z.GetReport()
+		res.Alarms = z.GetAlarmsEventLog()
 	}
 	if okTracking == true {
 		res.Stream = w.Stream()
