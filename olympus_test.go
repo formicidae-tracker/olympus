@@ -112,8 +112,8 @@ func (s *OlympusSuite) TestReportClimate(c *C) {
 
 	report, err = s.o.GetZone("another", "box")
 	c.Check(err, IsNil)
-	c.Check(report.Climate.Humidity, Equals, 0.0)
-	c.Check(report.Climate.Temperature, Equals, 0.0)
+	c.Check(report.Climate.Humidity, Equals, -1000.0)
+	c.Check(report.Climate.Temperature, Equals, -1000.0)
 }
 
 func isSorted(n int, comp func(i, j int) bool) bool {
@@ -207,7 +207,9 @@ func (s *OlympusSuite) TestRoute(c *C) {
 		w := httptest.NewRecorder()
 		match.Handler.ServeHTTP(w, req)
 		if len(d.Error) == 0 {
-			c.Check(w.Result().StatusCode, Equals, http.StatusOK, Commentf("%s %s", d.Method, d.URL))
+			rerr, _ := ioutil.ReadAll(w.Result().Body)
+			c.Check(w.Result().StatusCode, Equals, http.StatusOK, Commentf("%s %s returned:", d.Method, d.URL, string(rerr)))
+
 		} else {
 			c.Check(w.Result().StatusCode, Equals, http.StatusInternalServerError, Commentf("%s %s", d.Method, d.URL))
 			res, err := ioutil.ReadAll(w.Result().Body)

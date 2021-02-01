@@ -33,9 +33,15 @@ func (s *climateReportSampler) Add(r zeus.ClimateReport) error {
 	}
 	ellapsed := r.Time.Sub(*s.start)
 	for _, windowSamplers := range s.allSamplers {
-		windowSamplers[0].Add(ellapsed, float64(r.Humidity))
+		if zeus.IsUndefined(r.Humidity) == false {
+			windowSamplers[0].Add(ellapsed, float64(r.Humidity))
+		}
 		for i, temperatureSampler := range windowSamplers[1:] {
-			temperatureSampler.Add(ellapsed, float64(r.Temperatures[i]))
+			t := r.Temperatures[i]
+			if zeus.IsUndefined(t) {
+				continue
+			}
+			temperatureSampler.Add(ellapsed, t.Value())
 		}
 	}
 	return nil

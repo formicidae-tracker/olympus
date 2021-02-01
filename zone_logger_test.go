@@ -24,6 +24,15 @@ func pollClosed(c <-chan struct{}) bool {
 	}
 }
 
+func fetchSeries(l ZoneLogger, window string, expected int) ClimateReportTimeSerie {
+	series := l.GetClimateReportSeries(window)
+	for i := 0; i < 20 && len(series.Humidity) < expected && len(series.TemperatureAnt) < expected; i++ {
+		time.Sleep(100 * time.Microsecond)
+		series = l.GetClimateReportSeries(window)
+	}
+	return series
+}
+
 func (s *ZoneLoggerSuite) SetUpTest(c *C) {
 	s.l = newZoneLogger(zeus.ZoneRegistration{
 		Host:   "foo",
@@ -52,16 +61,7 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 			Temperatures: []zeus.Temperature{20.0},
 		}
 	}
-	for {
-		received := len(s.l.GetClimateReportSeries("10m").Humidity)
-		if received == 20 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-		if time.Now().After(start.Add(500*time.Millisecond)) == true {
-			c.Fatalf("did not received all report after 500ms")
-		}
-	}
+	fetchSeries(s.l, "", 20)
 
 	checkReport := func(c *C, series ClimateReportTimeSerie) {
 		if c.Check(len(series.Humidity), Equals, len(series.TemperatureAnt)) == false {
@@ -85,6 +85,48 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 	checkReport(c, s.l.GetClimateReportSeries("1h"))
 	checkReport(c, s.l.GetClimateReportSeries("1d"))
 	checkReport(c, s.l.GetClimateReportSeries("1w"))
+}
+
+func (s *ZoneLoggerSuite) TestLogsHumididityOnlyClimate(c *C) {
+	series := s.l.GetClimateReportSeries("")
+
+	c.Check(series.Humidity, HasLen, 0)
+	c.Check(series.TemperatureAnt, HasLen, 0)
+	report := s.l.GetReport()
+	c.Check(report.Humidity, Equals, -1000.0)
+	c.Check(report.Temperature, Equals, -1000.0)
+	s.l.ReportChannel() <- zeus.ClimateReport{
+		Time:         time.Now(),
+		Humidity:     55.0,
+		Temperatures: []zeus.Temperature{zeus.UndefinedTemperature},
+	}
+	series = fetchSeries(s.l, "", 1)
+	c.Check(series.Humidity, HasLen, 1)
+	c.Check(series.TemperatureAnt, HasLen, 0)
+	report = s.l.GetReport()
+	c.Check(report.Humidity, Equals, 55.0)
+	c.Check(report.Temperature, Equals, -1000.0)
+}
+
+func (s *ZoneLoggerSuite) TestLogsTemperatureOnlyClimate(c *C) {
+	series := s.l.GetClimateReportSeries("")
+
+	c.Check(series.Humidity, HasLen, 0)
+	c.Check(series.TemperatureAnt, HasLen, 0)
+	report := s.l.GetReport()
+	c.Check(report.Humidity, Equals, -1000.0)
+	c.Check(report.Temperature, Equals, -1000.0)
+	s.l.ReportChannel() <- zeus.ClimateReport{
+		Time:         time.Now(),
+		Humidity:     zeus.UndefinedHumidity,
+		Temperatures: []zeus.Temperature{20.0},
+	}
+	series = fetchSeries(s.l, "", 1)
+	c.Check(series.Humidity, HasLen, 0)
+	c.Check(series.TemperatureAnt, HasLen, 1)
+	report = s.l.GetReport()
+	c.Check(report.Humidity, Equals, -1000.0)
+	c.Check(report.Temperature, Equals, 20.0)
 }
 
 func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {

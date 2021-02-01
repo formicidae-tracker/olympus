@@ -79,12 +79,12 @@ func newZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneL
 
 		currentReport: ZoneClimateReport{
 			ZoneClimateStatus: ZoneClimateStatus{
-				Temperature: 0.0,
+				Temperature: -1000.0,
 				TemperatureBounds: Bounds{
 					Min: reg.MinTemperature,
 					Max: reg.MaxTemperature,
 				},
-				Humidity: 0.0,
+				Humidity: -1000.0,
 				HumidityBounds: Bounds{
 					Min: reg.MinHumidity,
 					Max: reg.MaxHumidity,
@@ -99,10 +99,12 @@ func newZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneL
 
 func (l *zoneLogger) pushClimate(cr zeus.ClimateReport) {
 	l.sampler.Add(cr)
-	if len(cr.Temperatures) > 0 {
+	if len(cr.Temperatures) > 0 && zeus.IsUndefined(cr.Temperatures[0]) == false {
 		l.currentReport.Temperature = float64(cr.Temperatures[0])
 	}
-	l.currentReport.Humidity = float64(cr.Humidity)
+	if zeus.IsUndefined(cr.Humidity) == false {
+		l.currentReport.Humidity = cr.Humidity.Value()
+	}
 }
 
 func (l *zoneLogger) pushLog(ae zeus.AlarmEvent) {
