@@ -46,13 +46,18 @@ type ZoneClimateStatus struct {
 	ActiveEmergencies int
 }
 
+type StreamInfo struct {
+	StreamURL    string
+	ThumbnailURL string
+}
+
 type ZoneReportSummary struct {
 	Host string
 	Name string
 
 	Climate *ZoneClimateStatus
 
-	StreamURL string
+	Stream *StreamInfo
 }
 
 type ZoneClimateReport struct {
@@ -65,12 +70,20 @@ type ZoneClimateReport struct {
 	NextTime   *time.Time
 }
 
+type ZoneReport struct {
+	Host    string
+	Name    string
+	Climate *ZoneClimateReport
+	Stream  *StreamInfo
+	Alarms  []AlarmEvent
+}
+
 type LetoTrackingRegister struct {
 	Host, URL string
 }
 
-func (r *ZoneClimateReport) makeCopy() ZoneClimateReport {
-	res := ZoneClimateReport{
+func (r *ZoneClimateReport) makeCopy() *ZoneClimateReport {
+	res := &ZoneClimateReport{
 		ZoneClimateStatus: r.ZoneClimateStatus,
 		NumAux:            r.NumAux,
 	}

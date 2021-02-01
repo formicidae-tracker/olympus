@@ -19,7 +19,7 @@ type ZoneLogger interface {
 	Done() <-chan struct{}
 	GetClimateReportSeries(window string) ClimateReportTimeSerie
 	GetAlarmsEventLog() []AlarmEvent
-	GetReport() ZoneClimateReport
+	GetReport() *ZoneClimateReport
 	Close() error
 }
 
@@ -265,11 +265,11 @@ func (l *zoneLogger) GetAlarmsEventLog() []AlarmEvent {
 	return res.([]AlarmEvent)
 }
 
-func (l *zoneLogger) GetReport() ZoneClimateReport {
+func (l *zoneLogger) GetReport() *ZoneClimateReport {
 	returnChannel := make(chan interface{})
 	l.requests <- namedRequest{request: report, result: returnChannel}
 	res := <-returnChannel
-	return res.(ZoneClimateReport)
+	return res.(*ZoneClimateReport)
 }
 
 func (l *zoneLogger) Close() (err error) {

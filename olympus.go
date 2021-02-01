@@ -117,18 +117,20 @@ func (o *Olympus) GetZones() []ZoneReportSummary {
 	return o.getZones()
 }
 
-func (o *Olympus) GetClimateReport(zoneIdentifier, window string) (ClimateReportTimeSerie, error) {
+func (o *Olympus) GetClimateReport(host, zoneName, window string) (ClimateReportTimeSerie, error) {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
 
-	return o.getClimateReport(zoneIdentifier, window)
+	return o.getClimateReport(host, zoneName, window)
 }
 
-func (o *Olympus) GetZone(zoneIdentifier string) (ZoneClimateReport, error) {
+func (o *Olympus) GetZone(host, zoneName string) (ZoneReport, error) {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
+	o.mxTracking.RLock()
+	defer o.mxTracking.RUnlock()
 
-	return o.getZoneReport(zoneIdentifier)
+	return o.getZoneReport(host, zoneName)
 }
 
 func (o *Olympus) GetAlarmEventLog(zoneIdentifier string) ([]AlarmEvent, error) {
@@ -204,7 +206,7 @@ func (o *Olympus) getZones() []ZoneReportSummary {
 			Climate: &status,
 		}
 		if w, ok := o.watchers[z.Host()]; ok == true {
-			sum.StreamURL = w.StreamURL()
+			sum.Stream = w.Stream()
 		}
 
 		res = append(res, sum)
@@ -214,9 +216,9 @@ func (o *Olympus) getZones() []ZoneReportSummary {
 			continue
 		}
 		res = append(res, ZoneReportSummary{
-			Host:      host,
-			Name:      "box",
-			StreamURL: watcher.StreamURL(),
+			Host:   host,
+			Name:   "box",
+			Stream: watcher.Stream(),
 		})
 	}
 
@@ -230,7 +232,8 @@ func (o *Olympus) getZones() []ZoneReportSummary {
 	return res
 }
 
-func (o *Olympus) getClimateReport(zoneIdentifier, window string) (ClimateReportTimeSerie, error) {
+func (o *Olympus) getClimateReport(host, zoneName, window string) (ClimateReportTimeSerie, error) {
+	zoneIdentifier := zeus.ZoneIdentifier(host, zoneName)
 	z, ok := o.zones[zoneIdentifier]
 	if ok == false {
 		return ClimateReportTimeSerie{}, ZoneNotFoundError{zoneIdentifier}
@@ -238,12 +241,24 @@ func (o *Olympus) getClimateReport(zoneIdentifier, window string) (ClimateReport
 	return z.GetClimateReportSeries(window), nil
 }
 
-func (o *Olympus) getZoneReport(zoneIdentifier string) (ZoneClimateReport, error) {
-	z, ok := o.zones[zoneIdentifier]
-	if ok == false {
-		return ZoneClimateReport{}, ZoneNotFoundError{zoneIdentifier}
+func (o *Olympus) getZoneReport(host, zoneName string) (ZoneReport, error) {
+	zoneIdentifier := zeus.ZoneIdentifier(host, zoneName)
+	z, okClimate := o.zones[zoneIdentifier]
+	w, okTracking := o.watchers[host]
+	if okClimate == false && okTracking == false {
+		return ZoneReport{}, ZoneNotFoundError{zoneIdentifier}
 	}
-	return z.GetReport(), nil
+	res := ZoneReport{
+		Host: host,
+		Name: zoneName,
+	}
+	if okClimate == true {
+		res.Climate = z.GetReport()
+	}
+	if okTracking == true {
+		res.Stream = w.Stream()
+	}
+	return res, nil
 }
 
 func (o *Olympus) getAlarmEventLog(zoneIdentifier string) ([]AlarmEvent, error) {
@@ -503,7 +518,7 @@ func (o *Olympus) route(router *mux.Router) {
 
 	router.HandleFunc("/api/host/{hname}/zone/{zname}/climate", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		res, err := o.GetClimateReport(zeus.ZoneIdentifier(vars["hname"], vars["zname"]), r.URL.Query().Get("window"))
+		res, err := o.GetClimateReport(vars["hname"], vars["zname"], r.URL.Query().Get("window"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -523,7 +538,7 @@ func (o *Olympus) route(router *mux.Router) {
 
 	router.HandleFunc("/api/host/{hname}/zone/{zname}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		res, err := o.GetZone(zeus.ZoneIdentifier(vars["hname"], vars["zname"]))
+		res, err := o.GetZone(vars["hname"], vars["zname"])
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

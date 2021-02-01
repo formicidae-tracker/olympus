@@ -39,12 +39,12 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 
 	c.Check(s.o.RegisterTracker(LetoTrackingRegister{
 		Host: "somehost",
-		URL:  "/somehost.m3u8",
+		URL:  "/olympus/hls/somehost.m3u8",
 	}), IsNil)
 
 	c.Check(s.o.RegisterTracker(LetoTrackingRegister{
 		Host: "fifou",
-		URL:  "/fifou.m3u8",
+		URL:  "/olympus/hls/fifou.m3u8",
 	}), IsNil)
 
 }
@@ -72,44 +72,48 @@ func (s *OlympusSuite) TestReportClimate(c *C) {
 		}), IsNil)
 	}
 	start := time.Now()
-	series, _ := s.o.GetClimateReport("somehost/zone/box", "10m")
+	series, _ := s.o.GetClimateReport("somehost", "box", "10m")
 	for len(series.Humidity) < 20 && time.Since(start) < 200*time.Millisecond {
 		time.Sleep(100 * time.Microsecond)
-		series, _ = s.o.GetClimateReport("somehost/zone/box", "10m")
+		series, _ = s.o.GetClimateReport("somehost", "box", "10m")
 	}
 
 	windows := []string{"10m", "1h", "1d", "1w", "10-minutes", "10-minute", "hour", "day", "week", "will default to 10 minutes if window is not a valid one"}
 	for _, w := range windows {
-		series, err := s.o.GetClimateReport("somehost/zone/box", w)
+		series, err := s.o.GetClimateReport("somehost", "box", w)
 		c.Check(err, IsNil, Commentf("for window %s", w))
 		c.Check(series.Humidity, HasLen, 20, Commentf("for window %s", w))
 		c.Check(series.TemperatureAnt, HasLen, 20, Commentf("for window %s", w))
 
-		series, err = s.o.GetClimateReport("another/zone/box", w)
+		series, err = s.o.GetClimateReport("another", "box", w)
 		c.Check(err, IsNil, Commentf("for window %s", w))
 		c.Check(series.Humidity, HasLen, 0, Commentf("for window %s", w))
 		c.Check(series.TemperatureAnt, HasLen, 0, Commentf("for window %s", w))
 
-		series, err = s.o.GetClimateReport("another/zone/tunnel", w)
+		series, err = s.o.GetClimateReport("another", "tunnel", w)
 		c.Check(err, IsNil, Commentf("for window %s", w))
 		c.Check(series.Humidity, HasLen, 0, Commentf("for window %s", w))
 		c.Check(series.TemperatureAnt, HasLen, 0, Commentf("for window %s", w))
 	}
 
-	_, err := s.o.GetClimateReport("fifou", "10m")
-	c.Check(err, ErrorMatches, "olympus: unknown zone 'fifou'")
-	_, err = s.o.GetZone("fifou")
-	c.Check(err, ErrorMatches, "olympus: unknown zone 'fifou'")
-
-	report, err := s.o.GetZone("somehost/zone/box")
+	_, err := s.o.GetClimateReport("fifou", "bar", "10m")
+	c.Check(err, ErrorMatches, "olympus: unknown zone 'fifou/zone/bar'")
+	r, err := s.o.GetZone("fifou", "bar")
 	c.Check(err, IsNil)
-	c.Check(report.Humidity, Equals, 20.0)
-	c.Check(report.Temperature, Equals, 20.0)
+	c.Check(r.Climate, IsNil)
+	if c.Check(r.Stream, NotNil) == true {
+		c.Check(r.Stream.StreamURL, Matches, "/olympus/hls/fifou.m3u8")
+	}
 
-	report, err = s.o.GetZone("another/zone/box")
+	report, err := s.o.GetZone("somehost", "box")
 	c.Check(err, IsNil)
-	c.Check(report.Humidity, Equals, 0.0)
-	c.Check(report.Temperature, Equals, 0.0)
+	c.Check(report.Climate.Humidity, Equals, 20.0)
+	c.Check(report.Climate.Temperature, Equals, 20.0)
+
+	report, err = s.o.GetZone("another", "box")
+	c.Check(err, IsNil)
+	c.Check(report.Climate.Humidity, Equals, 0.0)
+	c.Check(report.Climate.Temperature, Equals, 0.0)
 }
 
 func isSorted(n int, comp func(i, j int) bool) bool {
@@ -134,22 +138,28 @@ func (s *OlympusSuite) TestZoneSummary(c *C) {
 	c.Check(summary[0].Host, Matches, "another")
 	c.Check(summary[0].Name, Matches, "box")
 	c.Check(summary[0].Climate, NotNil)
-	c.Check(summary[0].StreamURL, Matches, "")
+	c.Check(summary[0].Stream, IsNil)
 
 	c.Check(summary[1].Host, Matches, "another")
 	c.Check(summary[1].Name, Matches, "tunnel")
 	c.Check(summary[1].Climate, NotNil)
-	c.Check(summary[1].StreamURL, Matches, "")
+	c.Check(summary[1].Stream, IsNil)
 
 	c.Check(summary[2].Host, Matches, "fifou")
 	c.Check(summary[2].Name, Matches, "box")
 	c.Check(summary[2].Climate, IsNil)
-	c.Check(summary[2].StreamURL, Matches, "/fifou.m3u8")
+	if c.Check(summary[2].Stream, NotNil) == true {
+		c.Check(summary[2].Stream.StreamURL, Matches, "/olympus/hls/fifou.m3u8")
+		c.Check(summary[2].Stream.ThumbnailURL, Matches, "/olympus/fifou.png")
+	}
 
 	c.Check(summary[3].Host, Matches, "somehost")
 	c.Check(summary[3].Name, Matches, "box")
 	c.Check(summary[3].Climate, NotNil)
-	c.Check(summary[3].StreamURL, Matches, "/somehost.m3u8")
+	if c.Check(summary[3].Stream, NotNil) == true {
+		c.Check(summary[3].Stream.StreamURL, Matches, "/olympus/hls/somehost.m3u8")
+		c.Check(summary[3].Stream.ThumbnailURL, Matches, "/olympus/somehost.png")
+	}
 
 }
 

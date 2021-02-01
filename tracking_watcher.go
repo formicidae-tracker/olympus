@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"path"
+	"strings"
 	"sync"
 	"time"
 )
@@ -11,14 +13,24 @@ type TrackingWatcher interface {
 	Close() error
 	Done() <-chan struct{}
 	Timeouted() <-chan struct{}
-	StreamURL() string
+	Stream() *StreamInfo
 	Hostname() string
 }
 
 type trackingWatcher struct {
 	done, timeouted, stop chan struct{}
-	URL, host             string
+	host                  string
+	stream                StreamInfo
 	period                time.Duration
+}
+
+func newStreamInfo(URL string) StreamInfo {
+	parent := path.Dir(path.Dir(URL))
+	thumbnail := strings.Replace(path.Base(URL), ".m3u8", ".png", 1)
+	return StreamInfo{
+		StreamURL:    URL,
+		ThumbnailURL: path.Join(parent, thumbnail),
+	}
 }
 
 func newTrackingWatcher(host, URL string, period time.Duration) TrackingWatcher {
@@ -26,7 +38,7 @@ func newTrackingWatcher(host, URL string, period time.Duration) TrackingWatcher 
 		done:      make(chan struct{}),
 		stop:      make(chan struct{}),
 		timeouted: make(chan struct{}),
-		URL:       URL,
+		stream:    newStreamInfo(URL),
 		host:      host,
 		period:    period,
 	}
@@ -46,8 +58,8 @@ func (l *trackingWatcher) Timeouted() <-chan struct{} {
 	return l.timeouted
 }
 
-func (l *trackingWatcher) StreamURL() string {
-	return l.URL
+func (l *trackingWatcher) Stream() *StreamInfo {
+	return &l.stream
 }
 
 func (l *trackingWatcher) Hostname() string {
@@ -84,7 +96,7 @@ func (l *trackingWatcher) watch() {
 }
 
 func (l *trackingWatcher) check() bool {
-	resp, err := http.Get(l.URL)
+	resp, err := http.Get(l.stream.StreamURL)
 	if err != nil {
 		return false
 	}
