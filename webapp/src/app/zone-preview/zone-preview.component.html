@@ -16,8 +16,8 @@
 			<li class="list-group-item">
 				{{currentStateDescription()}}<br/>{{nextStateDescription()}}<ng-template [ngIf]="hasNextTime()"> at {{ nextTime() | date:'hh:mm' }}</ng-template>
 			</li>
-			<li [class]="'list-group-item list-group-item-action list-group-item-' + temperatureStatus()">Temperature: <span class="float-right">{{(temperature() | number:'2.2-2') || 'N.A.'}} °C</span></li>
-			<li [class]="'list-group-item list-group-item-action list-group-item-' + humidityStatus()">Humidity<span class="float-right">{{(humidity() | number:'2.2-2') || 'N.A.' }} %</span></li>
+			<li [class]="'list-group-item list-group-item-action list-group-item-' + temperatureStatus()">Temperature: <span class="float-right">{{temperature()}}</span></li>
+			<li [class]="'list-group-item list-group-item-action list-group-item-' + humidityStatus()">Humidity: <span class="float-right">{{humidity()}}</span></li>
 			<li [class]="'list-group-item list-group-item-action list-group-item-' + alarmStatus()">
 				Alarms: E:{{activeEmergencies()}} | W:{{activeWarnings() }}
 			</li>

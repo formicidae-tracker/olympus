@@ -58,11 +58,11 @@ export class ZonePreviewComponent implements OnInit {
 	}
 
 
-	temperature(): number {
+	temperature(): string {
 		if ( this.summary.climate == null ) {
-			return NaN;
+			return 'N.A.';
 		}
-		return this.summary.climate.temperature;
+		return Math.round(100*this.summary.climate.temperature)/100+' °C';
 	}
 
 	temperatureStatus(): string {
@@ -76,11 +76,11 @@ export class ZonePreviewComponent implements OnInit {
 		return this.summary.climate != null && isNaN(this.summary.climate.humidity) == false;
 	}
 
-	humidity(): number {
+	humidity(): string {
 		if ( this.summary.climate == null ) {
-			return NaN;
+			return 'N.A.';
 		}
-		return this.summary.climate.humidity;
+		return Math.round(100*this.summary.climate.humidity)/100+' %';
 	}
 
 	humidityStatus(): string {
