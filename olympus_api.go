@@ -8,10 +8,14 @@ import (
 )
 
 type AlarmEvent struct {
+	On   bool
+	Time time.Time
+}
+
+type AlarmReport struct {
 	Reason string
 	Level  int
-	On     bool
-	Time   time.Time
+	Events []AlarmEvent
 }
 
 type ServiceEvent struct {
@@ -21,34 +25,15 @@ type ServiceEvent struct {
 	Graceful   bool
 }
 
-type ServiceLogs struct {
-	Climates [][]ServiceEvent
-	Tracking [][]ServiceEvent
-}
-
-type Bounds struct {
-	Min *float64
-	Max *float64
-}
-
-type ClimateReportTimeSerie struct {
+type ClimateTimeSerie struct {
 	Humidity       []lttb.Point
 	TemperatureAnt []lttb.Point
 	TemperatureAux [][]lttb.Point
 }
 
-type StreamInfo struct {
-	StreamURL    string
-	ThumbnailURL string
-}
-
-type ZoneReportSummary struct {
-	Host string
-	Name string
-
-	Climate *ZoneClimateReport
-
-	Stream *StreamInfo
+type Bounds struct {
+	Min *float64
+	Max *float64
 }
 
 type ZoneClimateReport struct {
@@ -71,7 +56,24 @@ type ZoneReport struct {
 	Name    string
 	Climate *ZoneClimateReport
 	Stream  *StreamInfo
-	Alarms  []AlarmEvent
+	Alarms  []AlarmReport
+}
+
+type ZoneReportSummary struct {
+	Host    string
+	Name    string
+	Climate *ZoneClimateReport
+	Stream  *StreamInfo
+}
+
+type ServiceLogs struct {
+	Climates [][]ServiceEvent
+	Tracking [][]ServiceEvent
+}
+
+type StreamInfo struct {
+	StreamURL    string
+	ThumbnailURL string
 }
 
 type LetoTrackingRegister struct {

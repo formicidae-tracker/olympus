@@ -17,9 +17,9 @@ type ZoneLogger interface {
 	AlarmChannel() chan<- zeus.AlarmEvent
 	Timeouted() <-chan struct{}
 	Done() <-chan struct{}
-	GetClimateReportSeries(window string) ClimateReportTimeSerie
-	GetAlarmsEventLog() []AlarmEvent
-	GetReport() *ZoneClimateReport
+	GetClimateTimeSeries(window string) ClimateTimeSerie
+	GetAlarmReports() []AlarmReport
+	GetClimateReport() *ZoneClimateReport
 	Close() error
 }
 
@@ -43,17 +43,14 @@ type zoneLogger struct {
 	reports       chan zeus.ClimateReport
 	alarms        chan zeus.AlarmEvent
 
-	sampler ClimateReportSampler
-	logs    []AlarmEvent
+	sampler      ClimateReportSampler
+	alarmReports map[string]*AlarmReport
 
 	requests      chan namedRequest
 	host, name    string
 	currentReport ZoneClimateReport
 
 	timeoutPeriod time.Duration
-
-	last                  map[string]int
-	warnings, emergencies map[string]bool
 }
 
 func NewZoneLogger(reg zeus.ZoneRegistration) ZoneLogger {
@@ -73,10 +70,7 @@ func newZoneLogger(reg zeus.ZoneRegistration, timeoutPeriod time.Duration) ZoneL
 		timeoutPeriod: timeoutPeriod,
 		host:          reg.Host,
 		name:          reg.Name,
-		last:          make(map[string]int),
-		warnings:      make(map[string]bool),
-		emergencies:   make(map[string]bool),
-
+		alarmReports:  make(map[string]*AlarmReport),
 		currentReport: ZoneClimateReport{
 			Temperature: -1000.0,
 			TemperatureBounds: Bounds{
@@ -105,32 +99,48 @@ func (l *zoneLogger) pushClimate(cr zeus.ClimateReport) {
 	}
 }
 
+func eventInsertionSort(events []AlarmEvent, ae AlarmEvent) []AlarmEvent {
+	i := BackLinearSearch(len(events), func(i int) bool { return events[i].Time.Before(ae.Time) }) + 1
+	events = append(events, AlarmEvent{})
+	copy(events[i+1:], events[i:])
+	events[i] = ae
+	return events
+}
+
+func (a *AlarmReport) On() bool {
+	if len(a.Events) == 0 {
+		return false
+	}
+	return a.Events[len(a.Events)-1].On
+}
+
 func (l *zoneLogger) pushLog(ae zeus.AlarmEvent) {
 	// insert sort the event, in most cases, it will simply append it
-	i := BackLinearSearch(len(l.logs), func(i int) bool { return l.logs[i].Time.Before(ae.Time) }) + 1
-	l.logs = append(l.logs, AlarmEvent{})
-	copy(l.logs[i+1:], l.logs[i:])
-	l.logs[i] = AlarmEvent{
-		Reason: ae.Reason,
-		Level:  zeus.MapPriority(ae.Flags),
-		On:     ae.Status == zeus.AlarmOn,
-		Time:   ae.Time,
+	r, ok := l.alarmReports[ae.Reason]
+	if ok == false {
+		r = &AlarmReport{
+			Reason: ae.Reason,
+			Level:  zeus.MapPriority(ae.Flags),
+		}
+		l.alarmReports[r.Reason] = r
 	}
-	if i < l.last[ae.Reason] {
-		return
+	r.Events = eventInsertionSort(r.Events, AlarmEvent{
+		Time: ae.Time,
+		On:   (ae.Status == zeus.AlarmOn),
+	})
+	l.currentReport.ActiveEmergencies = 0
+	l.currentReport.ActiveWarnings = 0
+	for _, r := range l.alarmReports {
+		if r.On() == false {
+			continue
+		}
+		if r.Level == 1 {
+			l.currentReport.ActiveWarnings += 1
+		} else {
+			l.currentReport.ActiveEmergencies += 1
+		}
 	}
-	l.last[ae.Reason] = i
-	set := l.warnings
-	if ae.Flags&zeus.Emergency != 0 {
-		set = l.emergencies
-	}
-	if ae.Status == zeus.AlarmOn {
-		set[ae.Reason] = true
-	} else {
-		delete(set, ae.Reason)
-	}
-	l.currentReport.ActiveEmergencies = len(l.emergencies)
-	l.currentReport.ActiveWarnings = len(l.warnings)
+
 }
 
 func (l *zoneLogger) pushState(sr zeus.StateReport) {
@@ -147,13 +157,21 @@ func (l *zoneLogger) pushState(sr zeus.StateReport) {
 	}
 }
 
+func (l *zoneLogger) copyReports() []AlarmReport {
+	reports := make([]AlarmReport, 0, len(l.alarmReports))
+	for _, r := range l.alarmReports {
+		reports = append(reports, *r)
+	}
+	return reports
+}
+
 func (l *zoneLogger) handleRequest(r namedRequest) {
 	requestHandlers := map[int]func() interface{}{
 		climateTenMinute: func() interface{} { return l.sampler.LastTenMinutes() },
 		climateHour:      func() interface{} { return l.sampler.LastHour() },
 		climateDay:       func() interface{} { return l.sampler.LastDay() },
 		climateWeek:      func() interface{} { return l.sampler.LastWeek() },
-		logs:             func() interface{} { return append([]AlarmEvent(nil), l.logs...) },
+		logs:             func() interface{} { return l.copyReports() },
 		report:           func() interface{} { return l.currentReport.makeCopy() },
 	}
 	defer close(r.result)
@@ -251,21 +269,21 @@ func (l *zoneLogger) fromWindow(window string) int {
 	return rValue
 }
 
-func (l *zoneLogger) GetClimateReportSeries(window string) ClimateReportTimeSerie {
+func (l *zoneLogger) GetClimateTimeSeries(window string) ClimateTimeSerie {
 	returnChannel := make(chan interface{})
 	l.requests <- namedRequest{request: l.fromWindow(window), result: returnChannel}
 	res := <-returnChannel
-	return res.(ClimateReportTimeSerie)
+	return res.(ClimateTimeSerie)
 }
 
-func (l *zoneLogger) GetAlarmsEventLog() []AlarmEvent {
+func (l *zoneLogger) GetAlarmReports() []AlarmReport {
 	returnChannel := make(chan interface{})
 	l.requests <- namedRequest{request: logs, result: returnChannel}
 	res := <-returnChannel
-	return res.([]AlarmEvent)
+	return res.([]AlarmReport)
 }
 
-func (l *zoneLogger) GetReport() *ZoneClimateReport {
+func (l *zoneLogger) GetClimateReport() *ZoneClimateReport {
 	returnChannel := make(chan interface{})
 	l.requests <- namedRequest{request: report, result: returnChannel}
 	res := <-returnChannel

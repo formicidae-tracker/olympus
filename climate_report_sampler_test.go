@@ -20,7 +20,7 @@ func checkSeries(c *C, series []lttb.Point, window time.Duration, samples int) {
 	c.Check(actualWindow <= window.Seconds(), Equals, true, Commentf("window:%s obtained:%f", window, actualWindow))
 }
 
-func checkClimateReport(c *C, report ClimateReportTimeSerie, window time.Duration, samples int) {
+func checkClimateReport(c *C, report ClimateTimeSerie, window time.Duration, samples int) {
 	checkSeries(c, report.Humidity, window, samples)
 	checkSeries(c, report.TemperatureAnt, window, samples)
 	for _, serie := range report.TemperatureAux {

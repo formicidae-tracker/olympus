@@ -72,45 +72,45 @@ func (s *OlympusSuite) TestReportClimate(c *C) {
 		}), IsNil)
 	}
 	start := time.Now()
-	series, _ := s.o.GetClimateReport("somehost", "box", "10m")
+	series, _ := s.o.GetClimateTimeSerie("somehost", "box", "10m")
 	for len(series.Humidity) < 20 && time.Since(start) < 200*time.Millisecond {
 		time.Sleep(100 * time.Microsecond)
-		series, _ = s.o.GetClimateReport("somehost", "box", "10m")
+		series, _ = s.o.GetClimateTimeSerie("somehost", "box", "10m")
 	}
 
 	windows := []string{"10m", "1h", "1d", "1w", "10-minutes", "10-minute", "hour", "day", "week", "will default to 10 minutes if window is not a valid one"}
 	for _, w := range windows {
-		series, err := s.o.GetClimateReport("somehost", "box", w)
+		series, err := s.o.GetClimateTimeSerie("somehost", "box", w)
 		c.Check(err, IsNil, Commentf("for window %s", w))
 		c.Check(series.Humidity, HasLen, 20, Commentf("for window %s", w))
 		c.Check(series.TemperatureAnt, HasLen, 20, Commentf("for window %s", w))
 
-		series, err = s.o.GetClimateReport("another", "box", w)
+		series, err = s.o.GetClimateTimeSerie("another", "box", w)
 		c.Check(err, IsNil, Commentf("for window %s", w))
 		c.Check(series.Humidity, HasLen, 0, Commentf("for window %s", w))
 		c.Check(series.TemperatureAnt, HasLen, 0, Commentf("for window %s", w))
 
-		series, err = s.o.GetClimateReport("another", "tunnel", w)
+		series, err = s.o.GetClimateTimeSerie("another", "tunnel", w)
 		c.Check(err, IsNil, Commentf("for window %s", w))
 		c.Check(series.Humidity, HasLen, 0, Commentf("for window %s", w))
 		c.Check(series.TemperatureAnt, HasLen, 0, Commentf("for window %s", w))
 	}
 
-	_, err := s.o.GetClimateReport("fifou", "bar", "10m")
+	_, err := s.o.GetClimateTimeSerie("fifou", "bar", "10m")
 	c.Check(err, ErrorMatches, "olympus: unknown zone 'fifou/zone/bar'")
-	r, err := s.o.GetZone("fifou", "bar")
+	r, err := s.o.GetZoneReport("fifou", "bar")
 	c.Check(err, IsNil)
 	c.Check(r.Climate, IsNil)
 	if c.Check(r.Stream, NotNil) == true {
 		c.Check(r.Stream.StreamURL, Matches, "/olympus/hls/fifou.m3u8")
 	}
 
-	report, err := s.o.GetZone("somehost", "box")
+	report, err := s.o.GetZoneReport("somehost", "box")
 	c.Check(err, IsNil)
 	c.Check(report.Climate.Humidity, Equals, 20.0)
 	c.Check(report.Climate.Temperature, Equals, 20.0)
 
-	report, err = s.o.GetZone("another", "box")
+	report, err = s.o.GetZoneReport("another", "box")
 	c.Check(err, IsNil)
 	c.Check(report.Climate.Humidity, Equals, -1000.0)
 	c.Check(report.Climate.Temperature, Equals, -1000.0)

@@ -117,14 +117,14 @@ func (o *Olympus) GetZones() []ZoneReportSummary {
 	return o.getZones()
 }
 
-func (o *Olympus) GetClimateReport(host, zoneName, window string) (ClimateReportTimeSerie, error) {
+func (o *Olympus) GetClimateTimeSerie(host, zoneName, window string) (ClimateTimeSerie, error) {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
 
-	return o.getClimateReport(host, zoneName, window)
+	return o.getClimateTimeSerie(host, zoneName, window)
 }
 
-func (o *Olympus) GetZone(host, zoneName string) (ZoneReport, error) {
+func (o *Olympus) GetZoneReport(host, zoneName string) (ZoneReport, error) {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
 	o.mxTracking.RLock()
@@ -133,11 +133,11 @@ func (o *Olympus) GetZone(host, zoneName string) (ZoneReport, error) {
 	return o.getZoneReport(host, zoneName)
 }
 
-func (o *Olympus) GetAlarmEventLog(zoneIdentifier string) ([]AlarmEvent, error) {
+func (o *Olympus) GetAlarmReports(zoneIdentifier string) ([]AlarmReport, error) {
 	o.mxClimate.RLock()
 	defer o.mxClimate.RUnlock()
 
-	return o.getAlarmEventLog(zoneIdentifier)
+	return o.getAlarmReports(zoneIdentifier)
 }
 
 func (o *Olympus) RegisterZone(zr zeus.ZoneRegistration) error {
@@ -202,7 +202,7 @@ func (o *Olympus) getZones() []ZoneReportSummary {
 		sum := ZoneReportSummary{
 			Host:    z.Host(),
 			Name:    z.ZoneName(),
-			Climate: z.GetReport(),
+			Climate: z.GetClimateReport(),
 		}
 		if w, ok := o.watchers[z.Host()]; ok == true {
 			sum.Stream = w.Stream()
@@ -231,13 +231,13 @@ func (o *Olympus) getZones() []ZoneReportSummary {
 	return res
 }
 
-func (o *Olympus) getClimateReport(host, zoneName, window string) (ClimateReportTimeSerie, error) {
+func (o *Olympus) getClimateTimeSerie(host, zoneName, window string) (ClimateTimeSerie, error) {
 	zoneIdentifier := zeus.ZoneIdentifier(host, zoneName)
 	z, ok := o.zones[zoneIdentifier]
 	if ok == false {
-		return ClimateReportTimeSerie{}, ZoneNotFoundError{zoneIdentifier}
+		return ClimateTimeSerie{}, ZoneNotFoundError{zoneIdentifier}
 	}
-	return z.GetClimateReportSeries(window), nil
+	return z.GetClimateTimeSeries(window), nil
 }
 
 func (o *Olympus) getZoneReport(host, zoneName string) (ZoneReport, error) {
@@ -252,8 +252,8 @@ func (o *Olympus) getZoneReport(host, zoneName string) (ZoneReport, error) {
 		Name: zoneName,
 	}
 	if okClimate == true {
-		res.Climate = z.GetReport()
-		res.Alarms = z.GetAlarmsEventLog()
+		res.Climate = z.GetClimateReport()
+		res.Alarms = z.GetAlarmReports()
 	}
 	if okTracking == true {
 		res.Stream = w.Stream()
@@ -261,12 +261,12 @@ func (o *Olympus) getZoneReport(host, zoneName string) (ZoneReport, error) {
 	return res, nil
 }
 
-func (o *Olympus) getAlarmEventLog(zoneIdentifier string) ([]AlarmEvent, error) {
+func (o *Olympus) getAlarmReports(zoneIdentifier string) ([]AlarmReport, error) {
 	z, ok := o.zones[zoneIdentifier]
 	if ok == false {
 		return nil, ZoneNotFoundError{zoneIdentifier}
 	}
-	return z.GetAlarmsEventLog(), nil
+	return z.GetAlarmReports(), nil
 }
 
 func (o *Olympus) reportClimate(cr zeus.NamedClimateReport) error {
@@ -518,7 +518,7 @@ func (o *Olympus) route(router *mux.Router) {
 
 	router.HandleFunc("/api/host/{hname}/zone/{zname}/climate", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		res, err := o.GetClimateReport(vars["hname"], vars["zname"], r.URL.Query().Get("window"))
+		res, err := o.GetClimateTimeSerie(vars["hname"], vars["zname"], r.URL.Query().Get("window"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -528,7 +528,7 @@ func (o *Olympus) route(router *mux.Router) {
 
 	router.HandleFunc("/api/host/{hname}/zone/{zname}/alarms", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		res, err := o.GetAlarmEventLog(zeus.ZoneIdentifier(vars["hname"], vars["zname"]))
+		res, err := o.GetAlarmReports(zeus.ZoneIdentifier(vars["hname"], vars["zname"]))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -538,7 +538,7 @@ func (o *Olympus) route(router *mux.Router) {
 
 	router.HandleFunc("/api/host/{hname}/zone/{zname}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		res, err := o.GetZone(vars["hname"], vars["zname"])
+		res, err := o.GetZoneReport(vars["hname"], vars["zname"])
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

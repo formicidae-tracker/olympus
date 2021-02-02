@@ -9,10 +9,10 @@ import (
 
 type ClimateReportSampler interface {
 	Add(zeus.ClimateReport) error
-	LastTenMinutes() ClimateReportTimeSerie
-	LastHour() ClimateReportTimeSerie
-	LastDay() ClimateReportTimeSerie
-	LastWeek() ClimateReportTimeSerie
+	LastTenMinutes() ClimateTimeSerie
+	LastHour() ClimateTimeSerie
+	LastDay() ClimateTimeSerie
+	LastWeek() ClimateTimeSerie
 }
 
 type climateReportSampler struct {
@@ -47,8 +47,8 @@ func (s *climateReportSampler) Add(r zeus.ClimateReport) error {
 	return nil
 }
 
-func (s *climateReportSampler) timeSerieUnsafe(samplers []DataRollingSampler) ClimateReportTimeSerie {
-	res := ClimateReportTimeSerie{
+func (s *climateReportSampler) timeSerieUnsafe(samplers []DataRollingSampler) ClimateTimeSerie {
+	res := ClimateTimeSerie{
 		Humidity:       samplers[0].TimeSerie(),
 		TemperatureAnt: samplers[1].TimeSerie(),
 	}
@@ -62,16 +62,16 @@ func (s *climateReportSampler) timeSerieUnsafe(samplers []DataRollingSampler) Cl
 	return res
 }
 
-func (s *climateReportSampler) LastTenMinutes() ClimateReportTimeSerie {
+func (s *climateReportSampler) LastTenMinutes() ClimateTimeSerie {
 	return s.timeSerieUnsafe(s.tenMinuteSamplers)
 }
-func (s *climateReportSampler) LastHour() ClimateReportTimeSerie {
+func (s *climateReportSampler) LastHour() ClimateTimeSerie {
 	return s.timeSerieUnsafe(s.hourSamplers)
 }
-func (s *climateReportSampler) LastDay() ClimateReportTimeSerie {
+func (s *climateReportSampler) LastDay() ClimateTimeSerie {
 	return s.timeSerieUnsafe(s.daySamplers)
 }
-func (s *climateReportSampler) LastWeek() ClimateReportTimeSerie {
+func (s *climateReportSampler) LastWeek() ClimateTimeSerie {
 	return s.timeSerieUnsafe(s.weekSamplers)
 }
 

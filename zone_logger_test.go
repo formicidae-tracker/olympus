@@ -24,11 +24,11 @@ func pollClosed(c <-chan struct{}) bool {
 	}
 }
 
-func fetchSeries(l ZoneLogger, window string, expected int) ClimateReportTimeSerie {
-	series := l.GetClimateReportSeries(window)
+func fetchSeries(l ZoneLogger, window string, expected int) ClimateTimeSerie {
+	series := l.GetClimateTimeSeries(window)
 	for i := 0; i < 20 && len(series.Humidity) < expected && len(series.TemperatureAnt) < expected; i++ {
 		time.Sleep(100 * time.Microsecond)
-		series = l.GetClimateReportSeries(window)
+		series = l.GetClimateTimeSeries(window)
 	}
 	return series
 }
@@ -63,7 +63,7 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 	}
 	fetchSeries(s.l, "", 20)
 
-	checkReport := func(c *C, series ClimateReportTimeSerie) {
+	checkReport := func(c *C, series ClimateTimeSerie) {
 		if c.Check(len(series.Humidity), Equals, len(series.TemperatureAnt)) == false {
 			return
 		}
@@ -81,18 +81,18 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 		}
 	}
 
-	checkReport(c, s.l.GetClimateReportSeries("10m"))
-	checkReport(c, s.l.GetClimateReportSeries("1h"))
-	checkReport(c, s.l.GetClimateReportSeries("1d"))
-	checkReport(c, s.l.GetClimateReportSeries("1w"))
+	checkReport(c, s.l.GetClimateTimeSeries("10m"))
+	checkReport(c, s.l.GetClimateTimeSeries("1h"))
+	checkReport(c, s.l.GetClimateTimeSeries("1d"))
+	checkReport(c, s.l.GetClimateTimeSeries("1w"))
 }
 
 func (s *ZoneLoggerSuite) TestLogsHumididityOnlyClimate(c *C) {
-	series := s.l.GetClimateReportSeries("")
+	series := s.l.GetClimateTimeSeries("")
 
 	c.Check(series.Humidity, HasLen, 0)
 	c.Check(series.TemperatureAnt, HasLen, 0)
-	report := s.l.GetReport()
+	report := s.l.GetClimateReport()
 	c.Check(report.Humidity, Equals, -1000.0)
 	c.Check(report.Temperature, Equals, -1000.0)
 	s.l.ReportChannel() <- zeus.ClimateReport{
@@ -103,17 +103,17 @@ func (s *ZoneLoggerSuite) TestLogsHumididityOnlyClimate(c *C) {
 	series = fetchSeries(s.l, "", 1)
 	c.Check(series.Humidity, HasLen, 1)
 	c.Check(series.TemperatureAnt, HasLen, 0)
-	report = s.l.GetReport()
+	report = s.l.GetClimateReport()
 	c.Check(report.Humidity, Equals, 55.0)
 	c.Check(report.Temperature, Equals, -1000.0)
 }
 
 func (s *ZoneLoggerSuite) TestLogsTemperatureOnlyClimate(c *C) {
-	series := s.l.GetClimateReportSeries("")
+	series := s.l.GetClimateTimeSeries("")
 
 	c.Check(series.Humidity, HasLen, 0)
 	c.Check(series.TemperatureAnt, HasLen, 0)
-	report := s.l.GetReport()
+	report := s.l.GetClimateReport()
 	c.Check(report.Humidity, Equals, -1000.0)
 	c.Check(report.Temperature, Equals, -1000.0)
 	s.l.ReportChannel() <- zeus.ClimateReport{
@@ -124,7 +124,7 @@ func (s *ZoneLoggerSuite) TestLogsTemperatureOnlyClimate(c *C) {
 	series = fetchSeries(s.l, "", 1)
 	c.Check(series.Humidity, HasLen, 0)
 	c.Check(series.TemperatureAnt, HasLen, 1)
-	report = s.l.GetReport()
+	report = s.l.GetClimateReport()
 	c.Check(report.Humidity, Equals, -1000.0)
 	c.Check(report.Temperature, Equals, 20.0)
 }
@@ -152,7 +152,7 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 		On   bool
 	}{}
 
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 300; i++ {
 		r := rand.Intn(2000000)
 		t := start.Add(time.Duration(r) * time.Millisecond)
 		on := r%2 == 0
@@ -168,27 +168,33 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 		s.l.AlarmChannel() <- ae
 	}
 
-	logs := s.l.GetAlarmsEventLog()
-	for ; len(logs) < 200; logs = s.l.GetAlarmsEventLog() {
-		if time.Now().After(start.Add(500*time.Millisecond)) == true {
-			c.Fatalf("Did not received all logs afer 500ms")
+	isFull := func(reports []AlarmReport) bool {
+		if len(reports) != 3 {
+			return false
 		}
-		time.Sleep(10 * time.Millisecond)
+		return len(reports[0].Events) == 100 && len(reports[1].Events) == 100 && len(reports[2].Events) == 100
 	}
-	for i, l := range logs {
-		switch l.Reason {
-		case "foo":
-			c.Check(l.Level, Equals, 1)
-		case "bar":
-			c.Check(l.Level, Equals, 2)
-		case "baz":
-			c.Check(l.Level, Equals, 1)
-		}
-		if i == 0 {
-			continue
-		}
-		c.Check(logs[i-1].Time.After(logs[i].Time), Equals, false)
 
+	reports := s.l.GetAlarmReports()
+	for i := 0; i < 20 && isFull(reports) == false; i++ {
+		time.Sleep(10 * time.Millisecond)
+		reports = s.l.GetAlarmReports()
+	}
+	for _, r := range reports {
+		switch r.Reason {
+		case "foo":
+			c.Check(r.Level, Equals, 1)
+		case "bar":
+			c.Check(r.Level, Equals, 2)
+		case "baz":
+			c.Check(r.Level, Equals, 1)
+		}
+		for i, e := range r.Events {
+			if i == 0 {
+				continue
+			}
+			c.Check(r.Events[i-1].Time.After(e.Time), Equals, false)
+		}
 	}
 
 	expectedWarning := 0
@@ -203,9 +209,9 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 		expectedWarning += 1
 	}
 
-	reports := s.l.GetReport()
-	c.Check(reports.ActiveEmergencies, Equals, expectedEmergency)
-	c.Check(reports.ActiveWarnings, Equals, expectedWarning)
+	report := s.l.GetClimateReport()
+	c.Check(report.ActiveEmergencies, Equals, expectedEmergency)
+	c.Check(report.ActiveWarnings, Equals, expectedWarning)
 }
 
 func (s *ZoneLoggerSuite) TestStressConcurrentAccess(c *C) {
@@ -246,17 +252,17 @@ func (s *ZoneLoggerSuite) TestStressConcurrentAccess(c *C) {
 		wg.Add(3)
 		go func() {
 			<-allgo
-			s.l.GetClimateReportSeries("10m")
+			s.l.GetClimateTimeSeries("10m")
 			wg.Done()
 		}()
 		go func() {
 			<-allgo
-			s.l.GetAlarmsEventLog()
+			s.l.GetAlarmReports()
 			wg.Done()
 		}()
 		go func() {
 			<-allgo
-			s.l.GetReport()
+			s.l.GetClimateReport()
 			wg.Done()
 		}()
 	}
