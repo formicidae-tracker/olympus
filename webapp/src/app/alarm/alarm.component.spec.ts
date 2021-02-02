@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+import { NgbCollapse, NgbModule } from '@ng-bootstrap/ng-bootstrap';
 
 import { AlarmComponent } from './alarm.component';
 
@@ -8,7 +9,8 @@ describe('AlarmComponent', () => {
 
 	beforeEach(waitForAsync(() => {
 		TestBed.configureTestingModule({
-			declarations: [AlarmComponent]
+			imports: [ NgbModule ],
+			declarations: [AlarmComponent],
 		})
 			.compileComponents();
 	}));

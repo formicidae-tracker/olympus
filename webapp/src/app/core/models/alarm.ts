@@ -43,11 +43,11 @@ export class AlarmReport {
 	}
 
 	on(): boolean {
-		return this.lastEvent().on || false;
+		try { return this.lastEvent().on } catch(e) { return false; }
 	}
 
 	lastTime(): Date {
-		return this.lastEvent().time || new Date();
+		try { return this.lastEvent().time } catch(e) { return new Date(0); }
 	}
 
 	action() {
@@ -85,14 +85,14 @@ export class AlarmReport {
 		let bOn = b.on();
 		if ( aOn == bOn ) {
 			if ( a.level == b.level ) {
-				let atime = a.lastTime();
-				let btime = b.lastTime();
+				let atime = a.lastTime().getTime();
+				let btime = b.lastTime().getTime();
 				if ( atime == btime ) {
 					return a.reason.localeCompare(b.reason);
 				}
-				return (atime < btime) ? -1 : 1;
+				return (atime > btime) ? -1 : 1;
 			}
-			return (a.level < b.level) ? -1 : 1;
+			return (a.level > b.level) ? -1 : 1;
 		}
 		return aOn ? -1 : 1;
 	}
