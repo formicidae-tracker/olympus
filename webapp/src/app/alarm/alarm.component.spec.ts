@@ -1,7 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 
-import { Alarm } from '@models/alarm';
-
 import { AlarmComponent } from './alarm.component';
 
 describe('AlarmComponent', () => {
@@ -18,7 +16,6 @@ describe('AlarmComponent', () => {
 	beforeEach(() => {
 		fixture = TestBed.createComponent(AlarmComponent);
 		component = fixture.componentInstance;
-		component.alarm = new Alarm('foo',true,new Date(),1,1);
 		fixture.detectChanges();
 	});
 

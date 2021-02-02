@@ -1,6 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
 
-import { Alarm } from '@models/alarm';
+import { AlarmReport } from '@models/alarm';
 
 @Component({
 	selector: 'app-alarm',
@@ -10,9 +10,14 @@ import { Alarm } from '@models/alarm';
 
 export class AlarmComponent implements OnInit {
 
-	@Input() alarm: Alarm;
-
-	constructor() { }
+	@Input() alarm: AlarmReport;
+	@Input() now: Date;
+	public isCollapsed: boolean;
+	constructor() {
+		this.alarm = new AlarmReport();
+		this.now = new Date();
+		this.isCollapsed = true;
+	}
 
 
 	ngOnInit() {

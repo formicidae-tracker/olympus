@@ -1,3 +1,14 @@
-<span class="alarm-text"> {{alarm.Reason}} <span [class]="'float-right badge badge-'+ (alarm.On?'danger':'secondary') + ' badge-pill'">{{alarm.Triggers}}</span>
-<br/>
-<small><em>{{alarm.LastChange==null?'Never Triggered':'Last Change on ' +(alarm.LastChange | date:'medium')}}</em></small> </span>
+<button [class]="'list-group-item list-group-item-action list-group-item-'+alarm.action()" (click)="isCollapsed = !isCollapsed">
+	{{alarm.reason}}
+	<span [class]="'float-right badge badge-'+(alarm.on()?'danger':'secondary')">{{alarm.count}}</span>
+	 <span class="float-right" style="padding-right:0.5em"><em>since {{alarm.since(now)}}</em></span>
+	<div #collapse="ngbCollapse" [(ngbCollapse)]="isCollapsed">
+		<ul class="list-group">
+			<li *ngFor="let e of alarm.events" class="list-group-item py-1">
+				<small>
+					{{e.time | date:"YYYY-MM-dd hh:mm:ss"}}: <span class="float-right">{{e.on ? 'On':'Off'}}</span>
+				</small>
+			</li>
+		</ul>
+	</div>
+</button>
