@@ -6,22 +6,31 @@ import { OlympusService } from '@services/olympus';
 import { ZoneReport } from '@models/zone-report';
 import { map } from 'rxjs/operators';
 
+export enum State {
+	Loading = 1,
+	Loaded = 2,
+	Unavailable = 3,
+};
+
 @Component({
 	selector: 'app-zone',
 	templateUrl: './zone.component.html',
 	styleUrls: ['./zone.component.css']
 })
 
+
 export class ZoneComponent implements OnInit,OnDestroy {
     zoneName: string;
     hostName: string;
 	zone: ZoneReport;
-	update : Subscription;
+	state: State;
+	update: Subscription;
 
 
     constructor(private route: ActivatedRoute,
 				private title: Title,
 				private olympus: OlympusService) {
+		this.state = State.Loading;
 		this.zone = null;
 		this.zoneName = '';
 		this.hostName = '';
@@ -39,9 +48,11 @@ export class ZoneComponent implements OnInit,OnDestroy {
 						.subscribe(
 							(zone) => {
 								this.zone = zone;
+								this.state = State.Loaded;
 							},
 							()  => {
 								this.zone = null;
+								this.state = State.Unavailable;
 							},
 							() => {
 
