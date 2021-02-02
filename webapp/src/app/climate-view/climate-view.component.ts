@@ -220,19 +220,19 @@ export class ClimateViewComponent implements AfterViewInit,OnInit,OnDestroy {
 					this.chart.options.scales.xAxes[0].scaleLabel.labelString = 'Time (h)';
 				}
 
-				for (let h of cr.Humidity) {
+				for (let h of cr.humidity) {
 					this.chart.data.datasets[0].data.push({x:Math.round(roundDiv*h.X/timeDiv)/roundDiv,y:Math.round(100*h.Y)/100});
 				}
-				for (let t of cr.Temperature) {
+				for (let t of cr.temperature) {
 					this.chart.data.datasets[1].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
 				}
-				for (let t of cr.TemperatureAux[0] ) {
+				for (let t of cr.temperatureAux[0] ) {
 					this.chart.data.datasets[2].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
 				}
-				for (let t of cr.TemperatureAux[1] ) {
+				for (let t of cr.temperatureAux[1] ) {
 					this.chart.data.datasets[3].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
 				}
-				for (let t of cr.TemperatureAux[2] ) {
+				for (let t of cr.temperatureAux[2] ) {
 					this.chart.data.datasets[4].data.push({x:Math.round(roundDiv*t.X/timeDiv)/roundDiv,y:Math.round(100*t.Y)/100});
 				}
 				this.chart.update();

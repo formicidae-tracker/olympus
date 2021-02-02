@@ -17,6 +17,7 @@ import { StateComponent } from './state/state.component';
 import { VideoJsComponent } from './video-js/video-js.component';
 import { AlarmListComponent } from './alarm-list/alarm-list.component';
 import { AppRoutingModule } from './app-routing.module';
+import { ClimateChartComponent } from './climate-chart/climate-chart.component';
 
 @NgModule({
     imports: [
@@ -35,7 +36,8 @@ import { AppRoutingModule } from './app-routing.module';
 		AlarmComponent,
 		StateComponent,
 		VideoJsComponent,
-		AlarmListComponent
+		AlarmListComponent,
+		ClimateChartComponent
 	],
 	providers: [OlympusService],
 	bootstrap: [AppComponent]
