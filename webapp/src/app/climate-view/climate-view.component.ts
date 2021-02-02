@@ -12,12 +12,12 @@ export enum TimeWindow {
 }
 
 @Component({
-	selector: 'app-climate-chart',
-	templateUrl: './climate-chart.component.html',
-	styleUrls: ['./climate-chart.component.css']
+	selector: 'app-climate-view',
+	templateUrl: './climate-view.component.html',
+	styleUrls: ['./climate-view.component.css']
 })
 
-export class ClimateChartComponent implements AfterViewInit,OnInit,OnDestroy {
+export class ClimateViewComponent implements AfterViewInit,OnInit,OnDestroy {
 
 	public Window = TimeWindow;
 

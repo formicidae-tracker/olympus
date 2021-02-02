@@ -11,7 +11,7 @@ import { PageNotFoundComponent } from './page-not-found/page-not-found.component
 import { ZonePreviewComponent } from './zone-preview/zone-preview.component';
 
 import { OlympusService } from '@services/olympus';
-import { ClimateChartComponent } from './climate-chart/climate-chart.component';
+import { ClimateViewComponent } from './climate-view/climate-view.component';
 import { AlarmComponent } from './alarm/alarm.component';
 import { StateComponent } from './state/state.component';
 import { VideoJsComponent } from './video-js/video-js.component';
@@ -31,7 +31,7 @@ import { AppRoutingModule } from './app-routing.module';
 		ZoneComponent,
 		PageNotFoundComponent,
 		ZonePreviewComponent,
-		ClimateChartComponent,
+		ClimateViewComponent,
 		AlarmComponent,
 		StateComponent,
 		VideoJsComponent,
