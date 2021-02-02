@@ -1,45 +1,54 @@
-<div  *ngIf="zone != null" class="container-fluid">
-	<div class="row">
-		<nav class="col-md-4  d-md-block sidebar">
-			<div class="sidebar-sticky">
-				<app-alarm-list></app-alarm-list>
-			</div>
-		</nav>
-		<main role="main" class="col-md-7 ml-sm-auto col-lg-8 pt-3 px-4">
-			<div *ngIf="streamUrl.length != 0">
-				<app-video-js [urlVideo]="'/olympus/hls/' + zone.Host + '.m3u8'" [urlPoster]="'/olympus/' + zone.Host + '.png'"></app-video-js>
-			</div>
-
-			<h2> Climate Target for {{hostName}}.{{zoneName}} </h2>
-			<div *ngIf="zone.Current != null">
-				<h5 class="text-center"> Current State: '{{zone.Current.Name}}'</h5>
-				<app-state [stateB]="zone.CurrentEnd" [stateA]="zone.Current" [displayCurrent]="true" [currentTemperature]="zone.Temperature" [currentHumidity]="zone.Humidity"> </app-state>
-			</div>
-			<div *ngIf="zone.Current == null">
-				<h5 class="text-center"> No Current State Defined</h5>
-			</div>
-			<div *ngIf="zone.Next != null">
-				<h5 class="text-center"> Next State: '{{zone.Next.Name}}' on {{ zone.NextTime | date: 'short' }}</h5>
-				<app-state [stateB]="zone.NextEnd" [stateA]="zone.Next" [displayCurrent]="false"> </app-state>
-			</div>
-			<div *ngIf="zone.Next == null">
-				<h5 class="text-center"> No Next State Defined</h5>
-			</div>
-			<app-climate-chart [hostName]="hostName" [zoneName]="zoneName"></app-climate-chart>
-		</main>
-	</div>
-</div>
-<div *ngIf="zone == null">
-	<div *ngIf=" notFound == true">
-		<div class="jumbotron">
-			<h1>{{hostName}}.{{zoneName}} does not exists</h1>
-			<p>It seems that this Dieu finished its work</p>
-		</div>
-	</div>
-	<div *ngIf=" notFound == true">
-		<div class="jumbotron">
-			<h1>Loading {{hostName}}.{{zoneName}}</h1>
-			<p>Firefox is often really, really slow to load this page.</p>
-		</div>
-	</div>
+<div class="container-fluid">
+  <div class="row">
+	<nav class="col-md-4  d-md-block sidebar">
+	  <div class="sidebar-sticky">
+		<app-alarm-list *ngIf="state==Loaded" [alarms]="zone.alarms"></app-alarm-list>
+	  </div>
+	</nav>
+	<main role="main" *ngIf="state==Loaded" class="col-md-7 ml-sm-auto col-lg-8 pt-3 px-4">
+	  <div *ngIf="zone.streamInfo.hasStream()">
+		<app-video-js [urlVideo]="zone.streamInfo.streamURL()" [urlPoster]="zone.streamInfo.thumbnailURL()"></app-video-js>
+	  </div>
+	  <h2> Climate States for {{hostName}}.{{zoneName}} </h2>
+	  <div *ngIf="zone.climate.current != null">
+		<h5 class="text-center">
+		  Current State: '{{zone.climate.current.name}}'
+		</h5>
+		<app-state [current]="zone.climate.current"
+				   [end]="zone.climate.currentEnd"
+				   [displayCurrent]="true"
+				   [currentTemperature]="zone.climate.temperature"
+				   [currentHumidity]="zone.climate.humidity">
+		</app-state>
+	  </div>
+	  <div *ngIf="zone.climate.current == null">
+		<h5 class="text-center"> No Current State Defined</h5>
+	  </div>
+	  <div *ngIf="zone.climate.next != null">
+		<h5 class="text-center">
+		  Next State: '{{zone.climate.next.name}}' on {{ zone.climate.nextTime | date: 'short' }}
+		</h5>
+		<app-state [current]="zone.climate.next"
+				   [end]="zone.climate.nextEnd"
+				   [displayCurrent]="false">
+		</app-state>
+	  </div>
+	  <div *ngIf="zone.climate.next == null">
+		<h5 class="text-center">No Next State Defined</h5>
+	  </div>
+	  <app-climate-view [hostName]="hostName" [zoneName]="zoneName"></app-climate-view>
+	</main>
+	<main role="main" *ngIf="state!=Loaded" class="col-md-7 ml-sm-auto col-lg-8 pt-3 px-4">
+	  <div class="jumbotron">
+		<ng-template [ngIf]="state==Loading">
+		  <h1>Loading {{hostName}}.{{zoneName}}</h1>
+		  <p>Firefox is often really, really slow to load this page.</p>
+		</ng-template>
+		<ng-template [ngIf]="state==Unavailable">
+		  <h1>{{hostName}}.{{zoneName}} is unavailable</h1>
+		  <p>It seems that this Zeus finished its work</p>
+		</ng-template>
+	  </div>
+	</main>
+  </div>
 </div>

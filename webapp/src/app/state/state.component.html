@@ -13,11 +13,11 @@
 	<tbody>
 	  <tr>
 		<th>Target</th>
-		<td>{{stateB==null?displayValue(stateA.temperature):(displayValue(stateA.temperature)+' ↦ '+displayValue(stateB.temperature))}}</td>
-		<td>{{stateB==null?displayValue(stateA.humidity):(displayValue(stateA.humidity)+' ↦ '+displayValue(stateB.humidity))}}</td>
-		<td>{{stateB==null?displayValue(stateA.wind):(displayValue(stateA.wind)+' ↦ '+displayValue(stateB.wind))}}</td>
-		<td>{{stateB==null?displayValue(stateA.visibleLight):(displayValue(stateA.visibleLight)+' ↦ '+displayValue(stateB.visibleLight))}}</td>
-		<td>{{stateB==null?displayValue(stateA.uvLight):(displayValue(stateA.uvLight)+' ↦ '+displayValue(stateB.uvLight))}}</td>
+		<td>{{end==null?displayValue(current.temperature):(displayValue(current.temperature)+' ↦ '+displayValue(end.temperature))}}</td>
+		<td>{{end==null?displayValue(current.humidity):(displayValue(current.humidity)+' ↦ '+displayValue(end.humidity))}}</td>
+		<td>{{end==null?displayValue(current.wind):(displayValue(current.wind)+' ↦ '+displayValue(end.wind))}}</td>
+		<td>{{end==null?displayValue(current.visibleLight):(displayValue(current.visibleLight)+' ↦ '+displayValue(end.visibleLight))}}</td>
+		<td>{{end==null?displayValue(current.uvLight):(displayValue(current.uvLight)+' ↦ '+displayValue(end.uvLight))}}</td>
 	  </tr>
 	  <tr *ngIf="displayCurrent == true" >
 		<th>Current</th>

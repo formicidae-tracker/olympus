@@ -8,8 +8,8 @@ import { State }  from '@models/state';
     styleUrls: ['./state.component.css']
 })
 export class StateComponent implements OnInit {
-    @Input() stateA: State;
-	@Input() stateB: State;
+    @Input() current: State;
+	@Input() end: State;
 	@Input() currentTemperature: number;
 	@Input() currentHumidity: number;
 	@Input() displayCurrent: boolean;
@@ -23,8 +23,8 @@ export class StateComponent implements OnInit {
 	}
 
     constructor() {
-		this.stateA = new State();
-		this.stateB = new State();
+		this.current = new State();
+		this.end = new State();
 		this.currentTemperature = NaN;
 		this.currentHumidity = NaN;
 		this.displayCurrent = false;

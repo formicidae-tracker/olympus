@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subscription,timer } from 'rxjs';
 import { OlympusService } from '@services/olympus';
 import { ZoneReport } from '@models/zone-report';
-import { map } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 
 export enum State {
 	Loading = 1,
@@ -32,19 +32,17 @@ export class ZoneComponent implements OnInit,OnDestroy {
 				private olympus: OlympusService) {
 		this.state = State.Loading;
 		this.zone = null;
-		this.zoneName = '';
-		this.hostName = '';
 		this.update = null;
 	}
 
     ngOnInit() {
 		this.route.paramMap.pipe(
-			map((params) => {
-				this.hostName = params.get('hostName');
-				this.zoneName = params.get('zoneName');
-				this.title.setTitle('Olympus: '+this.hostName+'.'+this.zoneName)
+			.switchMap(params => {
+				let hostName = params.get('hostName');
+				let zoneName = params.get('zoneName');
+				this.title.setTitle('Olympus: '+hostName+'.'+zoneName)
 				this.update = timer(0,5000).subscribe( () => {
-					this.olympus.zoneReport(this.hostName,this.zoneName)
+					this.olympus.zoneReport(hostName,zoneName)
 						.subscribe(
 							(zone) => {
 								this.zone = zone;
