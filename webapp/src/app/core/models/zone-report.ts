@@ -21,7 +21,7 @@ export class ZoneReport {
 		return new ZoneReport(item.Host,
 							  item.Name,
 							  ZoneClimateReport.adapt(item.Climate),
-							  StreamInfo.adapt(item.StreamInfo),
+							  StreamInfo.adapt(item.Stream),
 							  alarms);
 	}
 }

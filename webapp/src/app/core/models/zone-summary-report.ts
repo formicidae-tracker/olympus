@@ -11,7 +11,7 @@ export class ZoneSummaryReport {
 	static adapt(item: any): ZoneSummaryReport {
 		return new ZoneSummaryReport(item.Host,
 									 item.Name,
-									 StreamInfo.adapt(item.StreamURL),
+									 StreamInfo.adapt(item.Stream),
 									 ZoneClimateReport.adapt(item.Climate));
 	}
 

@@ -33,7 +33,7 @@ describe('ZoneReport', () => {
 				"NextEnd": { "Name": "night", "Temperature": 22, "Humidity": 60, "Wind": 100, "VisibleLight": 0, "UVLight": 0 },
 				"NextTime": "2021-02-05T17:00:00Z"
 			},
-			"Stream": null,
+			"Stream": {"StreamURL":"/olympus/hls/atreides.m3u8","ThumbnailURL":"/olympus/atreides.png"},
 			"Alarms": [
 				{
 					"Reason": "Cannot reach desired humidity",
@@ -75,7 +75,8 @@ describe('ZoneReport', () => {
 		});
 
 		it('should have empty stream info',() => {
-			expect(atreides.streamInfo).toEqual(new StreamInfo());
+			expect(atreides.streamInfo.streamURL).toEqual('/olympus/hls/atreides.m3u8','streamURL');
+			expect(atreides.streamInfo.thumbnailURL).toEqual('/olympus/atreides.png','thumbnailURL');
 		});
 
 		it('should have a climate',() => {
