@@ -36,7 +36,7 @@
 	  <div *ngIf="zone.climate.next == null">
 		<h5 class="text-center">No Next State Defined</h5>
 	  </div>
-	  <app-climate-view [hostName]="hostName" [zoneName]="zoneName"></app-climate-view>
+	  <app-climate-view [host]="hostName" [zone]="zoneName"></app-climate-view>
 	</main>
 	<main role="main" *ngIf="state!=Loaded" class="col-md-7 ml-sm-auto col-lg-8 pt-3 px-4">
 	  <div class="jumbotron">

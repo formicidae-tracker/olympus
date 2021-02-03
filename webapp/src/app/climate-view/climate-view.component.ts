@@ -16,9 +16,20 @@ export class ClimateViewComponent implements OnInit,OnDestroy {
 	public climateTimeSeries: ClimateTimeSeries;
 	update: Subscription;
 
+	private hostName: string;
+	private zoneName: string;
 
-	@Input() hostName: string;
-	@Input() zoneName: string;
+	@Input()
+	set host(h: string) {
+		this.hostName = h;
+		this.updateChart();
+	}
+
+	@Input()
+	set zone(z: string) {
+		this.zoneName = z;
+		this.updateChart();
+	}
 
 	constructor(private olympus: OlympusService) {
 		this.hostName = '';
@@ -28,7 +39,7 @@ export class ClimateViewComponent implements OnInit,OnDestroy {
 	}
 
 	ngOnInit() {
-		this.update = timer(0,10000).subscribe(  () => {
+		this.update = timer(0,10000).subscribe(() => {
 			this.updateChart();
 		});
 	}
@@ -41,6 +52,12 @@ export class ClimateViewComponent implements OnInit,OnDestroy {
 
 
 	updateChart() {
+		if ( this.hostName.length == 0
+			 || this.zoneName.length == 0 ) {
+			this.climateTimeSeries = new ClimateTimeSeries();
+			return;
+		}
+
 		this.olympus.climateTimeSeries(this.hostName,this.zoneName,this.window)
 			.subscribe((timeSeries) => {
 				this.climateTimeSeries = timeSeries;
