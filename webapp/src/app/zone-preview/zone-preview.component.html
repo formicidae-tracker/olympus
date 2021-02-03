@@ -13,7 +13,7 @@
 	</a>
 	<a href="" [routerLink]="detailRouterLink()" class="list-group-item-action">
 		<ul class="list-group list-group-flush">
-			<li class="list-group-item">
+			<li class="list-group-item" id="climate-states">
 				{{currentStateDescription()}}<br/>{{nextStateDescription()}}<ng-template [ngIf]="hasNextTime()"> at {{ nextTime() | date:'hh:mm' }}</ng-template>
 			</li>
 			<li [class]="'list-group-item list-group-item-action list-group-item-' + temperatureStatus()">Temperature: <span class="float-right">{{temperature()}}</span></li>
