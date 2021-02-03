@@ -6,6 +6,7 @@ import { ClimateTimeSeries } from '@models/climate-time-series';
 import { ZoneReport } from '@models/zone-report';
 import { ZoneSummaryReport } from '@models/zone-summary-report';
 import { Observable,of,throwError } from 'rxjs';
+import { ServiceLogReport } from '@models/service-log';
 
 
 export class FakeOlympusService {
@@ -151,6 +152,14 @@ export class FakeOlympusService {
 			return throwError('fake-olympus: climateTimeSeries: unknown zone \''+host+'/zone/'+zone+'\'');
 		}
 		return of(res);
+	}
+
+	logsStatic(): ServiceLogReport {
+		return new ServiceLogReport();
+	}
+
+	logs(): Observable<ServiceLogReport> {
+		return of(this.logsStatic());
 	}
 
 
