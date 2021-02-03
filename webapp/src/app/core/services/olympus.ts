@@ -6,6 +6,7 @@ import { map } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '@environments/environment';
 import { ZoneReport } from '@models/zone-report';
+import { ServiceLogReport } from '@models/service-log';
 
 
 
@@ -42,4 +43,9 @@ export class OlympusService {
 		);
 	}
 
+	logs(): Observable<ServiceLogReport> {
+		return this.httpClient.get<any>(environment.apiEndpoint+'/logs').pipe(
+			map(item => { return ServiceLogReport.adapt(item) })
+		);
+	}
 }

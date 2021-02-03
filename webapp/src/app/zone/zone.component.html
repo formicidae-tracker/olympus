@@ -1,11 +1,11 @@
 <div class="container-fluid">
 	<div class="row">
-		<nav class="col-md-4  d-md-block sidebar">
+		<nav class="col-lg-4 d-lg-block sidebar">
 			<div class="sidebar-sticky">
 				<app-alarm-list *ngIf="hasClimate()" [alarms]="zone.alarms"></app-alarm-list>
 			</div>
 		</nav>
-		<main role="main" *ngIf="loaded()" class="col-md-7 ml-sm-auto col-lg-8 pt-3 px-4">
+		<main role="main" *ngIf="loaded()" class="col-lg-8 ml-sm-auto pt-3 px-4">
 			<app-video-js *ngIf="zone.streamInfo.hasStream()" [urlVideo]="zone.streamInfo.streamURL" [urlPoster]="zone.streamInfo.thumbnailURL"></app-video-js>
 			<ng-template [ngIf]="hasClimate()">
 				<div id="climate-states">
