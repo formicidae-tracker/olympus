@@ -65,7 +65,7 @@ func (d *rollingDownsampler) Add(t time.Duration, v float64) {
 
 func (d *rollingDownsampler) TimeSerie() []lttb.Point {
 	if len(d.points) >= d.samplesThreshold {
-		d.points = lttb.LTTB(d.points, d.samples)
+		d.points = lttb.LTTB(d.points, d.samplesThreshold)
 	}
 	return append([]lttb.Point(nil), d.points...)
 }
