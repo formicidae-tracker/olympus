@@ -1,67 +1,89 @@
-import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { ActivatedRoute,convertToParamMap } from '@angular/router';
+import { ComponentFixture, TestBed, waitForAsync,fakeAsync,tick,discardPeriodicTasks } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 
-import { ZoneComponent, ZoneState } from './zone.component';
+import { ZoneComponent } from './zone.component';
 import { of } from 'rxjs';
-import { OlympusService,MockOlympusService } from '@services/olympus';
+import { OlympusService } from '@services/olympus';
+import { FakeOlympusService } from '@services/fake-olympus';
 
 
 
 describe('ZoneComponent', () => {
 	let component: ZoneComponent;
 	let fixture: ComponentFixture<ZoneComponent>;
-	let olympus = new MockOlympusService();
+	let fakeOlympus = new FakeOlympusService();
+	let olympus: any;
+	let zoneReportSpy: any;
 	let route = {
 		paramMap: of(convertToParamMap({
 			hostName: '',
 			zoneName: '',
 		})),
 	}
+
 	beforeEach(waitForAsync(() => {
+		olympus = jasmine.createSpyObj('OlympusService',['zoneReport']);
+		zoneReportSpy = olympus.zoneReport.and.callFake(function (host,name) {
+			return fakeOlympus.zoneReport(host,name);
+		});
 		TestBed.configureTestingModule({
 			declarations: [ ZoneComponent ],
 			providers: [
-				{
-					provide: OlympusService,
-					useClass: MockOlympusService
-				},
-				{
-					provide: ActivatedRoute,
-					useValue: route,
-				},
+				{provide: OlympusService, useValue: olympus},
+				{provide: ActivatedRoute, useValue: route},
 			],
-		})
-			.compileComponents();
+		}).compileComponents();
 	}));
 
 
 	describe('box zone with tracking', () => {
-		beforeEach(() => {
+		beforeEach(fakeAsync(() => {
 			route.paramMap = of(convertToParamMap({
 				hostName: 'somehost',
 				zoneName: 'box',
 			}));
+
 			fixture = TestBed.createComponent(ZoneComponent);
 			component = fixture.componentInstance;
-			component.zone = olympus.zoneReportStatic('somehost','box');
-			component.state = ZoneState.Loaded;
 			fixture.detectChanges();
-		});
+			tick();
+			fixture.detectChanges();
+			discardPeriodicTasks();
+		}));
 
-		it('should create with the right parameters', () => {
+
+		it('should create with the right parameters',() => {
+
+			expect(zoneReportSpy.calls.any()).toBe(true,'zoneReport called');
+
 			expect(component).toBeTruthy();
-			expect(component.hostName).toBe('somehost');
-			expect(component.zoneName).toBe('box');
+			expect(component.hostName).toBe('somehost','private hostName');
+			expect(component.zoneName).toBe('box','private zoneName');
+			expect(component.zone.host).toBe('somehost','zone.host');
+			expect(component.zone.name).toBe('box','zone.name');
 		});
 
-		it('should have the right zone',() => {
-			expect(component.zone.host).toBe('somehost');
-		})
+		it('should display the alarm logs', () => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('.sidebar-sticky app-alarm-list');
+			expect(selection.length).toBe(1,compiled);
+		});
+
+		it('should remove the loading screen once finished',()=> {
+
+			expect(component.loading).toBe(false,'loading is finished');
+			expect(component.unavailable()).toBe(false,'is unavailable');
+
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('main .jumbotron h1');
+			expect(selection.length).toBe(0);
+		});
+
 
 	});
 
 	describe('box zone without tracking', () => {
-		beforeEach(() => {
+		beforeEach(fakeAsync(() => {
 			route.paramMap = of(convertToParamMap({
 				hostName: 'notracking',
 				zoneName: 'box',
@@ -69,18 +91,39 @@ describe('ZoneComponent', () => {
 			fixture = TestBed.createComponent(ZoneComponent);
 			component = fixture.componentInstance;
 			fixture.detectChanges();
+			tick();
+			fixture.detectChanges();
+			discardPeriodicTasks();
+		}));
+
+		it('should create with the right parameters', () => {
+			expect(component).toBeTruthy();
+			expect(component.hostName).toBe('notracking','private hostName');
+			expect(component.zoneName).toBe('box','private zoneName');
+			expect(component.zone.host).toBe('notracking','zone.host');
+			expect(component.zone.name).toBe('box','zone.name');
 		});
 
-		it('should create', () => {
-			expect(component).toBeTruthy();
-			expect(component.hostName).toBe('notracking');
-			expect(component.zoneName).toBe('box');
+		it('should display the alarm logs', () => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('.sidebar-sticky app-alarm-list');
+			expect(selection.length).toBe(1);
+		});
+
+		it('should remove the loading screen once finished',()=> {
+
+			expect(component.loading).toBe(false,'loading is finished');
+			expect(component.unavailable()).toBe(false,'is unavailable');
+
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('main .jumbotron h1');
+			expect(selection.length).toBe(0);
 		});
 
 	});
 
 	describe('tunnel zone without tracking', () => {
-		beforeEach(() => {
+		beforeEach(fakeAsync(() => {
 			route.paramMap = of(convertToParamMap({
 				hostName: 'somehost',
 				zoneName: 'tunnel',
@@ -88,19 +131,39 @@ describe('ZoneComponent', () => {
 			fixture = TestBed.createComponent(ZoneComponent);
 			component = fixture.componentInstance;
 			fixture.detectChanges();
+			tick();
+			fixture.detectChanges();
+			discardPeriodicTasks();
+		}));
+
+		it('should create with the right parameters', () => {
+			expect(component).toBeTruthy();
+			expect(component.hostName).toBe('somehost','private hostName');
+			expect(component.zoneName).toBe('tunnel','private zoneName');
+			expect(component.zone.host).toBe('somehost','zone.host');
+			expect(component.zone.name).toBe('tunnel','zone.name');
 		});
 
-		it('should create', () => {
-			expect(component).toBeTruthy();
-			expect(component.hostName).toBe('somehost');
-			expect(component.zoneName).toBe('tunnel');
+		it('should display the alarm logs', () => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('.sidebar-sticky app-alarm-list');
+			expect(selection.length).toBe(1);
+		});
 
+		it('should remove the loading screen once finished',()=> {
+
+			expect(component.loading).toBe(false,'loading is finished');
+			expect(component.unavailable()).toBe(false,'is unavailable');
+
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('main .jumbotron h1');
+			expect(selection.length).toBe(0);
 		});
 
 	});
 
-	describe('box zone without climate', () => {
-		beforeEach(() => {
+	describe('box zone without climate but tracking', () => {
+		beforeEach(fakeAsync(() => {
 			route.paramMap = of(convertToParamMap({
 				hostName: 'onlytracking',
 				zoneName: 'box',
@@ -108,19 +171,41 @@ describe('ZoneComponent', () => {
 			fixture = TestBed.createComponent(ZoneComponent);
 			component = fixture.componentInstance;
 			fixture.detectChanges();
+			tick();
+			fixture.detectChanges();
+			discardPeriodicTasks();
+		}));
+
+		it('should create with the right parameters', () => {
+			expect(component).toBeTruthy();
+			expect(component.hostName).toBe('onlytracking','private hostName');
+			expect(component.zoneName).toBe('box','private zoneName');
+			expect(component.zone.host).toBe('onlytracking','zone.host');
+			expect(component.zone.name).toBe('box','zone.name');
 		});
 
-		it('should create', () => {
-			expect(component).toBeTruthy();
-			expect(component.hostName).toBe('onlytracking');
-			expect(component.zoneName).toBe('box');
+		it('should not display the alarm logs', () => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('.sidebar-sticky app-alarm-list');
+			expect(selection.length).toBe(0,compiled.innerHTML);
+		});
+
+
+		it('should remove the loading screen once finished',()=> {
+
+			expect(component.loading).toBe(false,'loading is finished');
+			expect(component.unavailable()).toBe(false,'is unavailable');
+
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('main .jumbotron h1');
+			expect(selection.length).toBe(0);
 		});
 
 	});
 
 
 	describe('unexisting zone', () => {
-		beforeEach(() => {
+		beforeEach(fakeAsync(() => {
 			route.paramMap = of(convertToParamMap({
 				hostName: 'foo',
 				zoneName: 'bar',
@@ -128,14 +213,64 @@ describe('ZoneComponent', () => {
 			fixture = TestBed.createComponent(ZoneComponent);
 			component = fixture.componentInstance;
 			fixture.detectChanges();
-		});
+			tick();
+			fixture.detectChanges();
+			discardPeriodicTasks();
+		}));
 
-		it('should create', () => {
+		it('should create with the right parameters', () => {
 			expect(component).toBeTruthy();
-			expect(component.hostName).toBe('foo');
-			expect(component.zoneName).toBe('bar');
-
+			expect(component.hostName).toBe('foo','private hostName');
+			expect(component.zoneName).toBe('bar','private zoneName');
 		});
+
+		it('should have no zone object',() => {
+			expect(component.unavailable()).toBeTrue();
+			expect(component.zone).toBeFalsy();
+		});
+
+		it('should display zone unavailble',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('main .jumbotron h1');
+			expect(selection.length).toBe(1);
+			expect(selection[0].textContent).toContain('foo.bar is unavailable');
+		});
+
+		it('should remove the loading screen once finished',()=> {
+
+			expect(component.loading).toBe(false,'loading is finished');
+			expect(component.unavailable()).toBe(true,'is unavailable');
+
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('main .jumbotron h1');
+			expect(selection.length).toBe(1);
+
+			expect(selection[0].textContent).not.toContain('Loading foo.bar');
+		});
+
+	});
+
+	describe('loading screen',() => {
+		beforeEach(fakeAsync(() => {
+			route.paramMap = of(convertToParamMap({
+				hostName: 'foo',
+				zoneName: 'bar',
+			}));
+			fixture = TestBed.createComponent(ZoneComponent);
+			component = fixture.componentInstance;
+			fixture.detectChanges();
+			discardPeriodicTasks();
+		}));
+
+		it('should display loading until service subscription finishes',fakeAsync(()=> {
+
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('main .jumbotron h1');
+			expect(selection.length).toBe(1);
+
+			expect(selection[0].textContent).toContain('Loading foo.bar');
+			expect(compiled.querySelector('main .jumbotron p').textContent).toContain('Firefox is known to be quite slow to load this page.');
+		}));
 
 	});
 

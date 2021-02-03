@@ -5,12 +5,6 @@ import { Subscription,timer } from 'rxjs';
 import { OlympusService } from '@services/olympus';
 import { ZoneReport } from '@models/zone-report';
 
-export enum ZoneState {
-	Loading = 1,
-	Loaded = 2,
-	Unavailable = 3,
-};
-
 @Component({
 	selector: 'app-zone',
 	templateUrl: './zone.component.html',
@@ -22,14 +16,14 @@ export class ZoneComponent implements OnInit,OnDestroy {
     zoneName: string;
     hostName: string;
 	zone: ZoneReport;
-	state: ZoneState;
+	loading: boolean;
 	update: Subscription;
 
 
     constructor(private route: ActivatedRoute,
 				private title: Title,
 				private olympus: OlympusService) {
-		this.state = ZoneState.Loading;
+		this.loading = true;
 		this.zone = null;
 		this.update = null;
 		this.hostName = '';
@@ -51,7 +45,7 @@ export class ZoneComponent implements OnInit,OnDestroy {
 	updateZone(): void {
 		if ( this.hostName.length == 0
 			|| this.zoneName.length == 0 ) {
-			this.state = ZoneState.Loading;
+			this.loading = true;
 			this.zone = null;
 			return;
 		}
@@ -59,13 +53,25 @@ export class ZoneComponent implements OnInit,OnDestroy {
 			.subscribe(
 				(r) => {
 					this.zone = r;
-					this.state = ZoneState.Loaded;
+					this.loading = false;
 				},
 				() => {
 					this.zone = null;
-					this.state = ZoneState.Unavailable;
+					this.loading = false;
 				}
 			);
+	}
+
+	hasClimate(): boolean {
+		return this.zone != null && this.zone.climate != null;
+	}
+
+	loaded(): boolean {
+		return this.loading == false && this.zone != null;
+	}
+
+	unavailable(): boolean {
+		return this.loading == false && this.zone == null;
 	}
 
 	ngOnDestroy() {

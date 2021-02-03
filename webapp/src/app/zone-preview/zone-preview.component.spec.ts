@@ -1,14 +1,14 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ZoneSummaryReport } from '@models/zone-summary-report';
-import { MockOlympusService } from '@services/olympus';
+import { FakeOlympusService } from '@services/fake-olympus';
 
 import { ZonePreviewComponent } from './zone-preview.component';
 
 describe('ZonePreviewComponent', () => {
 	let component: ZonePreviewComponent;
 	let fixture: ComponentFixture<ZonePreviewComponent>;
-	let olympus: MockOlympusService = new MockOlympusService();
+	let olympus: FakeOlympusService = new FakeOlympusService();
 
 	beforeEach(waitForAsync(() => {
 		TestBed.configureTestingModule({

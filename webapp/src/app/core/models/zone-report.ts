@@ -1,3 +1,4 @@
+import { AlarmReport } from "./alarm";
 import { StreamInfo } from "./stream-info";
 import { ZoneClimateReport } from "./zone-climate-report";
 
@@ -6,14 +7,21 @@ export class ZoneReport {
 				public name: string,
 				public climate: ZoneClimateReport = null,
 				public streamInfo: StreamInfo = null,
-				public alarms: any[] = null) {
+				public alarms: AlarmReport[] = []) {
 	}
 
 	static adapt(item: any) {
+		let alarms: AlarmReport[] = [];
+		if ( item.alarms != null ) {
+			for ( let a of item.alarms ) {
+				alarms.push(AlarmReport.adapt(a));
+			}
+		}
+
 		return new ZoneReport(item.Host,
 							  item.Name,
 							  ZoneClimateReport.adapt(item.Climate),
 							  StreamInfo.adapt(item.StreamInfo),
-							  item.Alarms);
+							  alarms);
 	}
 }

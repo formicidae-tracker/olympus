@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+import { FakeOlympusService } from '@services/fake-olympus';
 
-import { OlympusService,MockOlympusService } from '@services/olympus';
+import { OlympusService } from '@services/olympus';
 
 import { HomeComponent } from './home.component';
 
@@ -12,7 +13,7 @@ describe('HomeComponent', () => {
 		TestBed.configureTestingModule({
 			declarations: [ HomeComponent ],
 			providers: [
-				{ provide: OlympusService, useClass: MockOlympusService },
+				{ provide: OlympusService, useClass: FakeOlympusService },
 			],
 
 		})
