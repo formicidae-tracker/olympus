@@ -12,7 +12,6 @@ import { ZonePreviewComponent } from './zone-preview/zone-preview.component';
 
 import { OlympusService } from '@services/olympus';
 import { ClimateViewComponent } from './climate-view/climate-view.component';
-import { AlarmComponent } from './alarm/alarm.component';
 import { StateComponent } from './state/state.component';
 import { VideoJsComponent } from './video-js/video-js.component';
 import { AlarmListComponent } from './alarm-list/alarm-list.component';
@@ -35,7 +34,6 @@ import { ChartsModule } from 'ng2-charts';
 		PageNotFoundComponent,
 		ZonePreviewComponent,
 		ClimateViewComponent,
-		AlarmComponent,
 		StateComponent,
 		VideoJsComponent,
 		AlarmListComponent,

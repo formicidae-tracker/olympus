@@ -4,6 +4,8 @@ import { ActivatedRoute } from '@angular/router';
 import { Subscription,timer } from 'rxjs';
 import { OlympusService } from '@services/olympus';
 import { ZoneReport } from '@models/zone-report';
+import { AlarmReport } from '@models/alarm';
+
 
 @Component({
 	selector: 'app-zone',
@@ -53,6 +55,7 @@ export class ZoneComponent implements OnInit,OnDestroy {
 			.subscribe(
 				(r) => {
 					this.zone = r;
+					this.zone.alarms = this.zone.alarms.sort(AlarmReport.compare);
 					this.loading = false;
 				},
 				() => {

@@ -1,0 +1,16 @@
+ul ul {
+	margin-right:1em;
+	margin-left:1em;
+}
+
+ul li div {
+	margin-top:0.25em;
+}
+
+span.float-left {
+	margin-right:0.5em;
+}
+
+span.float-right {
+	margin-left:0.5em;
+}

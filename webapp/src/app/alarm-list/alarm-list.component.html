@@ -1,7 +1,16 @@
 <ul class="list-group">
-	<li class="list-group-item h3">
+	<li [class]="'list-group-item h3' + (disabled() ? ' disabled' : '')">
 		<span>Alarms</span>
-		<svg class="float-left" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Capa_1" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;width:28px;height:28px;margin-right:20px;" xml:space="preserve">
+		<svg class="float-left"
+		     xmlns="http://www.w3.org/2000/svg"
+		     xmlns:xlink="http://www.w3.org/1999/xlink"
+		     version="1.1"
+		     id="Capa_1"
+		     x="0px"
+		     y="0px"
+		     viewBox="0 0 512 512"
+		     [style]="'enable-background:new 0 0 512 512;width:28px;height:28px;margin-right:20px;'+(disabled()?'opacity:0.1;':'')"
+		     xml:space="preserve">
 			<path style="fill:#57555C;" d="M415.75,426c-7.035,0-126.079,0-217,0c-11.05,0-20,8.95-20,20v40h257v-40  C435.75,434.95,426.8,426,415.75,426z"/>
 			<path style="fill:#ED5151;" d="M302.37,186h-10.24c-29,0-53.85,20.74-59.03,49.27L199.07,426h196.36l-34.02-190.73  C356.22,206.74,331.37,186,302.37,186z"/>
 			<path d="M336,266c0-5.52-4.48-10-10-10s-10,4.48-10,10s4.48,10,10,10S336,271.52,336,266z"/>
@@ -17,7 +26,23 @@
 		</svg>
 	</li>
 
-	<app-alarm *ngFor="let alarm of alarms" [alarm]="alarm" [now]="now"> </app-alarm>
+	<ng-template ngFor let-alarm [ngForOf]="alarms">
+		<button [class]="'list-group-item list-group-item-action list-group-item-'+alarm.action()" (click)="toggleCollapse(alarm.reason)">
+			<span [class]="'float-left badge badge-'+(alarm.on()?'danger':'secondary')">{{alarm.count}}</span>
+			{{alarm.reason}}
+			<span class="float-right"><em>since {{alarm.since(now)}}</em></span>
+			<div #collapse="ngbCollapse" [ngbCollapse]="isCollapsed(alarm.reason)">
+				<small>
+					Events:
+					<ul class="list-group">
+						<li *ngFor="let e of alarm.events" class="list-group-item py-1">
+							{{e.time | date:"YYYY-MM-dd hh:mm:ss"}}: <span class="float-right">{{e.on ? 'On':'Off'}}</span>
+						</li>
+					</ul>
+				</small>
+			</div>
+		</button>
+	</ng-template>
 </ul>
 
 <!--

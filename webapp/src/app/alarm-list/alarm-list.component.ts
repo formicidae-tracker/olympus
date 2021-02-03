@@ -1,6 +1,5 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { environment } from '@environments/environment';
-import { AlarmEvent, AlarmReport } from '@models/alarm';
+import { AlarmReport } from '@models/alarm';
 import { Subscription,timer } from 'rxjs';
 
 @Component({
@@ -12,40 +11,21 @@ export class AlarmListComponent implements OnInit,OnDestroy {
 	@Input() alarms: AlarmReport[];
 	now: Date;
 	updateTime: Subscription;
+	collapsed: Map<string,boolean>;
+
 
 	constructor() {
 		this.now = new Date();
-		if ( environment.production == true ) {
-			this.alarms = [];
-		} else {
-			let now = (new Date()).getTime();
-			this.alarms = [
-				new AlarmReport('Water level is critical',
-								2,
-								[
-									new AlarmEvent(true,new Date(now - 30*60000)),
-								]),
-				new AlarmReport('Humidity is unreachable',
-								1,
-								[
-									new AlarmEvent(true,new Date(now - 60*60000)),
-									new AlarmEvent(false,new Date(now - 50*60000)),
-									new AlarmEvent(true,new Date(now - 40*60000)),
-								]),
-				new AlarmReport('Temperature is out of bound',
-								2,
-								[
-									new AlarmEvent(true,new Date(now - 65*60000)),
-									new AlarmEvent(false,new Date(now - 45*60000)),
-								]),
-			]
-		}
+		this.alarms = [];
 	}
+
+
 
 	ngOnInit(): void {
 		this.updateTime = timer(0,1000).subscribe(() => {
 			this.now = new Date();
 		})
+		this.collapsed = new Map<string,boolean>();
 	}
 
 	ngOnDestroy(): void {
@@ -53,4 +33,29 @@ export class AlarmListComponent implements OnInit,OnDestroy {
 			this.updateTime.unsubscribe();
 		}
 	}
+
+	toggleCollapse(r: string): void {
+		if ( this.collapsed.has(r) == false ) {
+			this.collapsed.set(r,true);
+		}
+		this.collapsed.set(r,!this.collapsed.get(r));
+	}
+
+	isCollapsed(r: string): boolean {
+		if ( this.collapsed.has(r) == false ) {
+			return true;
+		}
+
+		return this.collapsed.get(r);
+	}
+
+	disabled(): boolean {
+		for ( let r of this.alarms ) {
+			if ( r.on() == true ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 }

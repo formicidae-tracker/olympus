@@ -12,8 +12,8 @@ export class ZoneReport {
 
 	static adapt(item: any) {
 		let alarms: AlarmReport[] = [];
-		if ( item.alarms != null ) {
-			for ( let a of item.alarms ) {
+		if ( item.Alarms != null ) {
+			for ( let a of item.Alarms ) {
 				alarms.push(AlarmReport.adapt(a));
 			}
 		}
