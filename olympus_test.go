@@ -23,7 +23,7 @@ var _ = Suite(&OlympusSuite{})
 func (s *OlympusSuite) SetUpTest(c *C) {
 	hostname, err := os.Hostname()
 	c.Assert(err, IsNil)
-	s.o, err = NewOlympus()
+	s.o, err = NewOlympus("")
 	c.Assert(err, IsNil)
 	c.Check(s.o.RegisterZone(zeus.ZoneRegistration{
 		Host:   "somehost",

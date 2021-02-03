@@ -18,6 +18,7 @@ type TrackingWatcher interface {
 	Timeouted() <-chan struct{}
 	Stream() *StreamInfo
 	Hostname() string
+	Experiment() string
 }
 
 type trackingWatcher struct {
@@ -75,6 +76,10 @@ func (l *trackingWatcher) Stream() *StreamInfo {
 
 func (l *trackingWatcher) Hostname() string {
 	return l.host
+}
+
+func (l *trackingWatcher) Experiment() string {
+	return l.experiment
 }
 
 func (l *trackingWatcher) Close() (err error) {

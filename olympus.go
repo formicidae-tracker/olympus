@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/rpc"
@@ -62,15 +65,17 @@ type Olympus struct {
 	trackingLogger ServiceLogger
 	climateLogger  ServiceLogger
 	hostname       string
+	slackURL       string
 }
 
-func NewOlympus() (*Olympus, error) {
+func NewOlympus(slackURL string) (*Olympus, error) {
 	res := &Olympus{
 		zones:          make(map[string]ZoneLogger),
 		log:            log.New(os.Stderr, "[olympus] :", log.LstdFlags),
 		watchers:       make(map[string]TrackingWatcher),
 		trackingLogger: NewServiceLogger(),
 		climateLogger:  NewServiceLogger(),
+		slackURL:       slackURL,
 	}
 	var err error
 	res.hostname, err = os.Hostname()
@@ -315,6 +320,11 @@ func (o *Olympus) unregisterZone(hostName, zoneName string, graceful bool) error
 		o.log.Printf("unregister %s: error: %s:", zoneIdentifier, err)
 	}
 	delete(o.zones, zoneIdentifier)
+	if graceful == false {
+		go o.postToSlack(":warning: Climate on *%s.%s* ended unexpectedly.", hostName, zoneName)
+	} else {
+		// go o.postToSlack(":information_source: Climate on *%s.%s* ended normally.", hostName, zoneName)
+	}
 
 	return nil
 }
@@ -428,6 +438,8 @@ func (o *Olympus) registerZone(zr zeus.ZoneRegistration) error {
 	o.zones[zoneIdentifier] = logger
 	go o.watchTimeout(logger, zr.Host, zr.Name)
 	go o.fetchBackLog(logger, zr)
+	//go o.postToSlack(":information_source: Climate on *%s.%s* started.", zr.Host, zr.Name)
+
 	return nil
 }
 
@@ -462,7 +474,9 @@ func (o *Olympus) registerTracker(hostname, streamServer, experimentName string)
 	watcher := NewTrackingWatcher(args)
 	o.watchers[hostname] = watcher
 	o.trackingLogger.Log(hostname, true, true)
-	o.log.Printf("registered tracker %s %v", hostname, args)
+	o.log.Printf("registered tracker %s", hostname)
+
+	// go o.postToSlack(":information_source: Tracking experiment `%s` on *%s* started.", args.Experiment, hostname)
 
 	go o.watchTracking(watcher)
 	return nil
@@ -520,11 +534,17 @@ func (o *Olympus) unregisterTracker(hostname string, graceful bool) error {
 	}
 	err := watcher.Close()
 	if err != nil {
-		fmt.Errorf("could not close tracking watcher: %s", err)
+		o.log.Printf("could not close tracking watcher: %s", err)
 	}
 	o.trackingLogger.Log(hostname, false, graceful)
 	delete(o.watchers, hostname)
 	o.log.Printf("unregistered tracker %s", hostname)
+	if graceful == false {
+		go o.postToSlack(":warning: Tracking experiment `%s` on *%s* ended unexpectedly.", watcher.Experiment(), hostname)
+	} else {
+		//go o.postToSlack(":information_source: Tracking experiment `%s` on *%s* ended normally.", watcher.Experiment(), hostname)
+	}
+
 	return nil
 
 }
@@ -570,4 +590,43 @@ func (o *Olympus) route(router *mux.Router) {
 		JSONify(w, &res)
 	}).Methods("GET")
 
+}
+
+func (o *Olympus) encodeSlackMessage(message string) (*bytes.Buffer, error) {
+	type SlackMessage struct {
+		Text string `json:"text"`
+	}
+
+	buffer := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(buffer)
+	if err := enc.Encode(SlackMessage{Text: message}); err != nil {
+		return nil, err
+	}
+	return buffer, nil
+}
+
+func (o *Olympus) postToSlackError(message string) error {
+	buffer, err := o.encodeSlackMessage(message)
+	if err != nil {
+		return err
+	}
+	resp, err := http.Post(o.slackURL, "application/json", buffer)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		d, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("response %d: %s", resp.StatusCode, string(d))
+	}
+	return nil
+}
+
+func (o *Olympus) postToSlack(message string, args ...interface{}) {
+	if len(o.slackURL) == 0 {
+		return
+	}
+	if err := o.postToSlackError(fmt.Sprintf(message, args...)); err != nil {
+		o.log.Printf("slack error: %s", err)
+	}
 }
