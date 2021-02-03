@@ -19,4 +19,17 @@ export class ClimateTimeSeries {
 
 		return new ClimateTimeSeries(humidity,temperature,tempAux);
 	}
+
+	hasTemperature(): boolean {
+		return this.temperature.length > 0 || this.temperatureAux.length > 0;
+	}
+
+	hasHumidity(): boolean {
+		return this.humidity.length > 0;
+	}
+
+	hasData(): boolean {
+		return this.hasTemperature() || this.hasHumidity();
+	}
+
 }

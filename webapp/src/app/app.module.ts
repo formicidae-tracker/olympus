@@ -18,6 +18,7 @@ import { VideoJsComponent } from './video-js/video-js.component';
 import { AlarmListComponent } from './alarm-list/alarm-list.component';
 import { AppRoutingModule } from './app-routing.module';
 import { ClimateChartComponent } from './climate-chart/climate-chart.component';
+import { ChartsModule } from 'ng2-charts';
 
 @NgModule({
     imports: [
@@ -25,6 +26,7 @@ import { ClimateChartComponent } from './climate-chart/climate-chart.component';
 		BrowserModule,
 		HttpClientModule,
         AppRoutingModule,
+		ChartsModule,
 	],
 	declarations: [
 		AppComponent,

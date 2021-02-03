@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { formatDate } from '@angular/common';
 import { ClimateTimeSeries } from '@models/climate-time-series';
-import { ChartDataSets, ChartOptions, ChartType } from 'chart.js';
+import { Chart,ChartDataSets, ChartData, ChartTooltipItem, ChartOptions, ChartType } from 'chart.js';
 
 @Component({
 	selector: 'app-climate-chart',
@@ -11,6 +12,23 @@ export class ClimateChartComponent implements OnInit {
 
 	public chartOptions: ChartOptions = {
 		responsive: true,
+		animation: null,
+		legend: {
+			position: 'bottom',
+		},
+		tooltips: {
+            callbacks: {
+                label: function(tooltipItem: ChartTooltipItem,data: ChartData) {
+
+                    let label: string = 'Time: ' + formatDate(new Date(new Date().getTime() + parseFloat(tooltipItem.label) * 3600000),'YYYY-MM-dd HH:mm:ss','en-US')+', '
+
+					label += data.datasets[tooltipItem.datasetIndex].label + ': ';
+
+                    label += Math.round(parseFloat(tooltipItem.value) * 100) / 100;
+                    return label;
+                },
+            },
+		},
 		scales: {
 			xAxes: [
 				{
@@ -25,7 +43,7 @@ export class ClimateChartComponent implements OnInit {
 				{
 					type: 'linear',
 					display: true,
-					position: 'right',
+					position: 'left',
 					id: 'y-temperature',
 					gridLines: {
 						drawOnChartArea: true,
@@ -42,7 +60,7 @@ export class ClimateChartComponent implements OnInit {
 				{
 					type: 'linear',
 					display: true,
-					position: 'left',
+					position: 'right',
 					id: 'y-humidity',
 					gridLines: {
 						drawOnChartArea: false,
@@ -52,7 +70,7 @@ export class ClimateChartComponent implements OnInit {
 						labelString: 'Relative Humidity (%)',
 					},
 					ticks: {
-						suggestedMin: 20,
+						suggestedMin: 0,
 						suggestedMax: 90,
 					},
 				},
@@ -73,23 +91,26 @@ export class ClimateChartComponent implements OnInit {
 	}
 
 	updateChartOptions(value: ClimateTimeSeries): void {
-		if ( value.temperature.length == 0
-			&& value.temperatureAux.length == 0 ) {
+		if (value.hasData() == false ) {
+			return;
+		}
+
+		if ( value.hasTemperature() == false ) {
 			this.chartOptions.scales.yAxes[0].display = false;
 			this.chartOptions.scales.yAxes[1].display = true;
 			this.chartOptions.scales.yAxes[1].gridLines.drawOnChartArea = true;
 			this.chartOptions.scales.yAxes[1].position = 'left';
 		} else {
-			this.chartOptions.scales.yAxes[1].gridLines.drawOnChartArea = false;
-			this.chartOptions.scales.yAxes[1].position = 'right';
 			this.chartOptions.scales.yAxes[0].display = true;
-			this.chartOptions.scales.yAxes[1].display = value.humidity.length > 0;
+			this.chartOptions.scales.yAxes[1].position = 'right';
+			this.chartOptions.scales.yAxes[1].display = value.hasHumidity();
+			this.chartOptions.scales.yAxes[1].gridLines.drawOnChartArea = false;
 		}
 	}
 
 	private colors = {
 		humidity: '#1f77b4',
-		temperature: '#1f77b4',
+		temperature: '#ff7f0e',
 		aux: [ '#2ca02c','#17becf','#ff6384']
 	};
 
@@ -104,24 +125,20 @@ export class ClimateChartComponent implements OnInit {
 			showLine: true,
 			lineTension: 0,
 			data: [],
-			yAxisID: axis
+			yAxisID: axis,
+			pointRadius: 0,
+			pointBackgroundColor: color,
+			pointHoverBackgroundColor: color,
 		};
 		let last = values[values.length-1].X;
-		let timeDiv = 60;
-		if ( last > 3600 ) {
-			timeDiv = 3600;
-			this.chartOptions.scales.xAxes[0].scaleLabel.labelString = 'Time (h)';
-		} else {
-			this.chartOptions.scales.xAxes[0].scaleLabel.labelString = 'Time (m)';
-		}
+		let timeDiv = 3600;
 
 		for ( let p of values ) {
 			res.data.push({
-				x: Math.round((last - p.X)/timeDiv*100)/100,
-				y: Math.round(100*p.Y)/100,
+				x: (p.X - last)/timeDiv,
+				y: p.Y,
 			});
 		}
-
 		return res;
 	}
 
@@ -134,7 +151,7 @@ export class ClimateChartComponent implements OnInit {
 											   this.colors.humidity));
 		}
 		if ( value.temperature.length > 0 ) {
-			this.chartData.push(this.buildData(value.humidity,
+			this.chartData.push(this.buildData(value.temperature,
 											   'Temperature',
 											   'y-temperature',
 											   this.colors.temperature));

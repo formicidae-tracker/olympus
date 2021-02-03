@@ -16,8 +16,8 @@ export class ClimateViewComponent implements OnInit,OnDestroy {
 	public climateTimeSeries: ClimateTimeSeries;
 	update: Subscription;
 
-	private hostName: string;
-	private zoneName: string;
+	public hostName: string;
+	public zoneName: string;
 
 	@Input()
 	set host(h: string) {

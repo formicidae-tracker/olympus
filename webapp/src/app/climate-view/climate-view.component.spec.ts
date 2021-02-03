@@ -10,7 +10,7 @@ describe('ClimateViewComponent', () => {
 	let fixture: ComponentFixture<ClimateViewComponent>;
 	let olympusFake: any;
 	let olympus: any;
-	let c
+
 	beforeEach(waitForAsync(() => {
 		TestBed.configureTestingModule({
 			declarations: [ ClimateViewComponent ],
