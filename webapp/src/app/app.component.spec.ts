@@ -31,6 +31,6 @@ describe('AppComponent', () => {
 		const fixture = TestBed.createComponent(AppComponent);
 		fixture.detectChanges();
 		const compiled = fixture.debugElement.nativeElement;
-		expect(compiled.querySelector('header').textContent).toContain('Olympus: displays a lot of Zeus');
+		expect(compiled.querySelector('header').textContent).toContain('FORT Olympus');
 	});
 });

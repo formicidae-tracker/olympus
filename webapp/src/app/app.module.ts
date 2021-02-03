@@ -18,6 +18,7 @@ import { AlarmListComponent } from './alarm-list/alarm-list.component';
 import { AppRoutingModule } from './app-routing.module';
 import { ClimateChartComponent } from './climate-chart/climate-chart.component';
 import { ChartsModule } from 'ng2-charts';
+import { LogsComponent } from './logs/logs.component';
 
 @NgModule({
     imports: [
@@ -38,6 +39,7 @@ import { ChartsModule } from 'ng2-charts';
 		VideoJsComponent,
 		AlarmListComponent,
 		ClimateChartComponent,
+		LogsComponent,
 	],
 	providers: [OlympusService],
 	bootstrap: [AppComponent]
