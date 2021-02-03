@@ -5,3 +5,15 @@ nav.sidebar {
 nav.sidebar li {
 	padding: 0.5rem 0.75rem;
 }
+
+#climate-states {
+	margin-top: 0.5em;
+}
+
+#climate-chart {
+	margin-top: 1.5em;
+}
+
+#climate-states h2 {
+	padding-bottom: 0.5em;
+}
