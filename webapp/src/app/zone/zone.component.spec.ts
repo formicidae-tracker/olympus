@@ -69,6 +69,24 @@ describe('ZoneComponent', () => {
 			expect(selection.length).toBe(1,compiled);
 		});
 
+		it('should display the video stream',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('app-video-js');
+			expect(selection.length).toBe(1);
+		});
+
+		it('should display the climate state',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			let selection = compiled.querySelectorAll('main h2');
+			expect(selection.length).toBe(1)
+			if ( selection.length == 0 ) {
+				return;
+			}
+			expect(selection[0].textContent).toContain('Climate States for somehost.box');
+			selection = compiled.querySelectorAll('app-climate-view');
+			expect(selection.length).toBe(1);
+		});
+
 		it('should remove the loading screen once finished',()=> {
 
 			expect(component.loading).toBe(false,'loading is finished');
@@ -108,6 +126,24 @@ describe('ZoneComponent', () => {
 			const compiled = fixture.debugElement.nativeElement;
 			const selection = compiled.querySelectorAll('.sidebar-sticky app-alarm-list');
 			expect(selection.length).toBe(1);
+		});
+
+		it('should display the climate state',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			let selection = compiled.querySelectorAll('main h2');
+			expect(selection.length).toBe(1)
+			if ( selection.length == 0 ) {
+				return;
+			}
+			expect(selection[0].textContent).toContain('Climate States for notracking.box');
+			selection = compiled.querySelectorAll('app-climate-view');
+			expect(selection.length).toBe(1);
+		});
+
+		it('should not display the video stream',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('app-video-js');
+			expect(selection.length).toBe(0);
 		});
 
 		it('should remove the loading screen once finished',()=> {
@@ -150,8 +186,25 @@ describe('ZoneComponent', () => {
 			expect(selection.length).toBe(1);
 		});
 
-		it('should remove the loading screen once finished',()=> {
+		it('should display the climate state',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			let selection = compiled.querySelectorAll('main h2');
+			expect(selection.length).toBe(1)
+			if ( selection.length == 0 ) {
+				return;
+			}
+			expect(selection[0].textContent).toContain('Climate States for somehost.tunnel');
+			selection = compiled.querySelectorAll('app-climate-view');
+			expect(selection.length).toBe(1);
+		});
 
+		it('should not display the video stream',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('app-video-js');
+			expect(selection.length).toBe(0);
+		});
+
+		it('should remove the loading screen once finished',()=> {
 			expect(component.loading).toBe(false,'loading is finished');
 			expect(component.unavailable()).toBe(false,'is unavailable');
 
@@ -190,6 +243,20 @@ describe('ZoneComponent', () => {
 			expect(selection.length).toBe(0,compiled.innerHTML);
 		});
 
+		it('should not display the climate state',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			let selection = compiled.querySelectorAll('main h2');
+			expect(selection.length).toBe(0)
+			selection = compiled.querySelectorAll('app-climate-view');
+			expect(selection.length).toBe(0);
+		});
+
+
+		it('should display the video stream',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('app-video-js');
+			expect(selection.length).toBe(1);
+		});
 
 		it('should remove the loading screen once finished',()=> {
 
@@ -236,8 +303,27 @@ describe('ZoneComponent', () => {
 			expect(selection[0].textContent).toContain('foo.bar is unavailable');
 		});
 
-		it('should remove the loading screen once finished',()=> {
+		it('should not display the alarm logs', () => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('.sidebar-sticky app-alarm-list');
+			expect(selection.length).toBe(0,compiled.innerHTML);
+		});
 
+		it('should not display the climate state',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			let selection = compiled.querySelectorAll('main h2');
+			expect(selection.length).toBe(0)
+			selection = compiled.querySelectorAll('app-climate-view');
+			expect(selection.length).toBe(0);
+		});
+
+		it('should not display the video stream',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('app-video-js');
+			expect(selection.length).toBe(0);
+		});
+
+		it('should remove the loading screen once finished',()=> {
 			expect(component.loading).toBe(false,'loading is finished');
 			expect(component.unavailable()).toBe(true,'is unavailable');
 
@@ -270,7 +356,29 @@ describe('ZoneComponent', () => {
 
 			expect(selection[0].textContent).toContain('Loading foo.bar');
 			expect(compiled.querySelector('main .jumbotron p').textContent).toContain('Firefox is known to be quite slow to load this page.');
+
+
 		}));
+
+		it('should not display the video stream',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('app-video-js');
+			expect(selection.length).toBe(0);
+		});
+
+		it('should not display the alarm logs', () => {
+			const compiled = fixture.debugElement.nativeElement;
+			const selection = compiled.querySelectorAll('.sidebar-sticky app-alarm-list');
+			expect(selection.length).toBe(0,compiled.innerHTML);
+		});
+
+		it('should not display the climate state',() => {
+			const compiled = fixture.debugElement.nativeElement;
+			let selection = compiled.querySelectorAll('main h2');
+			expect(selection.length).toBe(0)
+			selection = compiled.querySelectorAll('app-climate-view');
+			expect(selection.length).toBe(0);
+		});
 
 	});
 

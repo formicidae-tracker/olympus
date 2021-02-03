@@ -6,9 +6,7 @@
 	  </div>
 	</nav>
 	<main role="main" *ngIf="loaded()" class="col-md-7 ml-sm-auto col-lg-8 pt-3 px-4">
-	  <div *ngIf="zone.streamInfo.hasStream()">
-		<app-video-js [urlVideo]="zone.streamInfo.streamURL" [urlPoster]="zone.streamInfo.thumbnailURL"></app-video-js>
-	  </div>
+		<app-video-js *ngIf="zone.streamInfo.hasStream()" [urlVideo]="zone.streamInfo.streamURL" [urlPoster]="zone.streamInfo.thumbnailURL"></app-video-js>
 	  <ng-template [ngIf]="hasClimate()">
 		  <h2> Climate States for {{hostName}}.{{zoneName}} </h2>
 		  <div *ngIf="zone.climate.current != null">
