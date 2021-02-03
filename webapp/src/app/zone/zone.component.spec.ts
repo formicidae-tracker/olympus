@@ -27,7 +27,9 @@ describe('ZoneComponent', () => {
 			return fakeOlympus.zoneReport(host,name);
 		});
 		TestBed.configureTestingModule({
-			declarations: [ ZoneComponent ],
+			declarations: [
+				ZoneComponent,
+			],
 			providers: [
 				{provide: OlympusService, useValue: olympus},
 				{provide: ActivatedRoute, useValue: route},
@@ -113,6 +115,7 @@ describe('ZoneComponent', () => {
 			fixture.detectChanges();
 			discardPeriodicTasks();
 		}));
+
 
 		it('should create with the right parameters', () => {
 			expect(component).toBeTruthy();

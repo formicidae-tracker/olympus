@@ -37,7 +37,7 @@ import { ClimateChartComponent } from './climate-chart/climate-chart.component';
 		StateComponent,
 		VideoJsComponent,
 		AlarmListComponent,
-		ClimateChartComponent
+		ClimateChartComponent,
 	],
 	providers: [OlympusService],
 	bootstrap: [AppComponent]

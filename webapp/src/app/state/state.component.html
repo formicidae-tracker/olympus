@@ -13,19 +13,19 @@
 	<tbody>
 	  <tr>
 		<th>Target</th>
-		<td>{{end==null?displayValue(current.temperature):(displayValue(current.temperature)+' ↦ '+displayValue(end.temperature))}}</td>
-		<td>{{end==null?displayValue(current.humidity):(displayValue(current.humidity)+' ↦ '+displayValue(end.humidity))}}</td>
-		<td>{{end==null?displayValue(current.wind):(displayValue(current.wind)+' ↦ '+displayValue(end.wind))}}</td>
-		<td>{{end==null?displayValue(current.visibleLight):(displayValue(current.visibleLight)+' ↦ '+displayValue(end.visibleLight))}}</td>
-		<td>{{end==null?displayValue(current.uvLight):(displayValue(current.uvLight)+' ↦ '+displayValue(end.uvLight))}}</td>
+		<td>{{displayField('temperature')}}</td>
+		<td>{{displayField('humidity')}}</td>
+		<td>{{displayField('wind')}}</td>
+		<td>{{displayField('visibleLight')}}</td>
+		<td>{{displayField('uvLight')}}</td>
 	  </tr>
 	  <tr *ngIf="displayCurrent == true" >
 		<th>Current</th>
 		<td>{{currentTemperature | number:'2.2-2'}}</td>
 		<td>{{currentHumidity | number:'2.2-2'}}</td>
-		<td> n.a. </td>
-		<td> n.a. </td>
-		<td> n.a. </td>
+		<td> N.A. </td>
+		<td> N.A. </td>
+		<td> N.A. </td>
 	  </tr>
 	</tbody>
   </table>
