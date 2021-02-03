@@ -5,8 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"time"
 
+	"github.com/formicidae-tracker/leto"
 	"github.com/formicidae-tracker/zeus"
 	"github.com/gorilla/mux"
 	. "gopkg.in/check.v1"
@@ -19,7 +21,10 @@ type OlympusSuite struct {
 var _ = Suite(&OlympusSuite{})
 
 func (s *OlympusSuite) SetUpTest(c *C) {
-	s.o = NewOlympus("")
+	hostname, err := os.Hostname()
+	c.Assert(err, IsNil)
+	s.o, err = NewOlympus()
+	c.Assert(err, IsNil)
 	c.Check(s.o.RegisterZone(zeus.ZoneRegistration{
 		Host:   "somehost",
 		Name:   "box",
@@ -37,14 +42,16 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 		NumAux: 0,
 	}), IsNil)
 
-	c.Check(s.o.RegisterTracker(LetoTrackingRegister{
-		Host: "somehost",
-		URL:  "/olympus/hls/somehost.m3u8",
+	c.Check(s.o.RegisterTracker(leto.RegisterTrackerArgs{
+		Hostname:       "somehost",
+		StreamServer:   hostname + ".local",
+		ExperimentName: "TEST-MODE",
 	}), IsNil)
 
-	c.Check(s.o.RegisterTracker(LetoTrackingRegister{
-		Host: "fifou",
-		URL:  "/olympus/hls/fifou.m3u8",
+	c.Check(s.o.RegisterTracker(leto.RegisterTrackerArgs{
+		Hostname:       "fifou",
+		StreamServer:   hostname + ".local",
+		ExperimentName: "TEST-MODE",
 	}), IsNil)
 
 }

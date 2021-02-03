@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/rpc"
@@ -14,8 +12,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/formicidae-tracker/leto"
 	"github.com/formicidae-tracker/zeus"
 	"github.com/gorilla/mux"
+	"gopkg.in/yaml.v2"
 )
 
 type ZoneNotFoundError struct {
@@ -61,9 +61,10 @@ type Olympus struct {
 	watchers       map[string]TrackingWatcher
 	trackingLogger ServiceLogger
 	climateLogger  ServiceLogger
+	hostname       string
 }
 
-func NewOlympus(streamServerBaseURL string) *Olympus {
+func NewOlympus() (*Olympus, error) {
 	res := &Olympus{
 		zones:          make(map[string]ZoneLogger),
 		log:            log.New(os.Stderr, "[olympus] :", log.LstdFlags),
@@ -71,8 +72,13 @@ func NewOlympus(streamServerBaseURL string) *Olympus {
 		trackingLogger: NewServiceLogger(),
 		climateLogger:  NewServiceLogger(),
 	}
-	go res.fetchOnlineTracking(streamServerBaseURL)
-	return res
+	var err error
+	res.hostname, err = os.Hostname()
+	if err != nil {
+		return nil, err
+	}
+	go res.fetchOnlineTracking()
+	return res, nil
 }
 
 func (o *Olympus) Close() error {
@@ -183,11 +189,11 @@ func (o *Olympus) ReportState(sr zeus.StateReport) error {
 	return o.reportState(sr)
 }
 
-func (o *Olympus) RegisterTracker(args LetoTrackingRegister) error {
+func (o *Olympus) RegisterTracker(args leto.RegisterTrackerArgs) error {
 	o.mxTracking.Lock()
 	defer o.mxTracking.Unlock()
 
-	return o.registerTracker(args.Host, args.URL)
+	return o.registerTracker(args.Hostname, args.StreamServer, args.ExperimentName)
 }
 
 func (o *Olympus) UnregisterTracker(hostname string) error {
@@ -388,6 +394,7 @@ func (o *Olympus) fetchBackLogError(logger ZoneLogger, zr zeus.ZoneRegistration)
 	if err != nil {
 		return err
 	}
+	defer c.Close()
 	err = o.fetchBackClimateLog(logger, c, zr.Name, zr.SizeClimateLog)
 	if err != nil {
 		return err
@@ -439,53 +446,69 @@ func (o *Olympus) watchTracking(watcher TrackingWatcher) {
 	}
 }
 
-func (o *Olympus) registerTracker(hostname, streamURL string) error {
+func (o *Olympus) registerTracker(hostname, streamServer, experimentName string) error {
 	if _, ok := o.watchers[hostname]; ok == true {
 		return fmt.Errorf("tracking on %s is already marked on", hostname)
 	}
-	watcher := NewTrackingWatcher(hostname, streamURL)
+	if streamServer != o.hostname+".local" {
+		return fmt.Errorf("unexpected server %s (expect: %s)", streamServer, o.hostname+".local")
+	}
+
+	args := TrackingWatcherArgs{
+		Host:       hostname,
+		URL:        path.Join("/olympus/hls/", hostname+".m3u8"),
+		Experiment: experimentName,
+	}
+	watcher := NewTrackingWatcher(args)
 	o.watchers[hostname] = watcher
 	o.trackingLogger.Log(hostname, true, true)
+	o.log.Printf("registered tracker %s %v", hostname, args)
 
 	go o.watchTracking(watcher)
 	return nil
 }
 
-func (o *Olympus) fetchOnlineTrackingError(streamServerBaseURL string) error {
-	resp, err := http.Get(path.Join(streamServerBaseURL, "master.m3u8"))
+func (o *Olympus) checkIsTracking(n leto.Node) error {
+	status := leto.Status{}
+	err := n.RunMethod("Leto.Status", &leto.NoArgs{}, &status)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(resp.Status)
+	if status.Experiment == nil {
+		return nil
 	}
-	reader := bufio.NewReader(resp.Body)
-	for {
-		l, err := reader.ReadString('\n')
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		l = strings.TrimSpace(l)
-		ext := path.Ext(l)
-		if len(l) == 0 || l[0] == '#' || ext != ".m3u8" {
-			continue
-		}
-		URL := path.Clean(path.Join(streamServerBaseURL, l))
-		host := strings.TrimSuffix(path.Base(l), ext)
-		go func() {
-			o.mxTracking.Lock()
-			defer o.mxTracking.Unlock()
-			o.registerTracker(host, URL)
-		}()
+	config := leto.TrackingConfiguration{}
+	err = yaml.Unmarshal([]byte(status.Experiment.YamlConfiguration), &config)
+	if err != nil {
+		return err
 	}
+	if config.Stream.Host == nil || *config.Stream.Host != o.hostname+".local" {
+		return nil
+	}
+
+	return o.RegisterTracker(leto.RegisterTrackerArgs{
+		Hostname:       strings.TrimPrefix(n.Name, "leto."),
+		StreamServer:   o.hostname + ".local",
+		ExperimentName: config.ExperimentName,
+	})
 }
 
-func (o *Olympus) fetchOnlineTracking(streamServerBaseURL string) {
-	if err := o.fetchOnlineTrackingError(streamServerBaseURL); err != nil {
+func (o *Olympus) fetchOnlineTrackingError() error {
+	lister := leto.NewNodeLister()
+	nodes, err := lister.ListNodes()
+	if err != nil {
+		return err
+	}
+	for _, n := range nodes {
+		if err := o.checkIsTracking(n); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (o *Olympus) fetchOnlineTracking() {
+	if err := o.fetchOnlineTrackingError(); err != nil {
 		o.log.Printf("could not fetch online tracker: %s", err)
 	}
 }
@@ -501,6 +524,7 @@ func (o *Olympus) unregisterTracker(hostname string, graceful bool) error {
 	}
 	o.trackingLogger.Log(hostname, false, graceful)
 	delete(o.watchers, hostname)
+	o.log.Printf("unregistered tracker %s", hostname)
 	return nil
 
 }

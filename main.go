@@ -16,11 +16,10 @@ import (
 )
 
 type Options struct {
-	Version             bool   `long:"version" description:"print current version and exit"`
-	Address             string `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
-	RPC                 int    `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
-	StreamServerAddress string `long:"stream-server" description:"address of the stream server" default:"http://localhost/olympus"`
-	AllowCORS           string `long:"allow-cors" description:"allow cors from domain"`
+	Version   bool   `long:"version" description:"print current version and exit"`
+	Address   string `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
+	RPC       int    `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
+	AllowCORS string `long:"allow-cors" description:"allow cors from domain"`
 }
 
 func setAngularRoute(router *mux.Router) {
@@ -82,7 +81,10 @@ func Execute() error {
 		return nil
 	}
 
-	o := NewOlympus(opts.StreamServerAddress)
+	o, err := NewOlympus()
+	if err != nil {
+		return err
+	}
 
 	httpServer := setUpHttpServer(o, opts)
 	rpcServer := setUpRpcServer(o, opts)

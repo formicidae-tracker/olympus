@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"net/rpc"
 	"path"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/formicidae-tracker/leto"
+	"gopkg.in/yaml.v2"
 )
 
 type TrackingWatcher interface {
@@ -20,6 +23,7 @@ type TrackingWatcher interface {
 type trackingWatcher struct {
 	done, timeouted, stop chan struct{}
 	host                  string
+	experiment            string
 	stream                StreamInfo
 	period                time.Duration
 }
@@ -33,21 +37,28 @@ func newStreamInfo(URL string) StreamInfo {
 	}
 }
 
-func newTrackingWatcher(host, URL string, period time.Duration) TrackingWatcher {
+type TrackingWatcherArgs struct {
+	Host       string
+	Experiment string
+	URL        string
+}
+
+func newTrackingWatcher(o TrackingWatcherArgs, period time.Duration) TrackingWatcher {
 	res := &trackingWatcher{
-		done:      make(chan struct{}),
-		stop:      make(chan struct{}),
-		timeouted: make(chan struct{}),
-		stream:    newStreamInfo(URL),
-		host:      host,
-		period:    period,
+		done:       make(chan struct{}),
+		stop:       make(chan struct{}),
+		timeouted:  make(chan struct{}),
+		stream:     newStreamInfo(o.URL),
+		host:       o.Host,
+		experiment: o.Experiment,
+		period:     period,
 	}
 	go res.watch()
 	return res
 }
 
-func NewTrackingWatcher(host, URL string) TrackingWatcher {
-	return newTrackingWatcher(host, URL, 20*time.Second)
+func NewTrackingWatcher(o TrackingWatcherArgs) TrackingWatcher {
+	return newTrackingWatcher(o, 20*time.Second)
 }
 
 func (l *trackingWatcher) Done() <-chan struct{} {
@@ -89,6 +100,7 @@ func (l *trackingWatcher) watch() {
 			return
 		case <-ticker.C:
 			if l.check() == false {
+
 				once.Do(func() { close(l.timeouted) })
 			}
 		}
@@ -96,10 +108,21 @@ func (l *trackingWatcher) watch() {
 }
 
 func (l *trackingWatcher) check() bool {
-	resp, err := http.Get(l.stream.StreamURL)
+	c, err := rpc.DialHTTP("tcp", fmt.Sprintf("%s.local:%d", l.host, leto.LETO_PORT))
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK
+	defer c.Close()
+	status := leto.Status{}
+	err = c.Call("Leto.Status", &leto.NoArgs{}, &status)
+	if err != nil || status.Experiment == nil {
+		return false
+	}
+	config := leto.TrackingConfiguration{}
+
+	err = yaml.Unmarshal([]byte(status.Experiment.YamlConfiguration), &config)
+	if err != nil {
+		return false
+	}
+	return config.ExperimentName == l.experiment
 }

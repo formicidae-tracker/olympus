@@ -1,6 +1,11 @@
 package main
 
-import "github.com/formicidae-tracker/zeus"
+import (
+	"log"
+
+	"github.com/formicidae-tracker/leto"
+	"github.com/formicidae-tracker/zeus"
+)
 
 type OlympusRPCWrapper Olympus
 
@@ -24,7 +29,8 @@ func (o *OlympusRPCWrapper) ReportState(sr zeus.StateReport, unused *int) error 
 	return (*Olympus)(o).ReportState(sr)
 }
 
-func (o *OlympusRPCWrapper) RegisterTracker(args LetoTrackingRegister, unused *int) error {
+func (o *OlympusRPCWrapper) RegisterTracker(args leto.RegisterTrackerArgs, unused *int) error {
+	log.Printf("coucou registration %v", args)
 	return (*Olympus)(o).RegisterTracker(args)
 }
 
