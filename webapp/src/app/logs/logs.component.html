@@ -1,0 +1,23 @@
+<div class="container">
+	<div class="row">
+		<div class="col-12">
+			<ng-template ngFor let-d [ngForOf]="loopData">
+				<ng-template [ngIf]="report[d.section].length > 0">
+					<h2>{{d.title}}</h2>
+					<div class="col-12"  *ngFor="let service of report[d.section]">
+						<h4 class="d-block">{{service[0].identifier}}</h4>
+						<ul class="list-group col-xs-12">
+							<li *ngFor="let e of service; index as i"
+							    [class]="'list-group-item py-1 list-group-item-action list-group-item-'+actionState(e,i)">
+								{{e.time | date:'YYY-MM-dd HH:mm:ss'}} :
+								<span class="float-right">
+									{{displayState(e)}}
+								</span>
+							</li>
+						</ul>
+					</div>
+				</ng-template>
+			</ng-template>
+		</div>
+	</div>
+</div>

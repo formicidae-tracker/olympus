@@ -1,5 +1,5 @@
 import { Component, OnInit, Input } from '@angular/core';
-import { State }  from '../core/state.model';
+import { State }  from '@models/state';
 
 
 @Component({
@@ -8,21 +8,35 @@ import { State }  from '../core/state.model';
     styleUrls: ['./state.component.css']
 })
 export class StateComponent implements OnInit {
-    @Input() stateA: State;
-	@Input() stateB: State;
+    @Input() current: State;
+	@Input() end: State;
 	@Input() currentTemperature: number;
 	@Input() currentHumidity: number;
 	@Input() displayCurrent: boolean;
 
 
-	displayValue(v :number) :string {
-		if (v <= -1000.0) {
-			return 'n.a.';
+	static displayValue(v: number) :string {
+		if ( v == null ||isNaN(v) == true ) {
+			return 'N.A.';
 		}
 		return (Math.round(100*v)/100).toString();
 	}
 
+	displayField(field): string {
+		if ( this.current == null ) {
+			return 'N.A.';
+		}
+		if (this.end == null) {
+			return StateComponent.displayValue(this.current[field]);
+		}
+		return StateComponent.displayValue(this.current[field]) + ' ↦ ' + StateComponent.displayValue(this.end[field]);
+	}
+
     constructor() {
+		this.current = null;
+		this.end = null;
+		this.currentTemperature = NaN;
+		this.currentHumidity = NaN;
 		this.displayCurrent = false;
 	}
 

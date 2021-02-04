@@ -3,16 +3,32 @@ package main
 import (
 	"time"
 
+	"github.com/dgryski/go-lttb"
 	"github.com/formicidae-tracker/zeus"
-	"github.com/formicidae-tracker/libarke/src-go/arke"
 )
 
-type RegisteredAlarm struct {
-	Reason     string
+type AlarmEvent struct {
+	On   bool
+	Time time.Time
+}
+
+type AlarmReport struct {
+	Reason string
+	Level  int
+	Events []AlarmEvent
+}
+
+type ServiceEvent struct {
+	Identifier string
+	Time       time.Time
 	On         bool
-	Level      int
-	LastChange *time.Time
-	Triggers   int
+	Graceful   bool
+}
+
+type ClimateTimeSerie struct {
+	Humidity       []lttb.Point
+	TemperatureAnt []lttb.Point
+	TemperatureAux [][]lttb.Point
 }
 
 type Bounds struct {
@@ -20,14 +36,14 @@ type Bounds struct {
 	Max *float64
 }
 
-type RegisteredZone struct {
-	Host              string
-	Name              string
+type ZoneClimateReport struct {
 	Temperature       float64
-	TemperatureBounds Bounds
 	Humidity          float64
+	TemperatureBounds Bounds
 	HumidityBounds    Bounds
-	Alarms            []RegisteredAlarm
+	ActiveWarnings    int
+	ActiveEmergencies int
+	NumAux            int
 	Current           *zeus.State
 	CurrentEnd        *zeus.State
 	Next              *zeus.State
@@ -35,51 +51,64 @@ type RegisteredZone struct {
 	NextTime          *time.Time
 }
 
-var stubZone RegisteredZone
+type ZoneReport struct {
+	Host    string
+	Name    string
+	Climate *ZoneClimateReport
+	Stream  *StreamInfo
+	Alarms  []AlarmReport
+}
 
-func init() {
-	stubZone = RegisteredZone{
-		Temperature: 21.4,
-		TemperatureBounds: Bounds{
-			Min: new(float64),
-			Max: new(float64),
-		},
-		Humidity: 62.0,
-		HumidityBounds: Bounds{
-			Min: new(float64),
-			Max: new(float64),
-		},
-		Alarms: []RegisteredAlarm{},
+type ZoneReportSummary struct {
+	Host    string
+	Name    string
+	Climate *ZoneClimateReport
+	Stream  *StreamInfo
+}
+
+type ServiceLogs struct {
+	Climates [][]ServiceEvent
+	Tracking [][]ServiceEvent
+}
+
+type StreamInfo struct {
+	StreamURL    string
+	ThumbnailURL string
+}
+
+type LetoTrackingRegister struct {
+	Host, URL string
+}
+
+func (r *ZoneClimateReport) makeCopy() *ZoneClimateReport {
+	res := &ZoneClimateReport{
+		Temperature:       r.Temperature,
+		Humidity:          r.Humidity,
+		TemperatureBounds: r.TemperatureBounds,
+		HumidityBounds:    r.HumidityBounds,
+		ActiveWarnings:    r.ActiveWarnings,
+		ActiveEmergencies: r.ActiveEmergencies,
+		NumAux:            r.NumAux,
 	}
-	*stubZone.TemperatureBounds.Min = 22.0
-	*stubZone.TemperatureBounds.Max = 28.0
-	*stubZone.HumidityBounds.Min = 40.0
-	*stubZone.HumidityBounds.Max = 75.0
-
-	alarms := []zeus.Alarm{
-		zeus.WaterLevelWarning,
-		zeus.WaterLevelCritical,
-		zeus.TemperatureOutOfBound,
-		zeus.HumidityOutOfBound,
-		zeus.TemperatureUnreachable,
-		zeus.HumidityUnreachable,
-		zeus.NewMissingDeviceAlarm("slcan0", arke.ZeusClass, 1),
-		zeus.NewMissingDeviceAlarm("slcan0", arke.CelaenoClass, 1),
-		zeus.NewMissingDeviceAlarm("slcan0", arke.HeliosClass, 1),
+	if r.Current != nil {
+		res.Current = &zeus.State{}
+		*res.Current = zeus.SanitizeState(*r.Current)
 	}
-	for _, a := range alarms {
-		aa := RegisteredAlarm{
-			Reason:   a.Reason(),
-			On:       false,
-			Triggers: 0,
-		}
-		if a.Priority() == zeus.Warning {
-			aa.Level = 1
-		} else {
-			aa.Level = 2
-		}
-
-		stubZone.Alarms = append(stubZone.Alarms, aa)
+	if r.CurrentEnd != nil {
+		res.CurrentEnd = &zeus.State{}
+		*res.CurrentEnd = zeus.SanitizeState(*r.CurrentEnd)
 	}
-
+	if r.Next != nil {
+		res.Next = &zeus.State{}
+		*res.Next = zeus.SanitizeState(*r.Next)
+	}
+	if r.NextEnd != nil {
+		res.NextEnd = &zeus.State{}
+		*res.NextEnd = zeus.SanitizeState(*r.NextEnd)
+	}
+	if r.NextTime != nil {
+		res.NextTime = &time.Time{}
+		*res.NextTime = *r.NextTime
+	}
+	return res
 }

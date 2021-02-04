@@ -1,3 +1,3 @@
 all:
-	yarn install
-	yarn build --prod
+	npm install
+	npm run ng build -- --prod
