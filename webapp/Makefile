@@ -1,3 +1,3 @@
 all:
 	npm install
-	npm run ng build --prod
+	npm run ng build -- --prod
