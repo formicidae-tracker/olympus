@@ -186,45 +186,43 @@ func (l *zoneLogger) mainLoop() {
 	defer close(l.done)
 
 	once := sync.Once{}
-	seen := false
 	tick := time.NewTicker(l.timeoutPeriod)
 	defer tick.Stop()
+	last := time.Now()
 	for {
 		if l.reports == nil && l.alarms == nil && l.states == nil {
 			return
 		}
-
 		select {
 		case cr, ok := <-l.reports:
 			if ok == false {
 				l.reports = nil
 				continue
 			}
-			seen = true
+			last = time.Now()
 			l.pushClimate(cr)
 		case ae, ok := <-l.alarms:
 			if ok == false {
 				l.alarms = nil
 				continue
 			}
-			seen = true
+			last = time.Now()
 			l.pushLog(ae)
 		case sr, ok := <-l.states:
 			if ok == false {
 				l.states = nil
 				continue
 			}
-			seen = true
+			last = time.Now()
 			l.pushState(sr)
 		case req := <-l.requests:
 			l.handleRequest(req)
-		case <-tick.C:
-			if seen == false {
+		case t := <-tick.C:
+			if t.Sub(last) >= l.timeoutPeriod {
 				once.Do(func() {
 					close(l.timeout)
 				})
 			}
-			seen = false
 		}
 	}
 }
