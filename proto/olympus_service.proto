@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+option go_package = ".;proto";
+package proto;
+
+import "google/protobuf/timestamp.proto";
+
+
+message ClimateReport {
+	string                    zone_identifier = 1;
+	repeated float            temperatures    = 2;
+	float                     humidity        = 3;
+	google.protobuf.Timestamp time            = 4;
+}
+
+enum AlarmFlags {
+	WARNING              = 0x00;
+	EMERGENCY            = 0x01;
+	INSTANT_NOTIFICATION = 0x80;
+}
+
+enum AlarmStatus {
+	ALARM_ON  = 0;
+	ALARM_OFF = 1;
+}
+
+
+message AlarmEvent {
+	string                    zone_identifier = 1;
+	string                    reason          = 2;
+	AlarmFlags                flags           = 3;
+	AlarmStatus               status          = 4;
+	google.protobuf.Timestamp time            = 5;
+}
+
+message ClimateState {
+	string         name          = 1;
+	optional float temperature   = 2;
+	optional float humidity      = 3;
+	optional float wind          = 4;
+	optional float visible_light = 5;
+	optional float uv_light      = 6;
+}
+
+message ZoneDeclaration {
+	string         host             = 1;
+	string         name             = 2;
+	optional float min_temperature  = 3;
+	optional float max_temperature  = 4;
+	optional float min_humidity     = 5;
+	optional float max_humidity     = 6;
+	int32          num_aux          = 7;
+}
+
+message StateReport {
+	string                             zone_identifier = 1;
+	ClimateState                       current = 2;
+	optional ClimateState              current_end = 3;
+	optional ClimateState              next = 4;
+	optional ClimateState              next_end = 5;
+	optional google.protobuf.Timestamp next_time = 6;
+}
+
+message ZoneUpStream {
+	optional ZoneDeclaration declaration    = 1;
+	repeated ClimateReport   climate_reports = 2;
+	optional StateReport     state_report    = 3;
+	repeated AlarmEvent      alarms          = 4;
+}
+
+message ZoneDownStream {
+}
+
+message TrackingUpStream {
+}
+
+message TrackingDownStream {
+}
+
+service Olympus {
+	rpc Zone(stream ZoneUpStream) returns ( stream ZoneDownStream );
+	rpc Tracking (stream TrackingUpStream) returns ( stream TrackingDownStream);
+}
