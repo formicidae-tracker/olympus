@@ -2,6 +2,7 @@ package main
 
 import (
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -13,11 +14,15 @@ type ServiceLogger interface {
 }
 
 type serviceLogger struct {
+	mx sync.RWMutex
+
 	indexes map[string]int
 	logs    [][]ServiceEvent
 }
 
 func (l *serviceLogger) Log(identifier string, on, graceful bool) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
 	index := l.getOrNew(identifier)
 	if on == true {
 		graceful = true
@@ -31,6 +36,9 @@ func (l *serviceLogger) Log(identifier string, on, graceful bool) {
 }
 
 func (l *serviceLogger) Logs() [][]ServiceEvent {
+	l.mx.RLock()
+	defer l.mx.RUnlock()
+
 	res := make([][]ServiceEvent, len(l.logs))
 	for i, logs := range l.logs {
 		res[i] = append([]ServiceEvent(nil), logs...)
@@ -50,10 +58,16 @@ func (l *serviceLogger) find(on bool) []string {
 }
 
 func (l *serviceLogger) OnServices() []string {
+	l.mx.RLock()
+	defer l.mx.Unlock()
+
 	return l.find(true)
 }
 
 func (l *serviceLogger) OffServices() []string {
+	l.mx.RLock()
+	defer l.mx.Unlock()
+
 	return l.find(false)
 }
 

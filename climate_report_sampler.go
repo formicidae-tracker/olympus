@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/formicidae-tracker/zeus"
+	"github.com/formicidae-tracker/olympus/proto"
 )
 
 type ClimateReportSampler interface {
-	Add(zeus.ClimateReport) error
+	Add(proto.ClimateReport) error
 	LastTenMinutes() ClimateTimeSerie
 	LastHour() ClimateTimeSerie
 	LastDay() ClimateTimeSerie

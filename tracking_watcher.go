@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/formicidae-tracker/leto"
 	"gopkg.in/yaml.v2"
 )
 

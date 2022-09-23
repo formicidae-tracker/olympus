@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/formicidae-tracker/leto"
+	"github.com/formicidae-tracker/olympus/proto"
 	"github.com/formicidae-tracker/zeus"
 	"github.com/gorilla/mux"
 	"gopkg.in/yaml.v2"
@@ -57,22 +58,37 @@ func (z ZoneNotFoundError) Error() string {
 }
 
 type Olympus struct {
-	mxClimate, mxTracking sync.RWMutex
-	zones                 map[string]ZoneLogger
-	log                   *log.Logger
+	proto.UnimplementedOlympusServer
+	log      *log.Logger
+	zones    *sync.Map
+	trackers *sync.Map
 
-	watchers       map[string]TrackingWatcher
 	trackingLogger ServiceLogger
 	climateLogger  ServiceLogger
-	hostname       string
-	slackURL       string
+
+	hostname string
+	slackURL string
+}
+
+type subscription[T any] struct {
+	object T
+	finish chan bool
+}
+
+func (s subscription[T]) Close() error {
+	select {
+	case s.finish <- true:
+	default:
+		//default in case connection already finished
+	}
+	return s.Close()
 }
 
 func NewOlympus(slackURL string) (*Olympus, error) {
 	res := &Olympus{
-		zones:          make(map[string]ZoneLogger),
 		log:            log.New(os.Stderr, "[olympus] :", log.LstdFlags),
-		watchers:       make(map[string]TrackingWatcher),
+		zones:          &sync.Map{},
+		trackers:       &sync.Map{},
 		trackingLogger: NewServiceLogger(),
 		climateLogger:  NewServiceLogger(),
 		slackURL:       slackURL,
@@ -87,150 +103,124 @@ func NewOlympus(slackURL string) (*Olympus, error) {
 }
 
 func (o *Olympus) Close() error {
-	o.mxClimate.Lock()
-	o.mxTracking.Lock()
-	defer o.mxTracking.Unlock()
-	defer o.mxClimate.Unlock()
-
 	var err multipleError = nil
 
-	for _, logger := range o.zones {
-		err = appendError(err, logger.Close())
-	}
-	o.zones = nil
-	for _, watcher := range o.watchers {
-		err = appendError(err, watcher.Close())
-	}
-	o.watchers = nil
+	o.zones.Range(func(key, s any) bool {
+		sub, ok := s.(subscription[ZoneLogger])
+		if ok == false {
+			err = appendError(err, fmt.Errorf("logic error: could not cast to subscription"))
+			return true
+		}
+		closeErr := sub.Close()
+		if closeErr != nil {
+			err = appendError(err, closeErr)
+		}
+		return true
+	})
+
 	if len(err) == 0 {
 		return nil
 	}
+
 	return err
 }
 
 func (o *Olympus) GetServiceLogs() ServiceLogs {
-	o.mxClimate.RLock()
-	defer o.mxClimate.RUnlock()
-	o.mxTracking.RLock()
-	defer o.mxTracking.RUnlock()
 	return ServiceLogs{
 		Climates: o.climateLogger.Logs(),
 		Tracking: o.trackingLogger.Logs(),
 	}
-
-}
-
-func (o *Olympus) GetZones() []ZoneReportSummary {
-	o.mxClimate.RLock()
-	defer o.mxClimate.RUnlock()
-	o.mxTracking.RLock()
-	defer o.mxTracking.RUnlock()
-	return o.getZones()
 }
 
 func (o *Olympus) GetClimateTimeSerie(host, zoneName, window string) (ClimateTimeSerie, error) {
-	o.mxClimate.RLock()
-	defer o.mxClimate.RUnlock()
-
 	return o.getClimateTimeSerie(host, zoneName, window)
 }
 
 func (o *Olympus) GetZoneReport(host, zoneName string) (ZoneReport, error) {
-	o.mxClimate.RLock()
-	defer o.mxClimate.RUnlock()
-	o.mxTracking.RLock()
-	defer o.mxTracking.RUnlock()
-
 	return o.getZoneReport(host, zoneName)
 }
 
 func (o *Olympus) GetAlarmReports(zoneIdentifier string) ([]AlarmReport, error) {
-	o.mxClimate.RLock()
-	defer o.mxClimate.RUnlock()
-
 	return o.getAlarmReports(zoneIdentifier)
 }
 
 func (o *Olympus) RegisterZone(zr zeus.ZoneRegistration) error {
-	o.mxClimate.Lock()
-	defer o.mxClimate.Unlock()
-
 	return o.registerZone(zr)
 }
 
 func (o *Olympus) UnregisterZone(zr zeus.ZoneUnregistration) error {
-	o.mxClimate.Lock()
-	defer o.mxClimate.Unlock()
-
 	return o.unregisterZone(zr.Host, zr.Name, true)
 }
 
 func (o *Olympus) ZoneIsRegistered(hostname, zoneName string) bool {
-	o.mxClimate.RLock()
-	defer o.mxClimate.RUnlock()
-
-	_, res := o.zones[zeus.ZoneIdentifier(hostname, zoneName)]
-	return res
+	_, ok := o.zones.Load(ZoneIdentifier(hostname, zoneName))
+	return ok
 }
 
 func (o *Olympus) ReportClimate(cr zeus.NamedClimateReport) error {
-	o.mxClimate.RLock()
-	defer o.mxClimate.RUnlock()
-
 	return o.reportClimate(cr)
 }
 
 func (o *Olympus) ReportAlarm(ae zeus.AlarmEvent) error {
-	o.mxClimate.RLock()
-	defer o.mxClimate.RUnlock()
-
 	return o.reportAlarm(ae)
 }
 
 func (o *Olympus) ReportState(sr zeus.StateReport) error {
-	o.mxClimate.RLock()
-	defer o.mxClimate.RUnlock()
-
 	return o.reportState(sr)
 }
 
 func (o *Olympus) RegisterTracker(args leto.RegisterTrackerArgs) error {
-	o.mxTracking.Lock()
-	defer o.mxTracking.Unlock()
-
 	return o.registerTracker(args.Hostname, args.StreamServer, args.ExperimentName)
 }
 
 func (o *Olympus) UnregisterTracker(hostname string) error {
-	o.mxTracking.Lock()
-	defer o.mxTracking.Unlock()
 	return o.unregisterTracker(hostname, true)
 }
 
-func (o *Olympus) getZones() []ZoneReportSummary {
-	res := make([]ZoneReportSummary, 0, len(o.zones)+len(o.watchers))
-	for _, z := range o.zones {
+func (o *Olympus) GetZones() []ZoneReportSummary {
+	nbActiveZones := len(o.climateLogger.OnServices())
+	nbActiveTrackers := len(o.climateLogger.OnServices())
+	res := make([]ZoneReportSummary, 0, nbActiveZones+nbActiveTrackers)
+
+	o.zones.Range(func(key, s any) bool {
+		sub, ok := s.(subscription[ZoneLogger])
+		if ok == false {
+			return true
+		}
+		z := sub.object
 		sum := ZoneReportSummary{
 			Host:    z.Host(),
 			Name:    z.ZoneName(),
 			Climate: z.GetClimateReport(),
 		}
-		if w, ok := o.watchers[z.Host()]; ok == true {
-			sum.Stream = w.Stream()
+
+		if s, ok := o.trackers.Load(z.Host()); ok == true {
+			sub, ok := s.(subscription[TrackingLogger])
+			if ok == true {
+				sum.Stream = sub.object.StreamInfo()
+			}
 		}
 
 		res = append(res, sum)
-	}
-	for host, watcher := range o.watchers {
-		if _, ok := o.zones[zeus.ZoneIdentifier(host, "box")]; ok == true {
-			continue
+		return true
+	})
+
+	o.trackers.Range(func(key, s any) bool {
+		host, ok := key.(string)
+		if ok == false {
+			return true
 		}
+		if _, ok := o.zones.Load(ZoneIdentifier(host, "box")); ok == true {
+			return true
+		}
+		sub,ok := s.(subscription[TrackingLogger])
+		if ok == false
 		res = append(res, ZoneReportSummary{
 			Host:   host,
 			Name:   "box",
 			Stream: watcher.Stream(),
 		})
-	}
+	})
 
 	sort.Slice(res, func(i, j int) bool {
 		if res[i].Host == res[j].Host {
