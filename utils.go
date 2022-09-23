@@ -21,3 +21,7 @@ func LinearSearch(n int, test func(int) bool) int {
 	}
 	return n
 }
+
+func ZoneIdentifier(hostname, zoneName string) string {
+	return hostname + "." + zoneName
+}

@@ -13,12 +13,6 @@ message ClimateReport {
 	google.protobuf.Timestamp time            = 4;
 }
 
-enum AlarmFlags {
-	WARNING              = 0x00;
-	EMERGENCY            = 0x01;
-	INSTANT_NOTIFICATION = 0x80;
-}
-
 enum AlarmStatus {
 	ALARM_ON  = 0;
 	ALARM_OFF = 1;
@@ -26,11 +20,10 @@ enum AlarmStatus {
 
 
 message AlarmEvent {
-	string                    zone_identifier = 1;
-	string                    reason          = 2;
-	AlarmFlags                flags           = 3;
-	AlarmStatus               status          = 4;
-	google.protobuf.Timestamp time            = 5;
+	string                    reason          = 1;
+	int32                     level           = 2;
+	AlarmStatus               status          = 3;
+	google.protobuf.Timestamp time            = 4;
 }
 
 message ClimateState {
@@ -52,26 +45,32 @@ message ZoneDeclaration {
 	int32          num_aux          = 7;
 }
 
-message StateReport {
-	string                             zone_identifier = 1;
-	ClimateState                       current = 2;
-	optional ClimateState              current_end = 3;
-	optional ClimateState              next = 4;
-	optional ClimateState              next_end = 5;
-	optional google.protobuf.Timestamp next_time = 6;
+message ClimateTarget {
+	ClimateState                       current     = 1;
+	optional ClimateState              current_end = 2;
+	optional ClimateState              next        = 3;
+	optional ClimateState              next_end    = 4;
+	optional google.protobuf.Timestamp next_time   = 5;
 }
 
 message ZoneUpStream {
 	optional ZoneDeclaration declaration    = 1;
-	repeated ClimateReport   climate_reports = 2;
-	optional StateReport     state_report    = 3;
-	repeated AlarmEvent      alarms          = 4;
+	repeated ClimateReport   climate_states = 2;
+	optional ClimateTarget   climate_target = 3;
+	repeated AlarmEvent      alarms         = 4;
 }
 
 message ZoneDownStream {
 }
 
+message TrackingDeclaration {
+	string hostname        = 1;
+	string stream_server   = 2;
+	string experiment_name = 3;
+}
+
 message TrackingUpStream {
+	optional TrackingDeclaration declaration = 1;
 }
 
 message TrackingDownStream {
