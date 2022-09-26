@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"github.com/barkimedes/go-deepcopy"
 	"github.com/dgryski/go-lttb"
 )
 
@@ -18,7 +19,6 @@ type DataRollingSampler interface {
 
 type rollingDownsampler struct {
 	window           float64
-	samples          int
 	samplesThreshold int
 	points           []lttb.Point
 }
@@ -26,9 +26,8 @@ type rollingDownsampler struct {
 func NewRollingSampler(window time.Duration, nbSamples int) DataRollingSampler {
 	res := &rollingDownsampler{
 		window:           window.Seconds(),
-		samples:          int(0.9 * float64(nbSamples)),
 		samplesThreshold: nbSamples,
-		points:           make([]lttb.Point, 0, nbSamples),
+		points:           make([]lttb.Point, 0, 2*nbSamples),
 	}
 	return res
 }
@@ -53,8 +52,8 @@ func (d *rollingDownsampler) rollOut() {
 	d.points = d.points[start:]
 }
 
-func (d *rollingDownsampler) Add(t time.Duration, v float64) {
-	x := t.Seconds()
+func (d *rollingDownsampler) Add(t time.Time, v float64) {
+	x := float64(t.UnixMilli()) / 1000.0
 	if d.outdated(x) == true {
 		// we may get back outdated data, we can skip it
 		return
@@ -67,5 +66,5 @@ func (d *rollingDownsampler) TimeSerie() []lttb.Point {
 	if len(d.points) >= d.samplesThreshold {
 		d.points = lttb.LTTB(d.points, d.samplesThreshold)
 	}
-	return append([]lttb.Point(nil), d.points...)
+	return deepcopy.MustAnything(d.points).([]lttb.Point)
 }

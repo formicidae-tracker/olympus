@@ -4,6 +4,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/barkimedes/go-deepcopy"
 )
 
 type ServiceLogger interface {
@@ -39,11 +41,7 @@ func (l *serviceLogger) Logs() [][]ServiceEvent {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
 
-	res := make([][]ServiceEvent, len(l.logs))
-	for i, logs := range l.logs {
-		res[i] = append([]ServiceEvent(nil), logs...)
-	}
-	return res
+	return deepcopy.MustAnything(l.logs).([][]ServiceEvent)
 }
 
 func (l *serviceLogger) find(on bool) []string {

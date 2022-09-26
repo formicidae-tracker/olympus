@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dgryski/go-lttb"
 	"github.com/formicidae-tracker/olympus/proto"
 )
 
@@ -15,69 +16,108 @@ type ClimateReportSampler interface {
 	LastWeek() ClimateTimeSerie
 }
 
-type climateReportSampler struct {
-	start             *time.Time
-	tenMinuteSamplers []DataRollingSampler
-	hourSamplers      []DataRollingSampler
-	daySamplers       []DataRollingSampler
-	weekSamplers      []DataRollingSampler
-	allSamplers       [][]DataRollingSampler
+type samplers struct {
+	temperatures []DataRollingSampler
+	humidity     DataRollingSampler
 }
 
-func (s *climateReportSampler) Add(r zeus.ClimateReport) error {
-	if len(r.Temperatures)+1 != len(s.tenMinuteSamplers) {
-		return fmt.Errorf("invalid number of value in report, got %d, expected %d", len(r.Temperatures)+1, len(s.tenMinuteSamplers))
+func (s *samplers) add(d time.Duration, temperatures []float32, humidity *float32) error {
+	if len(temperatures) != len(s.temperatures) {
+		return fmt.Errorf("invalid number of temperatures in report, got %d, expected %d",
+			len(temperatures),
+			len(s.temperatures),
+		)
 	}
-	if s.start == nil {
-		s.start = &r.Time
+	if s.humidity != nil && humidity == nil {
+		return fmt.Errorf("expected a report with humidity, but none passed")
 	}
-	ellapsed := r.Time.Sub(*s.start)
-	for _, windowSamplers := range s.allSamplers {
-		if zeus.IsUndefined(r.Humidity) == false {
-			windowSamplers[0].Add(ellapsed, float64(r.Humidity))
+
+	if s.humidity == nil && humidity != nil {
+		return fmt.Errorf("expected a report without humidity, but got one")
+	}
+
+	if humidity != nil {
+		s.humidity.Add(d, float64(*humidity))
+	}
+
+	for i, t := range temperatures {
+		s.temperatures[i].Add(d, float64(t))
+	}
+	return nil
+}
+
+func (s *samplers) getTimeSeries() ClimateTimeSerie {
+	res := ClimateTimeSerie{Humidity: nil, TemperatureAnt: nil, TemperatureAux: nil}
+
+	if s.humidity != nil {
+		res.Humidity = s.humidity.TimeSerie()
+	}
+
+	if len(s.temperatures) > 0 {
+		res.TemperatureAnt = s.temperatures[0].TimeSerie()
+	}
+
+	if len(s.temperatures) > 1 {
+		res.TemperatureAux = make([][]lttb.Point, 0, len(s.temperatures)-1)
+		for _, t := range s.temperatures {
+			res.TemperatureAux = append(res.TemperatureAux, t.TimeSerie())
 		}
-		for i, temperatureSampler := range windowSamplers[1:] {
-			t := r.Temperatures[i]
-			if zeus.IsUndefined(t) {
-				continue
-			}
-			temperatureSampler.Add(ellapsed, t.Value())
+	}
+	return res
+}
+
+func newSamplers(numTemperatures int, hasHumidity bool, window time.Duration, nbSamples int) samplers {
+	res := samplers{temperatures: make([]DataRollingSampler, 0, numTemperatures)}
+	for i := 0; i < numTemperatures; i++ {
+		res.temperatures = append(res.temperatures, NewRollingSampler(window, nbSamples))
+	}
+	if hasHumidity == true {
+		res.humidity = NewRollingSampler(window, nbSamples)
+	}
+	return res
+}
+
+type climateReportSampler struct {
+	start             *time.Time
+	tenMinuteSamplers samplers
+	hourSamplers      samplers
+	daySamplers       samplers
+	weekSamplers      samplers
+}
+
+func (s *climateReportSampler) Add(report proto.ClimateReport) error {
+	t := report.Time.AsTime()
+	if s.start == nil {
+		s.start = &t
+	}
+	ellapsed := t.Sub(*s.start)
+	allSamplers := []*samplers{&s.tenMinuteSamplers, &s.hourSamplers, &s.daySamplers, &s.weekSamplers}
+
+	for _, sampler := range allSamplers {
+		err := sampler.add(ellapsed, report.Temperatures, report.Humidity)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (s *climateReportSampler) timeSerieUnsafe(samplers []DataRollingSampler) ClimateTimeSerie {
-	res := ClimateTimeSerie{
-		Humidity:       samplers[0].TimeSerie(),
-		TemperatureAnt: samplers[1].TimeSerie(),
-	}
-
-	if len(samplers) == 2 {
-		return res
-	}
-	for _, s := range samplers[2:] {
-		res.TemperatureAux = append(res.TemperatureAux, s.TimeSerie())
-	}
-	return res
-}
-
 func (s *climateReportSampler) LastTenMinutes() ClimateTimeSerie {
-	return s.timeSerieUnsafe(s.tenMinuteSamplers)
+	return s.tenMinuteSamplers.getTimeSeries()
 }
 func (s *climateReportSampler) LastHour() ClimateTimeSerie {
-	return s.timeSerieUnsafe(s.hourSamplers)
+	return s.hourSamplers.getTimeSeries()
 }
 func (s *climateReportSampler) LastDay() ClimateTimeSerie {
-	return s.timeSerieUnsafe(s.daySamplers)
+	return s.daySamplers.getTimeSeries()
 }
 func (s *climateReportSampler) LastWeek() ClimateTimeSerie {
-	return s.timeSerieUnsafe(s.weekSamplers)
+	return s.weekSamplers.getTimeSeries()
 }
 
 type climateReportSamplerSetting struct {
-	tenMinute, hour, day, week                                 time.Duration
 	numAux, tenMinuteSample, hourSample, daySample, weekSample int
+	hasHumidity                                                bool
 }
 
 func newClimateReportSampler(s climateReportSamplerSetting) ClimateReportSampler {
@@ -87,33 +127,23 @@ func newClimateReportSampler(s climateReportSamplerSetting) ClimateReportSampler
 	if s.numAux > 3 {
 		s.numAux = 3
 	}
-	res := &climateReportSampler{}
-	for i := 0; i < s.numAux+2; i++ {
-		res.tenMinuteSamplers = append(res.tenMinuteSamplers, NewRollingSampler(s.tenMinute, s.tenMinuteSample))
-		res.hourSamplers = append(res.hourSamplers, NewRollingSampler(s.hour, s.hourSample))
-		res.daySamplers = append(res.daySamplers, NewRollingSampler(s.day, s.daySample))
-		res.weekSamplers = append(res.weekSamplers, NewRollingSampler(s.week, s.weekSample))
-	}
-	res.allSamplers = [][]DataRollingSampler{
-		res.tenMinuteSamplers,
-		res.hourSamplers,
-		res.daySamplers,
-		res.weekSamplers,
+	res := &climateReportSampler{
+		tenMinuteSamplers: newSamplers(s.numAux+1, s.hasHumidity, 10*time.Minute, s.tenMinuteSample),
+		hourSamplers:      newSamplers(s.numAux+1, s.hasHumidity, 1*time.Hour, s.hourSample),
+		daySamplers:       newSamplers(s.numAux+1, s.hasHumidity, 24*time.Hour, s.daySample),
+		weekSamplers:      newSamplers(s.numAux+1, s.hasHumidity, 7*24*time.Hour, s.weekSample),
 	}
 	return res
 
 }
 
-func NewClimateReportSampler(numberOfAux int) ClimateReportSampler {
+func NewClimateReportSampler(numberOfAux int, hasHumidity bool) ClimateReportSampler {
 	return newClimateReportSampler(climateReportSamplerSetting{
 		numAux:          numberOfAux,
-		tenMinute:       10 * time.Minute,
+		hasHumidity:     hasHumidity,
 		tenMinuteSample: 500,
-		hour:            time.Hour,
 		hourSample:      400,
-		day:             24 * time.Hour,
 		daySample:       300,
-		week:            24 * 7 * time.Hour,
 		weekSample:      300,
 	})
 }

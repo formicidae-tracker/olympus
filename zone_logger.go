@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"math"
+	"sync"
 
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/proto"
@@ -12,15 +12,12 @@ type ZoneLogger interface {
 	Host() string
 	ZoneName() string
 	ZoneIdentifier() string
-	TargetChannel() chan<- proto.ClimateTarget
-	ReportChannel() chan<- proto.ClimateReport
-	AlarmChannel() chan<- proto.AlarmEvent
-	Timeouted() <-chan struct{}
-	Done() <-chan struct{}
+	PushTarget(proto.ClimateTarget)
+	PushReports([]proto.ClimateReport)
+	PushAlarms([]proto.AlarmEvent)
 	GetClimateTimeSeries(window string) ClimateTimeSerie
 	GetAlarmReports() []AlarmReport
-	GetClimateReport() *ZoneClimateReport
-	Close() error
+	GetClimateReport() ZoneClimateReport
 }
 
 const (
@@ -32,21 +29,11 @@ const (
 	report
 )
 
-type namedRequest struct {
-	request int
-	result  chan interface{}
-}
-
 type zoneLogger struct {
-	done, timeout chan struct{}
-	targets       chan proto.ClimateTarget
-	reports       chan proto.ClimateReport
-	alarms        chan proto.AlarmEvent
-
+	mx           sync.RWMutex
 	sampler      ClimateReportSampler
 	alarmReports map[string]*AlarmReport
 
-	requests      chan namedRequest
 	host, name    string
 	currentReport ZoneClimateReport
 }
@@ -61,12 +48,6 @@ func naNIfNil(v *float32) float32 {
 func NewZoneLogger(declaration proto.ZoneDeclaration) ZoneLogger {
 
 	res := &zoneLogger{
-		done:         make(chan struct{}),
-		timeout:      make(chan struct{}),
-		targets:      make(chan proto.ClimateTarget, 2),
-		reports:      make(chan proto.ClimateReport, 10),
-		alarms:       make(chan proto.AlarmEvent, 10),
-		requests:     make(chan namedRequest),
 		sampler:      NewClimateReportSampler(int(declaration.NumAux)),
 		host:         declaration.Host,
 		name:         declaration.Name,
@@ -85,16 +66,24 @@ func NewZoneLogger(declaration proto.ZoneDeclaration) ZoneLogger {
 			NumAux: int(declaration.NumAux),
 		},
 	}
-	go res.mainLoop()
 	return res
 }
 
-func (l *zoneLogger) pushClimate(cr proto.ClimateReport) {
-	l.sampler.Add(cr)
-	if len(cr.Temperatures) > 0 {
-		l.currentReport.Temperature = cr.Temperatures[0]
+func (l *zoneLogger) PushReports(reports []proto.ClimateReport) {
+	if len(reports) == 0 {
+		return
 	}
-	l.currentReport.Humidity = cr.Humidity
+	l.mx.Lock()
+	defer l.mx.Unlock()
+
+	for _, r := range reports {
+		l.sampler.Add(r)
+	}
+	lastReport := reports[len(reports)-1]
+	if len(lastReport.Temperatures) > 0 {
+		l.currentReport.Temperature = lastReport.Temperatures[0]
+	}
+	l.currentReport.Humidity = lastReport.Humidity
 }
 
 func eventInsertionSort(events []AlarmEvent, ae AlarmEvent) []AlarmEvent {
@@ -112,20 +101,16 @@ func (a *AlarmReport) On() bool {
 	return a.Events[len(a.Events)-1].On
 }
 
-func (l *zoneLogger) pushLog(ae proto.AlarmEvent) {
-	// insert sort the event, in most cases, it will simply append it
-	r, ok := l.alarmReports[ae.Reason]
-	if ok == false {
-		r = &AlarmReport{
-			Reason: ae.Reason,
-			Level:  ae.Level,
-		}
-		l.alarmReports[r.Reason] = r
+func (l *zoneLogger) PushAlarms(events []proto.AlarmEvent) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	for _, e := range events {
+		l.pushEventToLog(e)
 	}
-	r.Events = eventInsertionSort(r.Events, AlarmEvent{
-		Time: ae.Time,
-		On:   (ae.Status == proto.ALARM_ON),
-	})
+	l.updateActiveAlarmCounts()
+}
+
+func (l *zoneLogger) updateActiveAlarmCounts() {
 	l.currentReport.ActiveEmergencies = 0
 	l.currentReport.ActiveWarnings = 0
 	for _, r := range l.alarmReports {
@@ -140,100 +125,39 @@ func (l *zoneLogger) pushLog(ae proto.AlarmEvent) {
 	}
 
 }
+func (l *zoneLogger) pushEventToLog(event proto.AlarmEvent) {
+	// insert sort the event, in most cases, it will simply append it
+	r, ok := l.alarmReports[event.Reason]
+	if ok == false {
+		r = &AlarmReport{
+			Reason: event.Reason,
+			Level:  int(event.Level),
+		}
+		l.alarmReports[r.Reason] = r
+	}
+	r.Events = eventInsertionSort(r.Events, AlarmEvent{
+		Time: event.Time.AsTime(),
+		On:   (event.Status == proto.AlarmStatus_ALARM_ON),
+	})
 
-func (l *zoneLogger) pushTarget(sr proto.ClimateTarget) {
-	l.currentReport.Current = sr.Current
-	l.currentReport.CurrentEnd = sr.CurrentEnd
-	if sr.Next != nil && sr.NextTime != nil {
-		l.currentReport.Next = sr.Next
-		l.currentReport.NextTime = sr.NextTime
-		l.currentReport.NextEnd = sr.NextEnd
+}
+
+func (l *zoneLogger) PushTarget(target proto.ClimateTarget) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+
+	l.currentReport.Current = target.Current
+	l.currentReport.CurrentEnd = target.CurrentEnd
+	if target.Next != nil && target.NextTime != nil {
+		l.currentReport.Next = target.Next
+		t := target.NextTime.AsTime()
+		l.currentReport.NextTime = &t
+		l.currentReport.NextEnd = target.NextEnd
 	} else {
 		l.currentReport.Next = nil
 		l.currentReport.NextEnd = nil
 		l.currentReport.NextTime = nil
 	}
-}
-
-func (l *zoneLogger) copyReports() []AlarmReport {
-	reports := make([]AlarmReport, 0, len(l.alarmReports))
-	for _, r := range l.alarmReports {
-		reports = append(reports, *r)
-	}
-	return reports
-}
-
-func (l *zoneLogger) handleRequest(r namedRequest) {
-	requestHandlers := map[int]func() interface{}{
-		climateTenMinute: func() interface{} { return l.sampler.LastTenMinutes() },
-		climateHour:      func() interface{} { return l.sampler.LastHour() },
-		climateDay:       func() interface{} { return l.sampler.LastDay() },
-		climateWeek:      func() interface{} { return l.sampler.LastWeek() },
-		logs:             func() interface{} { return l.copyReports() },
-		report: func() interface{} {
-			res, _ := deepcopy.Anything(l.currentReport)
-			return &res
-		},
-	}
-	defer close(r.result)
-	h, ok := requestHandlers[r.request]
-	if ok == false {
-		return
-	}
-	r.result <- h()
-}
-
-func (l *zoneLogger) mainLoop() {
-	defer close(l.done)
-
-	for {
-		if l.reports == nil && l.alarms == nil && l.targets == nil {
-			return
-		}
-
-		select {
-		case cr, ok := <-l.reports:
-			if ok == false {
-				l.reports = nil
-				continue
-			}
-			l.pushClimate(cr)
-		case ae, ok := <-l.alarms:
-			if ok == false {
-				l.alarms = nil
-				continue
-			}
-			l.pushLog(ae)
-		case sr, ok := <-l.targets:
-			if ok == false {
-				l.targets = nil
-				continue
-			}
-			l.pushTarget(sr)
-		case req := <-l.requests:
-			l.handleRequest(req)
-		}
-	}
-}
-
-func (l *zoneLogger) TargetChannel() chan<- proto.ClimateTarget {
-	return l.targets
-}
-
-func (l *zoneLogger) ReportChannel() chan<- proto.ClimateReport {
-	return l.reports
-}
-
-func (l *zoneLogger) AlarmChannel() chan<- proto.AlarmEvent {
-	return l.alarms
-}
-
-func (l *zoneLogger) Timeouted() <-chan struct{} {
-	return l.timeout
-}
-
-func (l *zoneLogger) Done() <-chan struct{} {
-	return l.done
 }
 
 var stringToRequestInt = map[string]int{
@@ -248,48 +172,43 @@ var stringToRequestInt = map[string]int{
 	"week":       climateWeek,
 }
 
-func (l *zoneLogger) fromWindow(window string) int {
-	rValue, ok := stringToRequestInt[window]
+func (l *zoneLogger) fromWindow(window string) ClimateTimeSerie {
+	windowType, ok := stringToRequestInt[window]
 	if ok == false {
-		return climateTenMinute
+		windowType = climateTenMinute
 	}
-	return rValue
+
+	switch windowType {
+	case climateTenMinute:
+		return l.sampler.LastTenMinutes()
+	case climateHour:
+		return l.sampler.LastHour()
+	case climateDay:
+		return l.sampler.LastDay()
+	case climateWeek:
+		return l.sampler.LastWeek()
+	default:
+		return l.sampler.LastTenMinutes()
+	}
 }
 
 func (l *zoneLogger) GetClimateTimeSeries(window string) ClimateTimeSerie {
-	returnChannel := make(chan interface{})
-	l.requests <- namedRequest{request: l.fromWindow(window), result: returnChannel}
-	res := <-returnChannel
-	return res.(ClimateTimeSerie)
+	l.mx.RLock()
+	defer l.mx.RUnlock()
+	// already a data copy, so it is safe
+	return l.fromWindow(window)
 }
 
 func (l *zoneLogger) GetAlarmReports() []AlarmReport {
-	returnChannel := make(chan interface{})
-	l.requests <- namedRequest{request: logs, result: returnChannel}
-	res := <-returnChannel
-	return res.([]AlarmReport)
+	l.mx.RLock()
+	defer l.mx.RUnlock()
+	return deepcopy.MustAnything(l.alarmReports).([]AlarmReport)
 }
 
-func (l *zoneLogger) GetClimateReport() *ZoneClimateReport {
-	returnChannel := make(chan interface{})
-	l.requests <- namedRequest{request: report, result: returnChannel}
-	res := <-returnChannel
-	return res.(*ZoneClimateReport)
-}
-
-func (l *zoneLogger) Close() (err error) {
-	defer func() {
-		if recover() != nil {
-			err = fmt.Errorf("ZoneLogger: already closed")
-		}
-		<-l.done
-	}()
-
-	close(l.reports)
-	close(l.alarms)
-	close(l.targets)
-
-	return nil
+func (l *zoneLogger) GetClimateReport() ZoneClimateReport {
+	l.mx.RLock()
+	defer l.mx.RUnlock()
+	return deepcopy.MustAnything(l.currentReport).(ZoneClimateReport)
 }
 
 func (l *zoneLogger) Host() string {

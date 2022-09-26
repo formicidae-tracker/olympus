@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+	"unsafe"
 
 	. "gopkg.in/check.v1"
 )
@@ -13,7 +14,7 @@ type DataRollingSamplerSuite struct {
 
 func Test(t *testing.T) { TestingT(t) }
 
-var _ = Suite(&DataRollingSamplerSuite{})
+var _ = oSuite(&DataRollingSamplerSuite{})
 
 func (s *DataRollingSamplerSuite) TestSamplesData(c *C) {
 	tick := 1 * time.Second
@@ -46,4 +47,14 @@ func (s *DataRollingSamplerSuite) TestAlwaysXSortData(c *C) {
 		c.Check(result[i-1].X <= result[i].X, Equals, true, Commentf(" at index %i in %v", i, result))
 	}
 
+}
+
+func (s *DataRollingSamplerSuite) TestAlwaysReturnACopy(c *C) {
+	sampler := NewRollingSampler(time.Minute, 5)
+	sampler.Add(time.Duration(0), 23.0)
+
+	a := sampler.TimeSerie()
+	b := sampler.TimeSerie()
+
+	c.Check(unsafe.Pointer(a), Not(Equals), unsafe.Pointer(b))
 }

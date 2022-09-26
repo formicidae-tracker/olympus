@@ -7,9 +7,8 @@ import "google/protobuf/timestamp.proto";
 
 
 message ClimateReport {
-	string                    zone_identifier = 1;
 	repeated float            temperatures    = 2;
-	float                     humidity        = 3;
+	optional float            humidity        = 3;
 	google.protobuf.Timestamp time            = 4;
 }
 
@@ -43,6 +42,7 @@ message ZoneDeclaration {
 	optional float min_humidity     = 5;
 	optional float max_humidity     = 6;
 	int32          num_aux          = 7;
+	bool           has_humidity     = 8;
 }
 
 message ClimateTarget {
