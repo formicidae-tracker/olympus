@@ -12,9 +12,12 @@ type ZoneLogger interface {
 	Host() string
 	ZoneName() string
 	ZoneIdentifier() string
-	PushTarget(proto.ClimateTarget)
-	PushReports([]proto.ClimateReport)
-	PushAlarms([]proto.AlarmEvent)
+	// PushTarget update current target for this logger.
+	PushTarget(*proto.ClimateTarget)
+	// PushReports updates a list of reports to this logger.
+	PushReports([]*proto.ClimateReport)
+	// PushAlarms adds a list of AlarmEvents to this logger.
+	PushAlarms([]*proto.AlarmEvent)
 	GetClimateTimeSeries(window string) ClimateTimeSerie
 	GetAlarmReports() []AlarmReport
 	GetClimateReport() ZoneClimateReport
@@ -45,20 +48,19 @@ func naNIfNil(v *float32) float32 {
 	return *v
 }
 
-func NewZoneLogger(declaration proto.ZoneDeclaration) ZoneLogger {
-
+func NewZoneLogger(declaration *proto.ZoneDeclaration) ZoneLogger {
 	res := &zoneLogger{
 		sampler:      NewClimateReportSampler(int(declaration.NumAux)),
 		host:         declaration.Host,
 		name:         declaration.Name,
 		alarmReports: make(map[string]*AlarmReport),
 		currentReport: ZoneClimateReport{
-			Temperature: float32(math.NaN()),
+			Temperature: nil,
 			TemperatureBounds: Bounds{
 				Min: declaration.MinTemperature,
 				Max: declaration.MaxTemperature,
 			},
-			Humidity: float32(math.NaN()),
+			Humidity: nil,
 			HumidityBounds: Bounds{
 				Min: declaration.MinHumidity,
 				Max: declaration.MaxHumidity,
@@ -69,7 +71,7 @@ func NewZoneLogger(declaration proto.ZoneDeclaration) ZoneLogger {
 	return res
 }
 
-func (l *zoneLogger) PushReports(reports []proto.ClimateReport) {
+func (l *zoneLogger) PushReports(reports []*proto.ClimateReport) {
 	if len(reports) == 0 {
 		return
 	}
@@ -81,9 +83,17 @@ func (l *zoneLogger) PushReports(reports []proto.ClimateReport) {
 	}
 	lastReport := reports[len(reports)-1]
 	if len(lastReport.Temperatures) > 0 {
-		l.currentReport.Temperature = lastReport.Temperatures[0]
+		if l.currentReport.Temperature == nil {
+			l.currentReport.Temperature = new(float32)
+		}
+		*l.currentReport.Temperature = lastReport.Temperatures[0]
 	}
-	l.currentReport.Humidity = lastReport.Humidity
+	if lastReport.Humidity != nil {
+		if l.currentReport.Humidity == nil {
+			l.currentReport.Humidity = new(float32)
+		}
+		*l.currentReport.Humidity = *lastReport.Humidity
+	}
 }
 
 func eventInsertionSort(events []AlarmEvent, ae AlarmEvent) []AlarmEvent {
@@ -101,7 +111,7 @@ func (a *AlarmReport) On() bool {
 	return a.Events[len(a.Events)-1].On
 }
 
-func (l *zoneLogger) PushAlarms(events []proto.AlarmEvent) {
+func (l *zoneLogger) PushAlarms(events []*proto.AlarmEvent) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	for _, e := range events {
@@ -125,7 +135,7 @@ func (l *zoneLogger) updateActiveAlarmCounts() {
 	}
 
 }
-func (l *zoneLogger) pushEventToLog(event proto.AlarmEvent) {
+func (l *zoneLogger) pushEventToLog(event *proto.AlarmEvent) {
 	// insert sort the event, in most cases, it will simply append it
 	r, ok := l.alarmReports[event.Reason]
 	if ok == false {
@@ -142,7 +152,7 @@ func (l *zoneLogger) pushEventToLog(event proto.AlarmEvent) {
 
 }
 
-func (l *zoneLogger) PushTarget(target proto.ClimateTarget) {
+func (l *zoneLogger) PushTarget(target *proto.ClimateTarget) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 
@@ -202,7 +212,11 @@ func (l *zoneLogger) GetClimateTimeSeries(window string) ClimateTimeSerie {
 func (l *zoneLogger) GetAlarmReports() []AlarmReport {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
-	return deepcopy.MustAnything(l.alarmReports).([]AlarmReport)
+	res := make([]AlarmReport, 0, len(l.alarmReports))
+	for _, report := range l.alarmReports {
+		res = append(res, *report)
+	}
+	return res
 }
 
 func (l *zoneLogger) GetClimateReport() ZoneClimateReport {

@@ -4,7 +4,8 @@ import (
 	"time"
 
 	"github.com/dgryski/go-lttb"
-	"github.com/formicidae-tracker/zeus"
+	"github.com/formicidae-tracker/olympus/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
 )
 
@@ -31,27 +32,24 @@ func checkClimateReport(c *C, report ClimateTimeSerie, window time.Duration, sam
 func (su *ClimateReportSamplerSuite) TestClimateReportSuite(c *C) {
 	s := climateReportSamplerSetting{
 		numAux:          1,
-		tenMinute:       10 * time.Second,
+		hasHumidity:     true,
 		tenMinuteSample: 10,
-		hour:            30 * time.Second,
 		hourSample:      30,
-		day:             1 * time.Minute,
 		daySample:       60,
-		week:            2 * time.Minute,
 		weekSample:      200,
 	}
 	r := newClimateReportSampler(s)
 	start := time.Now().Round(0)
 	for ellapsed := time.Duration(0); ellapsed < 6*time.Minute; ellapsed += 500 * time.Millisecond {
-		cr := zeus.ClimateReport{
-			Time:         start.Add(ellapsed),
-			Humidity:     60.0,
-			Temperatures: []zeus.Temperature{20.0, 21.0},
+		report := &proto.ClimateReport{
+			Time:         timestamppb.New(start.Add(ellapsed)),
+			Humidity:     newInitialized[float32](60.0),
+			Temperatures: []float32{20.0, 21.0},
 		}
-		c.Assert(r.Add(cr), IsNil)
-		checkClimateReport(c, r.LastTenMinutes(), s.tenMinute, s.tenMinuteSample)
-		checkClimateReport(c, r.LastHour(), s.hour, s.hourSample)
-		checkClimateReport(c, r.LastDay(), s.day, s.daySample)
-		checkClimateReport(c, r.LastWeek(), s.week, s.weekSample)
+		r.Add(report)
+		checkClimateReport(c, r.LastTenMinutes(), 10*time.Minute, s.tenMinuteSample)
+		checkClimateReport(c, r.LastHour(), 1*time.Hour, s.hourSample)
+		checkClimateReport(c, r.LastDay(), 24*time.Hour, s.daySample)
+		checkClimateReport(c, r.LastWeek(), 7*24*time.Hour, s.weekSample)
 	}
 }

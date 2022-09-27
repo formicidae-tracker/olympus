@@ -61,7 +61,7 @@ func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
 
 func setUpRpcServer(o *Olympus, opts Options) GracefulServer {
 	rpcRouter := rpc.NewServer()
-	rpcRouter.RegisterName("Olympus", (*OlympusRPCWrapper)(o))
+	rpcRouter.RegisterName("Olympus", (*OlympusGRPCWrapper)(o))
 	rpcRouter.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
 	rpcServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", opts.RPC),

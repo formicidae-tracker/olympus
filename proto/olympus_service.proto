@@ -42,7 +42,7 @@ message ZoneDeclaration {
 	optional float min_humidity     = 5;
 	optional float max_humidity     = 6;
 	int32          num_aux          = 7;
-	bool           has_humidity     = 8;
+	// bool           has_humidity     = 8;
 }
 
 message ClimateTarget {
@@ -54,10 +54,10 @@ message ClimateTarget {
 }
 
 message ZoneUpStream {
-	optional ZoneDeclaration declaration    = 1;
-	repeated ClimateReport   climate_states = 2;
-	optional ClimateTarget   climate_target = 3;
-	repeated AlarmEvent      alarms         = 4;
+	optional ZoneDeclaration declaration = 1;
+	repeated ClimateReport   reports     = 2;
+	optional ClimateTarget   target      = 3;
+	repeated AlarmEvent      alarms      = 4;
 }
 
 message ZoneDownStream {

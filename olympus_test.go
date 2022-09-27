@@ -6,54 +6,67 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"time"
 
-	"github.com/formicidae-tracker/leto"
-	"github.com/formicidae-tracker/zeus"
+	"github.com/formicidae-tracker/olympus/proto"
 	"github.com/gorilla/mux"
 	. "gopkg.in/check.v1"
 )
 
 type OlympusSuite struct {
-	o *Olympus
+	o                                      *Olympus
+	somehostBox, anotherBox, anotherTunnel ZoneLogger
 }
 
 var _ = Suite(&OlympusSuite{})
 
 func (s *OlympusSuite) SetUpTest(c *C) {
-	hostname, err := os.Hostname()
-	c.Assert(err, IsNil)
+	var err error
 	s.o, err = NewOlympus("")
 	c.Assert(err, IsNil)
-	c.Check(s.o.RegisterZone(zeus.ZoneRegistration{
-		Host:   "somehost",
-		Name:   "box",
-		NumAux: 0,
-	}), IsNil)
-	c.Check(s.o.RegisterZone(zeus.ZoneRegistration{
+	s.somehostBox, _, err = s.o.RegisterZone(&proto.ZoneDeclaration{
+		Host:        "somehost",
+		Name:        "box",
+		NumAux:      0,
+		HasHumidity: true,
+	})
+	c.Assert(err, IsNil)
+
+	s.anotherBox, _, err = s.o.RegisterZone(&proto.ZoneDeclaration{
 		Host:   "another",
 		Name:   "box",
 		NumAux: 0,
-	}), IsNil)
+	})
+	c.Assert(err, IsNil)
 
-	c.Check(s.o.RegisterZone(zeus.ZoneRegistration{
+	s.anotherTunnel, _, err = s.o.RegisterZone(&proto.ZoneDeclaration{
 		Host:   "another",
 		Name:   "tunnel",
 		NumAux: 0,
-	}), IsNil)
+	})
+	c.Assert(err, IsNil)
 
-	c.Check(s.o.RegisterTracker(leto.RegisterTrackerArgs{
+	hostname, err := os.Hostname()
+	c.Assert(err, IsNil)
+
+	_, _, err = s.o.RegisterTracker(&proto.TrackingDeclaration{
 		Hostname:       "somehost",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
-	}), IsNil)
+	})
+	c.Assert(err, IsNil)
 
-	c.Check(s.o.RegisterTracker(leto.RegisterTrackerArgs{
+	_, _, err = s.o.RegisterTracker(&proto.TrackingDeclaration{
 		Hostname:       "fifou",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
-	}), IsNil)
+	})
+	c.Assert(err, IsNil)
+}
 
+func newInitialized[T any](v T) *T {
+	res := new(T)
+	*res = v
+	return res
 }
 
 func (s *OlympusSuite) TearDownTest(c *C) {
@@ -61,29 +74,14 @@ func (s *OlympusSuite) TearDownTest(c *C) {
 }
 
 func (s *OlympusSuite) TestReportClimate(c *C) {
-	c.Check(s.o.ReportClimate(zeus.NamedClimateReport{
-		ZoneIdentifier: "isnotthere/zone/box",
-	}), ErrorMatches, "olympus: unknown zone '.*'")
-
-	c.Check(s.o.ReportClimate(zeus.NamedClimateReport{
-		ZoneIdentifier: "somehost/zone/tunnel",
-	}), ErrorMatches, "olympus: unknown zone '.*'")
-
+	reports := make([]*proto.ClimateReport, 20)
 	for i := 0; i < 20; i++ {
-		c.Check(s.o.ReportClimate(zeus.NamedClimateReport{
-			ClimateReport: zeus.ClimateReport{
-				Humidity:     20.0,
-				Temperatures: []zeus.Temperature{20},
-			},
-			ZoneIdentifier: "somehost/zone/box",
-		}), IsNil)
+		reports[i] = &proto.ClimateReport{
+			Humidity:     newInitialized[float32](20.0),
+			Temperatures: []float32{20},
+		}
 	}
-	start := time.Now()
-	series, _ := s.o.GetClimateTimeSerie("somehost", "box", "10m")
-	for len(series.Humidity) < 20 && time.Since(start) < 200*time.Millisecond {
-		time.Sleep(100 * time.Microsecond)
-		series, _ = s.o.GetClimateTimeSerie("somehost", "box", "10m")
-	}
+	s.somehostBox.PushReports(reports)
 
 	windows := []string{"10m", "1h", "1d", "1w", "10-minutes", "10-minute", "hour", "day", "week", "will default to 10 minutes if window is not a valid one"}
 	for _, w := range windows {
@@ -104,7 +102,7 @@ func (s *OlympusSuite) TestReportClimate(c *C) {
 	}
 
 	_, err := s.o.GetClimateTimeSerie("fifou", "bar", "10m")
-	c.Check(err, ErrorMatches, "olympus: unknown zone 'fifou/zone/bar'")
+	c.Check(err, ErrorMatches, "olympus: unknown zone 'fifou.bar'")
 	r, err := s.o.GetZoneReport("fifou", "bar")
 	c.Check(err, IsNil)
 	c.Check(r.Climate, IsNil)
@@ -114,13 +112,13 @@ func (s *OlympusSuite) TestReportClimate(c *C) {
 
 	report, err := s.o.GetZoneReport("somehost", "box")
 	c.Check(err, IsNil)
-	c.Check(report.Climate.Humidity, Equals, 20.0)
-	c.Check(report.Climate.Temperature, Equals, 20.0)
+	c.Check(*report.Climate.Humidity, Equals, float32(20.0))
+	c.Check(*report.Climate.Temperature, Equals, float32(20.0))
 
 	report, err = s.o.GetZoneReport("another", "box")
 	c.Check(err, IsNil)
-	c.Check(report.Climate.Humidity, Equals, -1000.0)
-	c.Check(report.Climate.Temperature, Equals, -1000.0)
+	c.Check(report.Climate.Humidity, IsNil)
+	c.Check(report.Climate.Temperature, IsNil)
 }
 
 func isSorted(n int, comp func(i, j int) bool) bool {
@@ -195,9 +193,9 @@ func (s *OlympusSuite) TestRoute(c *C) {
 		{"GET", "/api/host/somehost/zone/box", ""},
 		{"GET", "/api/host/somehost/zone/box/climate?window=1d", ""},
 		{"GET", "/api/host/somehost/zone/box/alarms", ""},
-		{"GET", "/api/host/somehosts/zone/box", "olympus: unknown zone 'somehosts/zone/box'\n"},
-		{"GET", "/api/host/somehosts/zone/box/climate", "olympus: unknown zone 'somehosts/zone/box'\n"},
-		{"GET", "/api/host/somehosts/zone/box/alarms", "olympus: unknown zone 'somehosts/zone/box'\n"},
+		{"GET", "/api/host/somehosts/zone/box", "olympus: unknown zone 'somehosts.box'\n"},
+		{"GET", "/api/host/somehosts/zone/box/climate", "olympus: unknown zone 'somehosts.box'\n"},
+		{"GET", "/api/host/somehosts/zone/box/alarms", "olympus: unknown zone 'somehosts.box'\n"},
 	}
 
 	router := mux.NewRouter()

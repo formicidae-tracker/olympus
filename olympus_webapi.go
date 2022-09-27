@@ -37,8 +37,8 @@ type Bounds struct {
 }
 
 type ZoneClimateReport struct {
-	Temperature       float32
-	Humidity          float32
+	Temperature       *float32
+	Humidity          *float32
 	TemperatureBounds Bounds
 	HumidityBounds    Bounds
 	ActiveWarnings    int
@@ -72,6 +72,7 @@ type ServiceLogs struct {
 }
 
 type StreamInfo struct {
-	StreamURL    string
-	ThumbnailURL string
+	ExperimentName string
+	StreamURL      string
+	ThumbnailURL   string
 }

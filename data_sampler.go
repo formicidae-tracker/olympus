@@ -20,7 +20,7 @@ type DataRollingSampler interface {
 type rollingDownsampler struct {
 	window           float64
 	samplesThreshold int
-	points           []lttb.Point
+	points, sampled  []lttb.Point
 }
 
 func NewRollingSampler(window time.Duration, nbSamples int) DataRollingSampler {
@@ -52,19 +52,22 @@ func (d *rollingDownsampler) rollOut() {
 	d.points = d.points[start:]
 }
 
-func (d *rollingDownsampler) Add(t time.Time, v float64) {
-	x := float64(t.UnixMilli()) / 1000.0
+func (d *rollingDownsampler) Add(duration time.Duration, v float64) {
+
+	x := duration.Seconds()
 	if d.outdated(x) == true {
 		// we may get back outdated data, we can skip it
 		return
 	}
 	d.insertionSort(x, v)
 	d.rollOut()
+	if len(d.points) <= d.samplesThreshold {
+		d.sampled = d.points
+	} else {
+		d.sampled = lttb.LTTB(d.points, d.samplesThreshold)
+	}
 }
 
 func (d *rollingDownsampler) TimeSerie() []lttb.Point {
-	if len(d.points) >= d.samplesThreshold {
-		d.points = lttb.LTTB(d.points, d.samplesThreshold)
-	}
-	return deepcopy.MustAnything(d.points).([]lttb.Point)
+	return deepcopy.MustAnything(d.sampled).([]lttb.Point)
 }

@@ -57,14 +57,14 @@ func (l *serviceLogger) find(on bool) []string {
 
 func (l *serviceLogger) OnServices() []string {
 	l.mx.RLock()
-	defer l.mx.Unlock()
+	defer l.mx.RUnlock()
 
 	return l.find(true)
 }
 
 func (l *serviceLogger) OffServices() []string {
 	l.mx.RLock()
-	defer l.mx.Unlock()
+	defer l.mx.RUnlock()
 
 	return l.find(false)
 }
