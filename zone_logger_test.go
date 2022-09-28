@@ -17,6 +17,7 @@ type ZoneLoggerSuite struct {
 var _ = Suite(&ZoneLoggerSuite{})
 
 func (s *ZoneLoggerSuite) SetUpTest(c *C) {
+	c.Skip("Not yet implemented")
 	s.l = NewZoneLogger(&proto.ZoneDeclaration{
 		Host:        "foo",
 		Name:        "bar",

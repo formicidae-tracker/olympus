@@ -96,14 +96,6 @@ func (l *zoneLogger) PushReports(reports []*proto.ClimateReport) {
 	}
 }
 
-func eventInsertionSort(events []AlarmEvent, ae AlarmEvent) []AlarmEvent {
-	i := BackLinearSearch(len(events), func(i int) bool { return events[i].Time.Before(ae.Time) }) + 1
-	events = append(events, AlarmEvent{})
-	copy(events[i+1:], events[i:])
-	events[i] = ae
-	return events
-}
-
 func (a *AlarmReport) On() bool {
 	if len(a.Events) == 0 {
 		return false
@@ -145,10 +137,12 @@ func (l *zoneLogger) pushEventToLog(event *proto.AlarmEvent) {
 		}
 		l.alarmReports[r.Reason] = r
 	}
-	r.Events = eventInsertionSort(r.Events, AlarmEvent{
-		Time: event.Time.AsTime(),
-		On:   (event.Status == proto.AlarmStatus_ALARM_ON),
-	})
+	r.Events = BackInsertionSort(r.Events,
+		AlarmEvent{
+			Time: event.Time.AsTime(),
+			On:   (event.Status == proto.AlarmStatus_ALARM_ON),
+		},
+		func(a, b AlarmEvent) bool { return a.Time.Before(b.Time) })
 
 }
 

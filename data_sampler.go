@@ -1,65 +1,97 @@
 package main
 
 import (
+	"sync"
 	"time"
 
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/dgryski/go-lttb"
 )
 
-// A DataRollingSampler is used to keep trace of a time series over a
-// certain time window, keeping the number of sample as low
-// as possible.
+type timedValues struct {
+	time   []time.Time
+	values [][]float32
+}
+
+func (d *timedValues) push(t time.Time, values []*float32) {
+	index := BackLinearSearch[time.Time](d.time, t,
+		func(a, b time.Time) bool { return a.Before(b) })
+
+	d.time = Insert[time.Time](d.time, t, index)
+	if d.values == nil {
+		d.values = make([][]float32, len(values))
+	}
+
+	for i, v := range values {
+		if v == nil {
+			continue
+		}
+		d.values[i] = Insert[float32](d.values[i], *v, index)
+	}
+}
+
+func (d *timedValues) rollOutOfWindow(window time.Duration) {
+	if len(d.time) == 0 {
+		return
+	}
+	minTime := d.time[len(d.time)-1].Add(-window)
+	index := LinearSearch(d.time, minTime, func(a, b time.Time) bool { return a.Before(b) })
+	d.time = d.time[index:]
+	for i, values := range d.values {
+		if values == nil {
+			continue
+		}
+		d.values[i] = values[index:]
+	}
+}
+
+// A DataRollingSampler is used to keep trace of a set of time series
+// over a certain time window.
 type DataRollingSampler interface {
 	// Adds a new point to the sampler
-	Add(t time.Duration, v float64)
+	Add(time.Time, []*float32)
 	// Returns the resulting time serie
-	TimeSerie() []lttb.Point
+	TimeSerie() [][]lttb.Point
 }
 
 type rollingDownsampler struct {
-	window           float64
-	samplesThreshold int
-	points, sampled  []lttb.Point
+	window  time.Duration
+	samples int
+	values  timedValues
+	series  [][]lttb.Point
+	mx      *sync.RWMutex
+	caching bool
 }
 
-func NewRollingSampler(window time.Duration, nbSamples int) DataRollingSampler {
+func NewAsyncRollingSampler(window time.Duration, samples int, mx *sync.RWMutex) DataRollingSampler {
 	res := &rollingDownsampler{
-		window:           window.Seconds(),
-		samplesThreshold: nbSamples,
-		points:           make([]lttb.Point, 0, 2*nbSamples),
+		window:  window,
+		samples: samples,
+		mx:      mx,
 	}
 	return res
 }
 
-func (d *rollingDownsampler) outdated(x float64) bool {
-	if len(d.points) != 0 && (d.points[len(d.points)-1].X-x) > d.window {
-		return true
+func NewRollingSampler(window time.Duration, samples int) DataRollingSampler {
+	return NewAsyncRollingSampler(window, samples, nil)
+}
+
+func (d *rollingDownsampler) Add(time time.Duration, values []*float32) {
+	if d.mx != nil {
+		d.mx.Lock()
+		defer d.mx.Unlock()
 	}
-	return false
-}
-
-func (d *rollingDownsampler) insertionSort(x, v float64) {
-	i := BackLinearSearch(len(d.points), func(i int) bool { return d.points[i].X <= x }) + 1
-	d.points = append(d.points, lttb.Point{})
-	copy(d.points[i+1:], d.points[i:])
-	d.points[i] = lttb.Point{x, v}
-}
-
-func (d *rollingDownsampler) rollOut() {
-	last := d.points[len(d.points)-1].X
-	start := LinearSearch(len(d.points), func(i int) bool { return (last - d.points[i].X) <= d.window })
-	d.points = d.points[start:]
-}
-
-func (d *rollingDownsampler) Add(duration time.Duration, v float64) {
 
 	x := duration.Seconds()
 	if d.outdated(x) == true {
 		// we may get back outdated data, we can skip it
 		return
 	}
-	d.insertionSort(x, v)
+	d.points = BackInsertionSort(d.points,
+		lttb.Point{X: x, Y: v},
+		func(a, b lttb.Point) bool {
+			return a.X < b.X
+		})
 	d.rollOut()
 	if len(d.points) <= d.samplesThreshold {
 		d.sampled = d.points
@@ -68,6 +100,6 @@ func (d *rollingDownsampler) Add(duration time.Duration, v float64) {
 	}
 }
 
-func (d *rollingDownsampler) TimeSerie() []lttb.Point {
+func (d *rollingDownsampler) TimeSerie() [][]lttb.Point {
 	return deepcopy.MustAnything(d.sampled).([]lttb.Point)
 }
