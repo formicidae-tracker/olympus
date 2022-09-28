@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/dgryski/go-lttb"
+	"github.com/atuleu/go-lttb"
 	"github.com/formicidae-tracker/olympus/proto"
 )
 
@@ -26,9 +26,9 @@ type ServiceEvent struct {
 }
 
 type ClimateTimeSerie struct {
-	Humidity       []lttb.Point
-	TemperatureAnt []lttb.Point
-	TemperatureAux [][]lttb.Point
+	Humidity       []lttb.Point[float32]
+	TemperatureAnt []lttb.Point[float32]
+	TemperatureAux [][]lttb.Point[float32]
 }
 
 type Bounds struct {

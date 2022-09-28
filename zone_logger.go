@@ -50,7 +50,7 @@ func naNIfNil(v *float32) float32 {
 
 func NewZoneLogger(declaration *proto.ZoneDeclaration) ZoneLogger {
 	res := &zoneLogger{
-		sampler:      NewClimateReportSampler(int(declaration.NumAux)),
+		sampler:      NewClimateReportSampler(),
 		host:         declaration.Host,
 		name:         declaration.Name,
 		alarmReports: make(map[string]*AlarmReport),
@@ -78,9 +78,8 @@ func (l *zoneLogger) PushReports(reports []*proto.ClimateReport) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 
-	for _, r := range reports {
-		l.sampler.Add(r)
-	}
+	l.sampler.Add(reports, true)
+
 	lastReport := reports[len(reports)-1]
 	if len(lastReport.Temperatures) > 0 {
 		if l.currentReport.Temperature == nil {
