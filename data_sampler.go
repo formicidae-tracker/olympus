@@ -82,23 +82,39 @@ func (d *rollingDownsampler) Add(time time.Duration, values []*float32) {
 		defer d.mx.Unlock()
 	}
 
-	x := duration.Seconds()
-	if d.outdated(x) == true {
-		// we may get back outdated data, we can skip it
-		return
-	}
-	d.points = BackInsertionSort(d.points,
-		lttb.Point{X: x, Y: v},
-		func(a, b lttb.Point) bool {
-			return a.X < b.X
-		})
-	d.rollOut()
-	if len(d.points) <= d.samplesThreshold {
-		d.sampled = d.points
+	d.values.push(time,values)
+	d.values.rollOutOfWindow(d.window)
+
+	if d.mx == nil {
+		d.computeSeries()
 	} else {
-		d.sampled = lttb.LTTB(d.points, d.samplesThreshold)
+		if ( d.caching == true ) {
+			return
+		}
+		d.caching = true
+		go d.computeSeries()
 	}
 }
+
+
+func (d *rollingDownsampler) computeSeries() {
+	if d.mx == nil {
+		d.series = downsample(d.values,d.samples)
+		return
+	}
+	values := func() timedValues {
+		d.mx.RLock()
+		defer d.mx.RUnlock()
+		return deepcopy.MustAnything(d.values).(timedValues)
+	}()
+
+	series = downsample(values,d.samples)
+
+	d.mx.Lock()
+	defer d.mx.Unlock()
+	d.series = series
+}
+
 
 func (d *rollingDownsampler) TimeSerie() [][]lttb.Point {
 	return deepcopy.MustAnything(d.sampled).([]lttb.Point)
