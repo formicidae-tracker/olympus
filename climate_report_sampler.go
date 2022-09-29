@@ -8,12 +8,18 @@ import (
 	"github.com/formicidae-tracker/olympus/proto"
 )
 
+// ClimateReportSampler sample ClimateReport into ClimateTimeSeries of
+// different time window.
 type ClimateReportSampler interface {
 	// Adds a batch of reports to the sampler.
 	Add(reports []*proto.ClimateReport)
+	// LastTenMinutes returns a ClimateTimeSeries for the last 10 minutes.
 	LastTenMinutes() ClimateTimeSeries
+	// LastHour returns a ClimateTimeSeries for the last hour.
 	LastHour() ClimateTimeSeries
+	// LastDay returns a ClimateTimeSeries for the last day.
 	LastDay() ClimateTimeSeries
+	// LastWeek returns a ClimateTimeSeries for the last week.
 	LastWeek() ClimateTimeSeries
 }
 
@@ -43,9 +49,15 @@ func buildBatch(reports []*proto.ClimateReport) TimedValues {
 	for i, r := range reports {
 		times[i] = r.Time.AsTime()
 		if r.Humidity != nil {
+			if len(values) == 0 {
+				values = append(values, nil)
+			}
 			values[0] = appendValue(values[0], *r.Humidity, i+1)
 		}
 		for j, t := range r.Temperatures {
+			for len(values) <= j+1 {
+				values = append(values, nil)
+			}
 			values[j+1] = appendValue(values[j+1], t, i+1)
 		}
 	}
@@ -107,10 +119,10 @@ type climateReportSamplerArgs struct {
 
 func newClimateReportSampler(a climateReportSamplerArgs) ClimateReportSampler {
 	return &climateReportSampler{
-		lastTenMinutes: NewClimateDataDownsampler(10*time.Minute, a.tenMinuteSamples, 200*time.Millisecond),
-		lastHour:       NewClimateDataDownsampler(1*time.Hour, a.hourSamples, time.Second),
-		lastDay:        NewClimateDataDownsampler(24*time.Hour, a.daySamples, 30*time.Second),
-		lastWeek:       NewClimateDataDownsampler(24*7*time.Hour, a.weekSamples, 3*time.Minute),
+		lastTenMinutes: NewClimateDataDownsampler(10*time.Minute, a.tenMinuteSamples),
+		lastHour:       NewClimateDataDownsampler(1*time.Hour, a.hourSamples),
+		lastDay:        NewClimateDataDownsampler(24*time.Hour, a.daySamples),
+		lastWeek:       NewClimateDataDownsampler(24*7*time.Hour, a.weekSamples),
 	}
 }
 

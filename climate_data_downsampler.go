@@ -4,8 +4,11 @@ import (
 	"time"
 )
 
-// A DataRollingSampler is used to keep trace of a set of time series
-// over a certain time window.
+var CutOfFrequencyRatio float64 = 15.0
+
+// A ClimateDataDownsample is used to keep trace of a set of time
+// series over a certain time window. It optimize system performance
+// by greatly reducing the amount of data.
 type ClimateDataDownsampler interface {
 	// Adds a new list of value to the sampler for a given time.Time
 	// t. If mx is non nil, an asynchronous update will be performed.
@@ -22,7 +25,10 @@ type climateDataDownsampler struct {
 	series                ClimateTimeSeries
 }
 
-func NewClimateDataDownsampler(window time.Duration, samples int, minimumPeriod time.Duration) ClimateDataDownsampler {
+func NewClimateDataDownsampler(window time.Duration, samples int) ClimateDataDownsampler {
+	targetPeriod := window / time.Duration(samples)
+	minimumPeriod := time.Duration(float64(targetPeriod) / CutOfFrequencyRatio)
+
 	res := &climateDataDownsampler{
 		window:        window,
 		samples:       samples,

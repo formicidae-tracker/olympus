@@ -76,5 +76,4 @@ func (o *OlympusGRPCWrapper) Zone(stream proto.Olympus_ZoneServer) error {
 			}
 		}
 	}
-	return nil
 }

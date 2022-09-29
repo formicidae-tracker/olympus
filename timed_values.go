@@ -55,6 +55,7 @@ func (d *TimedValues) pushBatch(times []time.Time, values [][]float32, minimumPe
 	if len(times) == 0 {
 		return
 	}
+
 	// first we ensure we do not want to add too much values.
 	times, values = frequencyCutoff(times, values, minimumPeriod)
 

@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"time"
 
 	"github.com/formicidae-tracker/olympus/proto"
 	"github.com/gorilla/mux"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
 )
 
@@ -20,7 +22,6 @@ type OlympusSuite struct {
 var _ = Suite(&OlympusSuite{})
 
 func (s *OlympusSuite) SetUpTest(c *C) {
-	c.Skip("Not yet implemented")
 	var err error
 	s.o, err = NewOlympus("")
 	c.Assert(err, IsNil)
@@ -75,21 +76,23 @@ func (s *OlympusSuite) TearDownTest(c *C) {
 }
 
 func (s *OlympusSuite) TestReportClimate(c *C) {
-	reports := make([]*proto.ClimateReport, 20)
-	for i := 0; i < 20; i++ {
+	reports := make([]*proto.ClimateReport, 300)
+	for i := 0; i < 300; i++ {
 		reports[i] = &proto.ClimateReport{
-			Humidity:     newInitialized[float32](20.0),
-			Temperatures: []float32{20},
+			Time:         timestamppb.New(time.Time{}.Add(time.Duration(500*i) * time.Millisecond)),
+			Humidity:     newInitialized[float32](55.0),
+			Temperatures: []float32{21},
 		}
 	}
 	s.somehostBox.PushReports(reports)
 
 	windows := []string{"10m", "1h", "1d", "1w", "10-minutes", "10-minute", "hour", "day", "week", "will default to 10 minutes if window is not a valid one"}
-	for _, w := range windows {
+	size := []int{300, 150, 8, 2, 300, 300, 150, 8, 2, 300}
+	for i, w := range windows {
 		series, err := s.o.GetClimateTimeSerie("somehost", "box", w)
 		c.Check(err, IsNil, Commentf("for window %s", w))
-		c.Check(series.Humidity, HasLen, 20, Commentf("for window %s", w))
-		c.Check(series.TemperatureAnt, HasLen, 20, Commentf("for window %s", w))
+		c.Check(series.Humidity, HasLen, size[i], Commentf("for window %s", w))
+		c.Check(series.TemperatureAnt, HasLen, size[i], Commentf("for window %s", w))
 
 		series, err = s.o.GetClimateTimeSerie("another", "box", w)
 		c.Check(err, IsNil, Commentf("for window %s", w))
@@ -113,8 +116,8 @@ func (s *OlympusSuite) TestReportClimate(c *C) {
 
 	report, err := s.o.GetZoneReport("somehost", "box")
 	c.Check(err, IsNil)
-	c.Check(*report.Climate.Humidity, Equals, float32(20.0))
-	c.Check(*report.Climate.Temperature, Equals, float32(20.0))
+	c.Check(*report.Climate.Humidity, Equals, float32(55.0))
+	c.Check(*report.Climate.Temperature, Equals, float32(21.0))
 
 	report, err = s.o.GetZoneReport("another", "box")
 	c.Check(err, IsNil)

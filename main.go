@@ -115,7 +115,7 @@ func Execute() error {
 		wg.Done()
 	}()
 
-	sigint := make(chan os.Signal)
+	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
 	<-sigint
 

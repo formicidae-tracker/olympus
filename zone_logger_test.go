@@ -17,7 +17,6 @@ type ZoneLoggerSuite struct {
 var _ = Suite(&ZoneLoggerSuite{})
 
 func (s *ZoneLoggerSuite) SetUpTest(c *C) {
-	c.Skip("Not yet implemented")
 	s.l = NewZoneLogger(&proto.ZoneDeclaration{
 		Host:        "foo",
 		Name:        "bar",
@@ -31,21 +30,21 @@ func (s *ZoneLoggerSuite) TearDownTest(c *C) {
 
 func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 	start := time.Now().Round(0)
-	reports := make([]*proto.ClimateReport, 20)
-	for i := 0; i < 20; i++ {
+	reports := make([]*proto.ClimateReport, 60)
+	for i := 0; i < len(reports); i++ {
 		reports[i] = &proto.ClimateReport{
-			Time:         timestamppb.New(start.Add(time.Duration(rand.Intn(20000)) * time.Millisecond)),
-			Humidity:     newInitialized[float32](20.0),
-			Temperatures: []float32{20.0},
+			Time:         timestamppb.New(start.Add(time.Duration(i*500+rand.Intn(20)-10) * time.Millisecond)),
+			Humidity:     newInitialized[float32](55.0),
+			Temperatures: []float32{21.0},
 		}
 	}
 	s.l.PushReports(reports)
 
-	checkReport := func(c *C, series ClimateTimeSeries) {
-		if c.Check(len(series.Humidity), Equals, 20) == false {
+	checkReport := func(c *C, series ClimateTimeSeries, size int) {
+		if c.Check(len(series.Humidity), Equals, size) == false {
 			return
 		}
-		if c.Check(len(series.TemperatureAnt), Equals, 20) == false {
+		if c.Check(len(series.TemperatureAnt), Equals, size) == false {
 			return
 		}
 
@@ -62,10 +61,10 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 		}
 	}
 
-	checkReport(c, s.l.GetClimateTimeSeries("10m"))
-	checkReport(c, s.l.GetClimateTimeSeries("1h"))
-	checkReport(c, s.l.GetClimateTimeSeries("1d"))
-	checkReport(c, s.l.GetClimateTimeSeries("1w"))
+	checkReport(c, s.l.GetClimateTimeSeries("10m"), 60)
+	checkReport(c, s.l.GetClimateTimeSeries("1h"), 30)
+	checkReport(c, s.l.GetClimateTimeSeries("1d"), 2)
+	checkReport(c, s.l.GetClimateTimeSeries("1w"), 1)
 }
 
 func (s *ZoneLoggerSuite) TestUninitialzedReport(c *C) {
