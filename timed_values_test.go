@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"time"
 
 	"github.com/atuleu/go-lttb"
@@ -315,6 +316,19 @@ func (s *TimedValuesSuite) TestDownsample(c *C) {
 
 	empty := (&TimedValues{}).Downsample(100, time.Time{})
 	c.Check(empty, IsNil)
+}
+
+func (s *TimedValuesSuite) TestOutOfOrderInsert(c *C) {
+	var data TimedValues
+	for i := 0; i < 200; i++ {
+		data.pushOne(time.Time{}.Add(time.Duration(rand.Intn(500000))),
+			[][]float32{{float32(i)}}, 1)
+	}
+	c.Assert(len(data.times) > 1, Equals, true)
+	for i := 1; i < len(data.times); i++ {
+		c.Check(data.times[i-1].Before(data.times[i]), Equals, true, Commentf("at index %d", i))
+	}
+
 }
 
 func (s *TimedValuesSuite) BenchmarkInsertionTime(c *C) {
