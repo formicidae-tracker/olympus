@@ -11,12 +11,8 @@ import (
 // over a certain time window.
 type DataRollingSampler interface {
 	// Adds a new list of value to the sampler for a given time.Time
-	// t. If mx is non nil, a asynchronous update will be performed.
-	Add(t time.Time, values []*float32, mx *sync.RWMutex)
-
-	// Adds a new list of timed value to the sampler. If mx is
-	// non-nil, an asynchronous update will be performed.
-	AddBatch(t []time.Time, values [][]*float32, mx *sync.RWMutex)
+	// t. If mx is non nil, an asynchronous update will be performed.
+	Add(values TimedValues, mx *sync.RWMutex)
 
 	// Returns the resulting time serie
 	TimeSerie() [][]lttb.Point[float32]
@@ -38,16 +34,8 @@ func NewRollingSampler(window time.Duration, samples int, minimumPeriod time.Dur
 	return res
 }
 
-func (d *rollingDownsampler) Add(time time.Time, values []*float32, mx *sync.RWMutex) {
-	d.values.Push(time, values, d.minimumPeriod)
-	d.values.RollOutOfWindow(d.window)
-	d.computeSeries(mx)
-}
-
-func (d *rollingDownsampler) AddBatch(time []time.Time, values [][]*float32, mx *sync.RWMutex) {
-	for i, t := range time {
-		d.values.Push(t, values[i], d.minimumPeriod)
-	}
+func (d *rollingDownsampler) Add(values TimedValues, mx *sync.RWMutex) {
+	d.values.Push(values, d.minimumPeriod)
 	d.values.RollOutOfWindow(d.window)
 	d.computeSeries(mx)
 }

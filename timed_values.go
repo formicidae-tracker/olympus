@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/atuleu/go-lttb"
-	"github.com/barkimedes/go-deepcopy"
 )
 
 // TimedValues holds a list of time series with a common time
@@ -21,14 +20,15 @@ type TimedValues struct {
 	values [][]float32
 }
 
-// Push adds values for a single time. values may not be added if it
-// would make the series instantaneous frequency exceed the frequency
-// 1/minimumPeriod. This method is to be preffered to add a single
-// point in real-time. To add a chunk of data, please consider
-// pushBatch().
-func (d *TimedValues) Push(t time.Time, values []*float32, minimumPeriod time.Duration) {
-	index := BackLinearSearch[time.Time](d.times, t,
-		func(a, b time.Time) bool { return a.Before(b) })
+func lessTime(a, b time.Time) bool {
+	return a.Before(b)
+}
+
+// pushOne adds a list of values for a single point in time. It is
+// optimized to add a point at the end of the TimedValues, but is
+// robust for any given time.
+func (d *TimedValues) pushOne(t time.Time, values [][]float32, minimumPeriod time.Duration) {
+	index := BackLinearSearch(d.times, t, lessTime)
 
 	if index > 0 && t.Sub(d.times[index-1]) < minimumPeriod {
 		return
@@ -38,16 +38,80 @@ func (d *TimedValues) Push(t time.Time, values []*float32, minimumPeriod time.Du
 		return
 	}
 
-	d.times = Insert[time.Time](d.times, t, index)
+	d.times = Insert(d.times, t, index)
 	if d.values == nil {
 		d.values = make([][]float32, len(values))
 	}
 
 	for i, v := range values {
-		if v == nil {
+		if len(v) == 0 {
 			continue
 		}
-		d.values[i] = Insert[float32](d.values[i], *v, index)
+		d.values[i] = Insert(d.values[i], v[0], index)
+	}
+}
+
+func (d *TimedValues) pushBatch(times []time.Time, values [][]float32, minimumPeriod time.Duration) {
+	if len(times) == 0 {
+		return
+	}
+	// first we ensure we do not want to add too much values.
+	times, values = frequencyCutoff(times, values, minimumPeriod)
+
+	// find the insertion indexes
+	insertionStart := BackLinearSearch(d.times, times[0], lessTime)
+	insertionEnd := BackLinearSearch(d.times, times[len(times)-1], lessTime)
+
+	if insertionStart > 0 && times[0].Sub(d.times[insertionStart-1]) < minimumPeriod {
+		times = times[1:]
+		for i, v := range values {
+			if len(v) == 0 {
+				continue
+			}
+			values[i] = v[1:]
+		}
+	}
+	if len(times) == 0 {
+		return
+	}
+
+	if insertionEnd < len(d.times) && d.times[insertionEnd].Sub(times[len(times)-1]) < minimumPeriod {
+		times = times[:(len(times) - 1)]
+		for i, v := range values {
+			if len(v) == 0 {
+				continue
+			}
+			values[i] = v[:(len(v) - 1)]
+		}
+
+	}
+	if len(times) == 0 {
+		return
+	}
+
+	d.times = InsertSlice(d.times, times, insertionStart, insertionEnd)
+	if len(d.values) == 0 {
+		d.values = make([][]float32, len(values))
+	}
+	for i, v := range values {
+		if len(v) == 0 || len(d.values[i]) < (len(d.times)-len(times)) {
+			continue
+		}
+		d.values[i] = InsertSlice(d.values[i], v, insertionStart, insertionEnd)
+	}
+}
+
+// Push adds another TimedValues to the TimedValues. values may be
+// dropped if it would make the series instantaneous frequency exceed
+// the frequency 1/minimumPeriod. This method is optimized for two
+// scenarios:
+//   - Adding a single value at the end of the TimedValues.
+//   - Adding a large chunk of values to the TimedValues.
+func (d *TimedValues) Push(other TimedValues, minimumPeriod time.Duration) {
+	if len(other.times) == 1 {
+		d.pushOne(other.times[0], other.values, minimumPeriod)
+	} else {
+		d.pushBatch(other.times, other.values, minimumPeriod)
 	}
 }
 
@@ -58,7 +122,7 @@ func (d *TimedValues) RollOutOfWindow(window time.Duration) {
 		return
 	}
 	minTime := d.times[len(d.times)-1].Add(-window)
-	index := LinearSearch(d.times, minTime, func(a, b time.Time) bool { return a.Before(b) })
+	index := LinearSearch(d.times, minTime, lessTime)
 	d.times = d.times[index:]
 	for i, values := range d.values {
 		if values == nil {
@@ -109,24 +173,36 @@ func (d *TimedValues) Downsample(samples int, reference time.Time) [][]lttb.Poin
 
 // DeepCopy performs a deep copy of the TimedValues.
 func (d *TimedValues) DeepCopy() TimedValues {
+	if len(d.times) == 0 {
+		return TimedValues{}
+	}
+	times := make([]time.Time, len(d.times))
+	copy(times, d.times)
+	values := make([][]float32, len(d.values))
+	for i, v := range d.values {
+		if len(v) == 0 {
+			continue
+		}
+		values[i] = make([]float32, len(v))
+		copy(values[i], v)
+	}
 	return TimedValues{
-		times:  deepcopy.MustAnything(d.times).([]time.Time),
-		values: deepcopy.MustAnything(d.values).([][]float32),
+		times:  times,
+		values: values,
 	}
 }
 
 // FrequencyCutOff creates a new TimedValues from the original one,
 // which frequency does not exceed 1/minimumPeriod.
 func (d *TimedValues) FrequencyCutoff(minimumPeriod time.Duration) TimedValues {
-	times, values := frequencyCutoff[float32](d.times, d.values, minimumPeriod)
+	times, values := frequencyCutoff(d.times, d.values, minimumPeriod)
 	return TimedValues{times: times, values: values}
 }
 
-func frequencyCutoff[T any](times []time.Time, values [][]T, minimumPeriod time.Duration) ([]time.Time, [][]T) {
+func frequencyCutoff(times []time.Time, values [][]float32, minimumPeriod time.Duration) ([]time.Time, [][]float32) {
 	if len(times) == 0 {
 		return nil, nil
 	}
-
 	copyValues := func(dst, src int) {
 		times[dst] = times[src]
 		for _, v := range values {
@@ -151,11 +227,11 @@ func frequencyCutoff[T any](times []time.Time, values [][]T, minimumPeriod time.
 		}
 	}
 	times = times[:newSize]
-	for _, v := range values {
-		if v == nil {
+	for i, v := range values {
+		if len(v) == 0 {
 			continue
 		}
-		v = v[:newSize]
+		values[i] = v[:newSize]
 	}
 	return times, values
 }

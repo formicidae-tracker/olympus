@@ -23,23 +23,34 @@ type climateReportSampler struct {
 	lastTenMinutes, lastHour, lastDay, lastWeek DataRollingSampler
 }
 
-func buildBatch(reports []*proto.ClimateReport) ([]time.Time, [][]*float32) {
+func buildBatch(reports []*proto.ClimateReport) TimedValues {
 	if len(reports) == 0 {
-		return nil, nil
+		return TimedValues{}
 	}
 	times := make([]time.Time, len(reports))
-	values := make([][]*float32, len(reports))
+	values := make([][]float32, 0)
+
+	appendValue := func(values []float32, v float32, size int) []float32 {
+		missing := v
+		if len(values) > 0 {
+			missing = values[len(values)-1]
+		}
+		for len(values) < size-1 {
+			values = append(values, missing)
+		}
+		return append(values, v)
+	}
 
 	for i, r := range reports {
 		times[i] = r.Time.AsTime()
-		reportValues := make([]*float32, 1, len(r.Temperatures)+1)
-		reportValues[0] = r.Humidity
-		for _, t := range r.Temperatures {
-			reportValues = append(reportValues, &t)
+		if r.Humidity != nil {
+			values[0] = appendValue(values[0], *r.Humidity, i+1)
 		}
-		values[i] = reportValues
+		for j, t := range r.Temperatures {
+			values[j+1] = appendValue(values[j+1], t, i+1)
+		}
 	}
-	return times, values
+	return TimedValues{times: times, values: values}
 }
 
 func buildClimateTimeSeries(data [][]lttb.Point[float32]) ClimateTimeSerie {
@@ -67,11 +78,11 @@ func (s *climateReportSampler) Add(reports []*proto.ClimateReport, async bool) {
 		mx = &s.mx
 	}
 
-	times, values := buildBatch(reports)
-	s.lastTenMinutes.AddBatch(times, values, mx)
-	s.lastHour.AddBatch(times, values, mx)
-	s.lastDay.AddBatch(times, values, mx)
-	s.lastWeek.AddBatch(times, values, mx)
+	values := buildBatch(reports)
+	s.lastTenMinutes.Add(values, mx)
+	s.lastHour.Add(values, mx)
+	s.lastDay.Add(values, mx)
+	s.lastWeek.Add(values, mx)
 }
 
 func (s *climateReportSampler) LastTenMinutes() ClimateTimeSerie {
