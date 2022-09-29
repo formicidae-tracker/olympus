@@ -1,8 +1,8 @@
 package main
 
 import (
-	"math"
 	"sync"
+	"time"
 
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/proto"
@@ -34,26 +34,40 @@ const (
 
 type zoneLogger struct {
 	mx           sync.RWMutex
-	sampler      ClimateReportSampler
 	alarmReports map[string]*AlarmReport
 
 	host, name    string
 	currentReport ZoneClimateReport
-}
 
-func naNIfNil(v *float32) float32 {
-	if v == nil {
-		return float32(math.NaN())
-	}
-	return *v
+	samplers         []ClimateDataDownsampler
+	samplersByWindow map[string]ClimateDataDownsampler
 }
 
 func NewZoneLogger(declaration *proto.ZoneDeclaration) ZoneLogger {
+	samplers := []ClimateDataDownsampler{
+		NewClimateDataDownsampler(10*time.Minute, 500),
+		NewClimateDataDownsampler(1*time.Hour, 400),
+		NewClimateDataDownsampler(24*time.Hour, 300),
+		NewClimateDataDownsampler(7*24*time.Hour, 300),
+	}
+	samplersByWindow := map[string]ClimateDataDownsampler{
+		"10-minute":  samplers[0],
+		"10m":        samplers[0],
+		"10-minutes": samplers[0],
+		"1h":         samplers[1],
+		"hour":       samplers[1],
+		"1d":         samplers[2],
+		"day":        samplers[2],
+		"1w":         samplers[3],
+		"week":       samplers[3],
+	}
+
 	res := &zoneLogger{
-		sampler:      NewClimateReportSampler(),
-		host:         declaration.Host,
-		name:         declaration.Name,
-		alarmReports: make(map[string]*AlarmReport),
+		samplers:         samplers,
+		samplersByWindow: samplersByWindow,
+		host:             declaration.Host,
+		name:             declaration.Name,
+		alarmReports:     make(map[string]*AlarmReport),
 		currentReport: ZoneClimateReport{
 			Temperature: nil,
 			TemperatureBounds: Bounds{
@@ -71,6 +85,42 @@ func NewZoneLogger(declaration *proto.ZoneDeclaration) ZoneLogger {
 	return res
 }
 
+func buildBatch(reports []*proto.ClimateReport) TimedValues {
+	if len(reports) == 0 {
+		return TimedValues{}
+	}
+	times := make([]time.Time, len(reports))
+	values := make([][]float32, 0)
+
+	appendValue := func(values []float32, v float32, size int) []float32 {
+		missing := v
+		if len(values) > 0 {
+			missing = values[len(values)-1]
+		}
+		for len(values) < size-1 {
+			values = append(values, missing)
+		}
+		return append(values, v)
+	}
+
+	for i, r := range reports {
+		times[i] = r.Time.AsTime()
+		if r.Humidity != nil {
+			if len(values) == 0 {
+				values = append(values, nil)
+			}
+			values[0] = appendValue(values[0], *r.Humidity, i+1)
+		}
+		for j, t := range r.Temperatures {
+			for len(values) <= j+1 {
+				values = append(values, nil)
+			}
+			values[j+1] = appendValue(values[j+1], t, i+1)
+		}
+	}
+	return TimedValues{times: times, values: values}
+}
+
 func (l *zoneLogger) PushReports(reports []*proto.ClimateReport) {
 	if len(reports) == 0 {
 		return
@@ -78,7 +128,10 @@ func (l *zoneLogger) PushReports(reports []*proto.ClimateReport) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 
-	l.sampler.Add(reports)
+	toAdd := buildBatch(reports)
+	for _, s := range l.samplers {
+		s.Add(toAdd)
+	}
 
 	lastReport := reports[len(reports)-1]
 	if len(lastReport.Temperatures) > 0 {
@@ -163,36 +216,12 @@ func (l *zoneLogger) PushTarget(target *proto.ClimateTarget) {
 	}
 }
 
-var stringToRequestInt = map[string]int{
-	"10-minute":  climateTenMinute,
-	"10m":        climateTenMinute,
-	"10-minutes": climateTenMinute,
-	"1h":         climateHour,
-	"hour":       climateHour,
-	"1d":         climateDay,
-	"day":        climateDay,
-	"1w":         climateWeek,
-	"week":       climateWeek,
-}
-
 func (l *zoneLogger) fromWindow(window string) ClimateTimeSeries {
-	windowType, ok := stringToRequestInt[window]
+	sampler, ok := l.samplersByWindow[window]
 	if ok == false {
-		windowType = climateTenMinute
+		sampler = l.samplers[0]
 	}
-
-	switch windowType {
-	case climateTenMinute:
-		return l.sampler.LastTenMinutes()
-	case climateHour:
-		return l.sampler.LastHour()
-	case climateDay:
-		return l.sampler.LastDay()
-	case climateWeek:
-		return l.sampler.LastWeek()
-	default:
-		return l.sampler.LastTenMinutes()
-	}
+	return sampler.TimeSeries()
 }
 
 func (l *zoneLogger) GetClimateTimeSeries(window string) ClimateTimeSeries {
