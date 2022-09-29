@@ -10,7 +10,8 @@ import (
 )
 
 type TimedValuesSuite struct {
-	benchmarkData TimedValues
+	benchmarkData       TimedValues
+	benchmarkDataCutted TimedValues
 }
 
 var _ = Suite(&TimedValuesSuite{})
@@ -23,6 +24,8 @@ func (s *TimedValuesSuite) SetUpSuite(c *C) {
 		s.benchmarkData.times = append(s.benchmarkData.times, time.Time{}.Add(d))
 		s.benchmarkData.values[1] = append(s.benchmarkData.values[1], float32(d.Seconds()))
 	}
+
+	s.benchmarkDataCutted.Push(s.benchmarkData.DeepCopy(), 3*time.Minute)
 }
 
 func (s *TimedValuesSuite) TestPush(c *C) {
@@ -331,5 +334,11 @@ func (s *TimedValuesSuite) BenchmarkInsertionTime(c *C) {
 			},
 				minimumPeriod)
 		}
+	}
+}
+
+func (s *TimedValuesSuite) BenchmarkDownsampling(c *C) {
+	for i := 0; i < c.N; i++ {
+		s.benchmarkDataCutted.Downsample(300, time.Time{})
 	}
 }
