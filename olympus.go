@@ -56,9 +56,10 @@ func (m multipleError) Error() string {
 }
 
 type Olympus struct {
+	mx                sync.RWMutex
 	log               *log.Logger
-	zoneSubscriptions *sync.Map
-	hostSubscriptions *sync.Map
+	zoneSubscriptions map[string]subscription[ZoneLogger]
+	hostSubscriptions map[string]subscription[TrackingLogger]
 
 	trackingLogger ServiceLogger
 	climateLogger  ServiceLogger
@@ -85,8 +86,8 @@ func (s subscription[T]) Close() (err error) {
 func NewOlympus(slackURL string) (*Olympus, error) {
 	res := &Olympus{
 		log:               log.New(os.Stderr, "[olympus] :", log.LstdFlags),
-		zoneSubscriptions: &sync.Map{},
-		hostSubscriptions: &sync.Map{},
+		zoneSubscriptions: make(map[string]subscription[ZoneLogger]),
+		hostSubscriptions: make(map[string]subscription[TrackingLogger]),
 		trackingLogger:    NewServiceLogger(),
 		climateLogger:     NewServiceLogger(),
 		slackURL:          slackURL,
@@ -116,11 +117,23 @@ func closeAll[T io.Closer](m *sync.Map) []error {
 }
 
 func (o *Olympus) Close() error {
-	errs := closeAll[subscription[ZoneLogger]](o.zoneSubscriptions)
-	errsHost := closeAll[subscription[trackingLogger]](o.hostSubscriptions)
-	if errsHost != nil {
-		errs = append(errs, errsHost...)
+	o.mx.Lock()
+	defer o.mx.Unlock()
+
+	var errs []error
+	for _, s := range o.zoneSubscriptions {
+		err := s.Close()
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
+	for _, s := range o.hostSubscriptions {
+		err := s.Close()
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
 	if errs == nil {
 		return nil
 	}
@@ -134,22 +147,23 @@ func (o *Olympus) GetServiceLogs() ServiceLogs {
 	}
 }
 
-func (o *Olympus) ZoneIsRegistered(hostname, zone string) bool {
-	_, ok := o.zoneSubscriptions.Load(ZoneIdentifier(hostname, zone))
+func (o *Olympus) ZoneIsRegistered(host, zone string) bool {
+	o.mx.RLock()
+	defer o.mx.RUnlock()
+	_, ok := o.zoneSubscriptions[ZoneIdentifier(host, zone)]
 	return ok
 }
 
 func (o *Olympus) GetZones() []ZoneReportSummary {
+	o.mx.RLock()
+	defer o.mx.RUnlock()
+
 	nbActiveZones := len(o.climateLogger.OnServices())
 	nbActiveTrackers := len(o.climateLogger.OnServices())
 	res := make([]ZoneReportSummary, 0, nbActiveZones+nbActiveTrackers)
 
-	o.zoneSubscriptions.Range(func(key, s any) bool {
-		sub, ok := s.(subscription[ZoneLogger])
-		if ok == false {
-			return true
-		}
-		z := sub.object
+	for _, s := range o.zoneSubscriptions {
+		z := s.object
 		r := z.GetClimateReport()
 		sum := ZoneReportSummary{
 			Host:    z.Host(),
@@ -157,34 +171,27 @@ func (o *Olympus) GetZones() []ZoneReportSummary {
 			Climate: &r,
 		}
 
-		if s, ok := o.hostSubscriptions.Load(z.Host()); ok == true {
-			sub, ok := s.(subscription[TrackingLogger])
+		if t, ok := o.hostSubscriptions[z.Host()]; ok == true {
 			if ok == true {
-				sum.Stream = sub.object.StreamInfo()
+				sum.Stream = t.object.StreamInfo()
 			}
 		}
 
 		res = append(res, sum)
 
-		return true
-	})
+	}
 
-	o.hostSubscriptions.Range(func(key, s any) bool {
-		host := key.(string)
-		sub, ok := s.(subscription[TrackingLogger])
-		if ok == false {
-			return true
-		}
-		if _, ok := o.zoneSubscriptions.Load(ZoneIdentifier(host, "box")); ok == true {
-			return true
+	for host, s := range o.hostSubscriptions {
+		t := s.object
+		if _, ok := o.zoneSubscriptions[ZoneIdentifier(host, "box")]; ok == true {
+			continue
 		}
 		res = append(res, ZoneReportSummary{
 			Host:   host,
 			Name:   "box",
-			Stream: sub.object.StreamInfo(),
+			Stream: t.StreamInfo(),
 		})
-		return true
-	})
+	}
 
 	sort.Slice(res, func(i, j int) bool {
 		if res[i].Host == res[j].Host {
@@ -197,29 +204,25 @@ func (o *Olympus) GetZones() []ZoneReportSummary {
 }
 
 func (o *Olympus) getZoneLogger(host, zone string) (ZoneLogger, error) {
+	o.mx.RLock()
+	defer o.mx.RUnlock()
 	zoneIdentifier := ZoneIdentifier(host, zone)
-	s, ok := o.zoneSubscriptions.Load(zoneIdentifier)
+	s, ok := o.zoneSubscriptions[zoneIdentifier]
 	if ok == false {
 		return nil, ZoneNotFoundError(zoneIdentifier)
 	}
-	z, ok := s.(subscription[ZoneLogger])
-	if ok == false {
-		return nil, fmt.Errorf("Internal variable conversion error")
-	}
-
-	return z.object, nil
+	return s.object, nil
 }
 
 func (o *Olympus) getTracking(host string) (TrackingLogger, error) {
-	s, ok := o.hostSubscriptions.Load(host)
+	o.mx.RLock()
+	defer o.mx.RUnlock()
+
+	s, ok := o.hostSubscriptions[host]
 	if ok == false {
 		return nil, HostNotFoundError(host)
 	}
-	sub, ok := s.(subscription[TrackingLogger])
-	if ok == false {
-		return nil, fmt.Errorf("internal variable conversion error")
-	}
-	return sub.object, nil
+	return s.object, nil
 }
 
 // GetClimateTimeSeries returns the time series for a zone within a
@@ -263,48 +266,77 @@ func (o *Olympus) GetAlarmReports(host, zone string) ([]AlarmReport, error) {
 }
 
 func (o *Olympus) RegisterZone(declaration *proto.ZoneDeclaration) (ZoneLogger, <-chan struct{}, error) {
+	o.mx.Lock()
+	defer o.mx.Unlock()
+	zID := ZoneIdentifier(declaration.Host, declaration.Name)
+	if _, ok := o.zoneSubscriptions[zID]; ok == true {
+		return nil, nil, fmt.Errorf("Zone '%s' is already registered", zID)
+	}
 	z := NewZoneLogger(declaration)
 	finish := make(chan struct{})
-	_, loaded := o.zoneSubscriptions.LoadOrStore(z.ZoneIdentifier(),
-		subscription[ZoneLogger]{object: z, finish: finish})
-	if loaded == true {
-		return nil, nil, fmt.Errorf("Zone '%s' is already registered", z.ZoneIdentifier())
+	o.zoneSubscriptions[zID] = subscription[ZoneLogger]{
+		object: z,
+		finish: finish,
 	}
+	go o.climateLogger.Log(z.ZoneIdentifier(), true, true)
 	return z, finish, nil
 }
 
-func (o *Olympus) UnregisterZone(zoneIdentifier string) error {
-	s, loaded := o.zoneSubscriptions.LoadAndDelete(zoneIdentifier)
-	if loaded == false {
+func (o *Olympus) UnregisterZone(zoneIdentifier string, graceful bool) error {
+	o.mx.Lock()
+	defer o.mx.Unlock()
+
+	s, ok := o.zoneSubscriptions[zoneIdentifier]
+	if ok == false {
 		return ZoneNotFoundError(zoneIdentifier)
 	}
-	return s.(subscription[ZoneLogger]).Close()
+	delete(o.zoneSubscriptions, zoneIdentifier)
+	o.climateLogger.Log(zoneIdentifier, false, graceful)
+	if graceful == false {
+		go o.postToSlack(":warning: Climate on *%s* ended unexpectedly.", zoneIdentifier)
+	}
+
+	return s.Close()
 }
 
 func (o *Olympus) RegisterTracker(declaration *proto.TrackingDeclaration) (TrackingLogger, <-chan struct{}, error) {
+	o.mx.Lock()
+	defer o.mx.Unlock()
+
 	if declaration.StreamServer != o.hostname+".local" {
 		return nil, nil, fmt.Errorf("unexpected server %s (expect: %s)", declaration.StreamServer, o.hostname+".local")
 	}
-	t := NewTrackingLogger(declaration)
-	finish := make(chan struct{})
-	_, loaded := o.hostSubscriptions.LoadOrStore(declaration.Hostname, subscription[TrackingLogger]{
-		object: t,
-		finish: finish,
-	})
 
-	if loaded == true {
+	if _, ok := o.hostSubscriptions[declaration.Hostname]; ok == true {
 		return nil, nil, fmt.Errorf("Tracking host '%s' is already registered", declaration.Hostname)
 	}
+
+	t := NewTrackingLogger(declaration)
+	finish := make(chan struct{})
+	o.hostSubscriptions[declaration.Hostname] = subscription[TrackingLogger]{
+		object: t,
+		finish: finish,
+	}
+
+	o.trackingLogger.Log(declaration.Hostname, true, true)
 
 	return t, finish, nil
 }
 
-func (o *Olympus) UnregisterTracker(host string) error {
-	s, loaded := o.hostSubscriptions.LoadAndDelete(host)
-	if loaded == false {
+func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
+	o.mx.Lock()
+	defer o.mx.Unlock()
+
+	s, ok := o.hostSubscriptions[host]
+	if ok == false {
 		return HostNotFoundError(host)
 	}
-	return s.(subscription[TrackingLogger]).Close()
+	delete(o.hostSubscriptions, host)
+	o.trackingLogger.Log(host, false, graceful)
+	if graceful == false {
+		o.postToSlack(":warning: Tracking experiment `%s` on %s ended unexpectedly.", "", host)
+	}
+	return s.Close()
 }
 
 func (o *Olympus) route(router *mux.Router) {
