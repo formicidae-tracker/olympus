@@ -25,7 +25,7 @@ type ServiceEvent struct {
 	Graceful   bool
 }
 
-type ClimateTimeSerie struct {
+type ClimateTimeSeries struct {
 	Humidity       []lttb.Point[float32]
 	TemperatureAnt []lttb.Point[float32]
 	TemperatureAux [][]lttb.Point[float32]

@@ -9,18 +9,17 @@ import (
 )
 
 type ClimateReportSampler interface {
-	// Adds a batch of reports to the sampler. If async is true, the
-	// result may not be immediatly reported in the time series.
-	Add(reports []*proto.ClimateReport, async bool)
-	LastTenMinutes() ClimateTimeSerie
-	LastHour() ClimateTimeSerie
-	LastDay() ClimateTimeSerie
-	LastWeek() ClimateTimeSerie
+	// Adds a batch of reports to the sampler.
+	Add(reports []*proto.ClimateReport)
+	LastTenMinutes() ClimateTimeSeries
+	LastHour() ClimateTimeSeries
+	LastDay() ClimateTimeSeries
+	LastWeek() ClimateTimeSeries
 }
 
 type climateReportSampler struct {
 	mx                                          sync.RWMutex
-	lastTenMinutes, lastHour, lastDay, lastWeek DataRollingSampler
+	lastTenMinutes, lastHour, lastDay, lastWeek ClimateDataDownsampler
 }
 
 func buildBatch(reports []*proto.ClimateReport) TimedValues {
@@ -53,11 +52,11 @@ func buildBatch(reports []*proto.ClimateReport) TimedValues {
 	return TimedValues{times: times, values: values}
 }
 
-func buildClimateTimeSeries(data [][]lttb.Point[float32]) ClimateTimeSerie {
+func buildClimateTimeSeries(data [][]lttb.Point[float32]) ClimateTimeSeries {
 	if len(data) == 0 {
-		return ClimateTimeSerie{}
+		return ClimateTimeSeries{}
 	}
-	res := ClimateTimeSerie{
+	res := ClimateTimeSeries{
 		Humidity: data[0],
 	}
 	if len(data) > 1 {
@@ -69,42 +68,37 @@ func buildClimateTimeSeries(data [][]lttb.Point[float32]) ClimateTimeSerie {
 	return res
 }
 
-func (s *climateReportSampler) Add(reports []*proto.ClimateReport, async bool) {
+func (s *climateReportSampler) Add(reports []*proto.ClimateReport) {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
-	var mx *sync.RWMutex
-	if async == true {
-		mx = &s.mx
-	}
-
 	values := buildBatch(reports)
-	s.lastTenMinutes.Add(values, mx)
-	s.lastHour.Add(values, mx)
-	s.lastDay.Add(values, mx)
-	s.lastWeek.Add(values, mx)
+	s.lastTenMinutes.Add(values)
+	s.lastHour.Add(values)
+	s.lastDay.Add(values)
+	s.lastWeek.Add(values)
 }
 
-func (s *climateReportSampler) LastTenMinutes() ClimateTimeSerie {
+func (s *climateReportSampler) LastTenMinutes() ClimateTimeSeries {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
-	return buildClimateTimeSeries(s.lastTenMinutes.TimeSerie())
+	return s.lastTenMinutes.TimeSeries()
 }
-func (s *climateReportSampler) LastHour() ClimateTimeSerie {
+func (s *climateReportSampler) LastHour() ClimateTimeSeries {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
-	return buildClimateTimeSeries(s.lastHour.TimeSerie())
+	return s.lastHour.TimeSeries()
 }
-func (s *climateReportSampler) LastDay() ClimateTimeSerie {
+func (s *climateReportSampler) LastDay() ClimateTimeSeries {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
-	return buildClimateTimeSeries(s.lastDay.TimeSerie())
+	return s.lastDay.TimeSeries()
 }
 
-func (s *climateReportSampler) LastWeek() ClimateTimeSerie {
+func (s *climateReportSampler) LastWeek() ClimateTimeSeries {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
-	return buildClimateTimeSeries(s.lastWeek.TimeSerie())
+	return s.lastWeek.TimeSeries()
 }
 
 type climateReportSamplerArgs struct {
@@ -113,10 +107,10 @@ type climateReportSamplerArgs struct {
 
 func newClimateReportSampler(a climateReportSamplerArgs) ClimateReportSampler {
 	return &climateReportSampler{
-		lastTenMinutes: NewRollingSampler(10*time.Minute, a.tenMinuteSamples, 200*time.Millisecond),
-		lastHour:       NewRollingSampler(1*time.Hour, a.hourSamples, time.Second),
-		lastDay:        NewRollingSampler(24*time.Hour, a.daySamples, 30*time.Second),
-		lastWeek:       NewRollingSampler(24*7*time.Hour, a.weekSamples, 3*time.Minute),
+		lastTenMinutes: NewClimateDataDownsampler(10*time.Minute, a.tenMinuteSamples, 200*time.Millisecond),
+		lastHour:       NewClimateDataDownsampler(1*time.Hour, a.hourSamples, time.Second),
+		lastDay:        NewClimateDataDownsampler(24*time.Hour, a.daySamples, 30*time.Second),
+		lastWeek:       NewClimateDataDownsampler(24*7*time.Hour, a.weekSamples, 3*time.Minute),
 	}
 }
 

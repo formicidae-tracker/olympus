@@ -41,7 +41,7 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 	}
 	s.l.PushReports(reports)
 
-	checkReport := func(c *C, series ClimateTimeSerie) {
+	checkReport := func(c *C, series ClimateTimeSeries) {
 		if c.Check(len(series.Humidity), Equals, 20) == false {
 			return
 		}

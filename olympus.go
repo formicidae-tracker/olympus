@@ -225,10 +225,10 @@ func (o *Olympus) getTracking(host string) (TrackingLogger, error) {
 // GetClimateTimeSeries returns the time series for a zone within a
 // given window. window should be one of "10m","1h","1d", "1w".  It
 // may return a ZoneNotFoundError.
-func (o *Olympus) GetClimateTimeSerie(host, zone, window string) (ClimateTimeSerie, error) {
+func (o *Olympus) GetClimateTimeSerie(host, zone, window string) (ClimateTimeSeries, error) {
 	z, err := o.getZoneLogger(host, zone)
 	if err != nil {
-		return ClimateTimeSerie{}, err
+		return ClimateTimeSeries{}, err
 	}
 	return z.GetClimateTimeSeries(window), nil
 }

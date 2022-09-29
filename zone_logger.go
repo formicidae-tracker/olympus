@@ -18,7 +18,7 @@ type ZoneLogger interface {
 	PushReports([]*proto.ClimateReport)
 	// PushAlarms adds a list of AlarmEvents to this logger.
 	PushAlarms([]*proto.AlarmEvent)
-	GetClimateTimeSeries(window string) ClimateTimeSerie
+	GetClimateTimeSeries(window string) ClimateTimeSeries
 	GetAlarmReports() []AlarmReport
 	GetClimateReport() ZoneClimateReport
 }
@@ -78,7 +78,7 @@ func (l *zoneLogger) PushReports(reports []*proto.ClimateReport) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 
-	l.sampler.Add(reports, true)
+	l.sampler.Add(reports)
 
 	lastReport := reports[len(reports)-1]
 	if len(lastReport.Temperatures) > 0 {
@@ -175,7 +175,7 @@ var stringToRequestInt = map[string]int{
 	"week":       climateWeek,
 }
 
-func (l *zoneLogger) fromWindow(window string) ClimateTimeSerie {
+func (l *zoneLogger) fromWindow(window string) ClimateTimeSeries {
 	windowType, ok := stringToRequestInt[window]
 	if ok == false {
 		windowType = climateTenMinute
@@ -195,7 +195,7 @@ func (l *zoneLogger) fromWindow(window string) ClimateTimeSerie {
 	}
 }
 
-func (l *zoneLogger) GetClimateTimeSeries(window string) ClimateTimeSerie {
+func (l *zoneLogger) GetClimateTimeSeries(window string) ClimateTimeSeries {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
 	// already a data copy, so it is safe
