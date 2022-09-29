@@ -9,13 +9,16 @@ func Insert[T any](slice []T, value T, index int) []T {
 	return res
 }
 
-func BackInsertionSort[T any](slice []T, value T, less func(a, b T) bool) []T {
-	i := BackLinearSearch(slice, value, less)
-	return Insert(slice, value, i)
+func InsertSlice[T any](a, b []T, begin, end int) []T {
+	res := append(a[:begin], a[end:]...)
+	res = append(res, b...)
+	copy(res[begin+len(b):], res[begin:])
+	copy(res[begin:], b)
+	return res
 }
 
-func InsertionSort[T any](slice []T, value T, less func(a, b T) bool) []T {
-	i := LinearSearch(slice, value, less)
+func BackInsertionSort[T any](slice []T, value T, less func(a, b T) bool) []T {
+	i := BackLinearSearch(slice, value, less)
 	return Insert(slice, value, i)
 }
 
