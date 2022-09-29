@@ -12,8 +12,6 @@ import (
 type benchmarkData struct {
 	time   []time.Time
 	values [][]*float32
-
-	asTimedValue timedValues
 }
 
 type DataRollingSamplerSuite struct {
@@ -36,12 +34,7 @@ func (s *DataRollingSamplerSuite) SetUpSuite(c *C) {
 		values[i] = []*float32{new(float32), new(float32), new(float32), new(float32)}
 	}
 
-	var tValues timedValues
-	for i, t := range times {
-		tValues.push(t, values[i], 3*time.Minute)
-	}
-
-	s.benchmarkData = benchmarkData{times, values, tValues}
+	s.benchmarkData = benchmarkData{times, values}
 }
 
 func (s *DataRollingSamplerSuite) TestSamplesData(c *C) {
@@ -108,10 +101,4 @@ func (s *DataRollingSamplerSuite) BenchmarkWeek(c *C) {
 		sampler.AddBatch(s.benchmarkData.time, s.benchmarkData.values, nil)
 	}
 
-}
-
-func (s *DataRollingSamplerSuite) BenchmarkLTTB(c *C) {
-	for i := 0; i < c.N; i++ {
-		downsample(s.benchmarkData.asTimedValue, 300)
-	}
 }
