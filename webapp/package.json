@@ -24,7 +24,7 @@
     "chart.js": "^2.9.4",
     "core-js": "^2.5.4",
     "karma-coverage": "^2.0.3",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "ng2-charts": "^2.4.2",
     "npm": "^6.9.0",
     "resize-observer-polyfill": "^1.5.1",
