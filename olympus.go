@@ -56,6 +56,7 @@ func (m multipleError) Error() string {
 }
 
 type Olympus struct {
+	proto.UnimplementedOlympusServer
 	mx                sync.RWMutex
 	log               *log.Logger
 	zoneSubscriptions map[string]subscription[ZoneLogger]
@@ -127,12 +128,15 @@ func (o *Olympus) Close() error {
 			errs = append(errs, err)
 		}
 	}
+	o.zoneSubscriptions = nil
+
 	for _, s := range o.hostSubscriptions {
 		err := s.Close()
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
+	o.hostSubscriptions = nil
 
 	if errs == nil {
 		return nil
