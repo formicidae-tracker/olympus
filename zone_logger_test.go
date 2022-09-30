@@ -18,10 +18,8 @@ var _ = Suite(&ZoneLoggerSuite{})
 
 func (s *ZoneLoggerSuite) SetUpTest(c *C) {
 	s.l = NewZoneLogger(&proto.ZoneDeclaration{
-		Host:        "foo",
-		Name:        "bar",
-		NumAux:      0,
-		HasHumidity: true,
+		Host: "foo",
+		Name: "bar",
 	})
 }
 

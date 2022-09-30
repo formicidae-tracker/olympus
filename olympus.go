@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,6 +28,8 @@ type HostNotFoundError string
 func (h HostNotFoundError) Error() string {
 	return fmt.Sprintf("olympus: unknown host '%s'", string(h))
 }
+
+var ClosedOlympusServer error = errors.New("closed olympus server.")
 
 type multipleError []error
 
@@ -154,6 +157,9 @@ func (o *Olympus) GetServiceLogs() ServiceLogs {
 func (o *Olympus) ZoneIsRegistered(host, zone string) bool {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
+	if o.zoneSubscriptions == nil {
+		return false
+	}
 	_, ok := o.zoneSubscriptions[ZoneIdentifier(host, zone)]
 	return ok
 }
@@ -161,6 +167,9 @@ func (o *Olympus) ZoneIsRegistered(host, zone string) bool {
 func (o *Olympus) GetZones() []ZoneReportSummary {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
+	if o.zoneSubscriptions == nil || o.hostSubscriptions == nil {
+		return []ZoneReportSummary{}
+	}
 
 	nbActiveZones := len(o.climateLogger.OnServices())
 	nbActiveTrackers := len(o.climateLogger.OnServices())
@@ -210,6 +219,9 @@ func (o *Olympus) GetZones() []ZoneReportSummary {
 func (o *Olympus) getZoneLogger(host, zone string) (ZoneLogger, error) {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
+	if o.zoneSubscriptions == nil {
+		return nil, ClosedOlympusServer
+	}
 	zoneIdentifier := ZoneIdentifier(host, zone)
 	s, ok := o.zoneSubscriptions[zoneIdentifier]
 	if ok == false {
@@ -221,6 +233,10 @@ func (o *Olympus) getZoneLogger(host, zone string) (ZoneLogger, error) {
 func (o *Olympus) getTracking(host string) (TrackingLogger, error) {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
+
+	if o.hostSubscriptions == nil {
+		return nil, ClosedOlympusServer
+	}
 
 	s, ok := o.hostSubscriptions[host]
 	if ok == false {
@@ -272,7 +288,12 @@ func (o *Olympus) GetAlarmReports(host, zone string) ([]AlarmReport, error) {
 func (o *Olympus) RegisterZone(declaration *proto.ZoneDeclaration) (ZoneLogger, <-chan struct{}, error) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
+	if o.zoneSubscriptions == nil {
+		return nil, nil, ClosedOlympusServer
+	}
+
 	zID := ZoneIdentifier(declaration.Host, declaration.Name)
+
 	if _, ok := o.zoneSubscriptions[zID]; ok == true {
 		return nil, nil, fmt.Errorf("Zone '%s' is already registered", zID)
 	}
@@ -289,6 +310,9 @@ func (o *Olympus) RegisterZone(declaration *proto.ZoneDeclaration) (ZoneLogger, 
 func (o *Olympus) UnregisterZone(zoneIdentifier string, graceful bool) error {
 	o.mx.Lock()
 	defer o.mx.Unlock()
+	if o.zoneSubscriptions == nil {
+		return ClosedOlympusServer
+	}
 
 	s, ok := o.zoneSubscriptions[zoneIdentifier]
 	if ok == false {
@@ -304,11 +328,14 @@ func (o *Olympus) UnregisterZone(zoneIdentifier string, graceful bool) error {
 }
 
 func (o *Olympus) RegisterTracker(declaration *proto.TrackingDeclaration) (TrackingLogger, <-chan struct{}, error) {
-	o.mx.Lock()
-	defer o.mx.Unlock()
-
 	if declaration.StreamServer != o.hostname+".local" {
 		return nil, nil, fmt.Errorf("unexpected server %s (expect: %s)", declaration.StreamServer, o.hostname+".local")
+	}
+
+	o.mx.Lock()
+	defer o.mx.Unlock()
+	if o.hostSubscriptions == nil {
+		return nil, nil, ClosedOlympusServer
 	}
 
 	if _, ok := o.hostSubscriptions[declaration.Hostname]; ok == true {
@@ -330,6 +357,10 @@ func (o *Olympus) RegisterTracker(declaration *proto.TrackingDeclaration) (Track
 func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 	o.mx.Lock()
 	defer o.mx.Unlock()
+
+	if o.hostSubscriptions == nil {
+		return ClosedOlympusServer
+	}
 
 	s, ok := o.hostSubscriptions[host]
 	if ok == false {

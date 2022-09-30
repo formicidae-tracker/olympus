@@ -26,24 +26,20 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	s.o, err = NewOlympus("")
 	c.Assert(err, IsNil)
 	s.somehostBox, _, err = s.o.RegisterZone(&proto.ZoneDeclaration{
-		Host:        "somehost",
-		Name:        "box",
-		NumAux:      0,
-		HasHumidity: true,
+		Host: "somehost",
+		Name: "box",
 	})
 	c.Assert(err, IsNil)
 
 	s.anotherBox, _, err = s.o.RegisterZone(&proto.ZoneDeclaration{
-		Host:   "another",
-		Name:   "box",
-		NumAux: 0,
+		Host: "another",
+		Name: "box",
 	})
 	c.Assert(err, IsNil)
 
 	s.anotherTunnel, _, err = s.o.RegisterZone(&proto.ZoneDeclaration{
-		Host:   "another",
-		Name:   "tunnel",
-		NumAux: 0,
+		Host: "another",
+		Name: "tunnel",
 	})
 	c.Assert(err, IsNil)
 

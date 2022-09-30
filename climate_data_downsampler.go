@@ -1,8 +1,6 @@
 package main
 
-import (
-	"time"
-)
+import "time"
 
 var CutOfFrequencyRatio float64 = 15.0
 

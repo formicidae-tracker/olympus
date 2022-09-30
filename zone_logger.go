@@ -36,8 +36,9 @@ type zoneLogger struct {
 	mx           sync.RWMutex
 	alarmReports map[string]*AlarmReport
 
-	host, name    string
-	currentReport ZoneClimateReport
+	host, name     string
+	currentReport  ZoneClimateReport
+	lastReportTime time.Time
 
 	samplers         []ClimateDataDownsampler
 	samplersByWindow map[string]ClimateDataDownsampler
@@ -79,7 +80,6 @@ func NewZoneLogger(declaration *proto.ZoneDeclaration) ZoneLogger {
 				Min: declaration.MinHumidity,
 				Max: declaration.MaxHumidity,
 			},
-			NumAux: int(declaration.NumAux),
 		},
 	}
 	return res
@@ -134,6 +134,12 @@ func (l *zoneLogger) PushReports(reports []*proto.ClimateReport) {
 	}
 
 	lastReport := reports[len(reports)-1]
+	lastReportTime := lastReport.Time.AsTime()
+	if lastReportTime.After(l.lastReportTime) == false {
+		return
+	}
+	l.lastReportTime = lastReportTime
+
 	if len(lastReport.Temperatures) > 0 {
 		if l.currentReport.Temperature == nil {
 			l.currentReport.Temperature = new(float32)

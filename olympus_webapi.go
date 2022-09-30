@@ -43,7 +43,6 @@ type ZoneClimateReport struct {
 	HumidityBounds    Bounds
 	ActiveWarnings    int
 	ActiveEmergencies int
-	NumAux            int
 	Current           *proto.ClimateState
 	CurrentEnd        *proto.ClimateState
 	Next              *proto.ClimateState
