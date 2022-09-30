@@ -90,6 +90,24 @@ func connectZone(c *C) (proto.Olympus_ZoneClient, func(), error) {
 		c.Check(stream.CloseSend(), IsNil)
 		c.Check(conn.Close(), IsNil)
 	}, nil
+
+}
+
+func connectTracking(c *C) (proto.Olympus_TrackingClient, func(), error) {
+	conn, err := grpc.Dial("localhost:12345", proto.DefaultDialOptions...)
+	if err != nil {
+		return nil, func() {}, err
+	}
+
+	client := proto.NewOlympusClient(conn)
+	stream, err := client.Tracking(context.Background(), proto.DefaultCallOptions...)
+	if err != nil {
+		return nil, func() { c.Check(conn.Close(), IsNil) }, err
+	}
+	return stream, func() {
+		c.Check(stream.CloseSend(), IsNil)
+		c.Check(conn.Close(), IsNil)
+	}, nil
 }
 
 func (s *GRPCSuite) TestEndToEnd(c *C) {
