@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/formicidae-tracker/olympus/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type OlympusGRPCWrapper Olympus
@@ -33,7 +34,7 @@ func readAll[UpStream any, DownStream any](
 
 func serveLoop[UpStream any, DownStream any](
 	stream serverStream[UpStream, DownStream],
-	handleMessage func(*UpStream) error,
+	handleMessage func(*UpStream) (*DownStream, error),
 	finish *<-chan struct{}) error {
 
 	messages := make(chan *UpStream)
@@ -51,11 +52,33 @@ func serveLoop[UpStream any, DownStream any](
 			}
 			return err
 		case m := <-messages:
-			err := handleMessage(m)
+			out, err := handleMessage(m)
+			if err != nil {
+				return err
+			}
+			if out == nil {
+				break
+			}
+			err = stream.Send(out)
 			if err != nil {
 				return err
 			}
 		}
+	}
+}
+
+func mapError(err error) error {
+	switch err.(type) {
+	case AlreadyExistError:
+		return status.Error(codes.AlreadyExists, err.Error())
+	case ZoneNotFoundError:
+		return status.Error(codes.NotFound, err.Error())
+	case HostNotFoundError:
+		return status.Error(codes.NotFound, err.Error())
+	case ClosedOlympusServerError:
+		return status.Error(codes.Internal, err.Error())
+	default:
+		return err
 	}
 }
 
@@ -70,16 +93,17 @@ func (o *OlympusGRPCWrapper) Zone(stream proto.Olympus_ZoneServer) (err error) {
 		graceful := err != nil
 		(*Olympus)(o).UnregisterZone(z.ZoneIdentifier(), graceful)
 	}()
+	ack := &proto.ZoneDownStream{}
+	handleMessage := func(m *proto.ZoneUpStream) (*proto.ZoneDownStream, error) {
 
-	handleMessage := func(m *proto.ZoneUpStream) error {
 		if z == nil {
 			if m.Declaration == nil {
-				return fmt.Errorf("first message of stream must contain ZoneDeclaration")
+				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain ZoneDeclaration")
 			}
 			var err error
 			z, finish, err = (*Olympus)(o).RegisterZone(m.Declaration)
 			if err != nil {
-				return err
+				return nil, mapError(err)
 			}
 		}
 
@@ -92,7 +116,7 @@ func (o *OlympusGRPCWrapper) Zone(stream proto.Olympus_ZoneServer) (err error) {
 		if len(m.Reports) > 0 {
 			z.PushReports(m.Reports)
 		}
-		return nil
+		return ack, nil
 	}
 
 	return serveLoop[proto.ZoneUpStream, proto.ZoneDownStream](stream, handleMessage, &finish)
@@ -109,20 +133,20 @@ func (o *OlympusGRPCWrapper) Tracking(stream proto.Olympus_TrackingServer) (err 
 		graceful := err != nil
 		(*Olympus)(o).UnregisterTracker(hostname, graceful)
 	}()
-
-	handleMessage := func(m *proto.TrackingUpStream) error {
+	ack := &proto.TrackingDownStream{}
+	handleMessage := func(m *proto.TrackingUpStream) (*proto.TrackingDownStream, error) {
 		if t == nil {
 			if m.Declaration == nil {
-				return fmt.Errorf("first message of stream must contain TrackingDeclaration")
+				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain TrackingDeclaration")
 			}
 			var err error
 			t, finish, err = (*Olympus)(o).RegisterTracker(m.Declaration)
 			hostname = m.Declaration.Hostname
 			if err != nil {
-				return err
+				return nil, mapError(err)
 			}
 		}
-		return nil
+		return ack, nil
 	}
 
 	return serveLoop[proto.TrackingUpStream, proto.TrackingDownStream](stream, handleMessage, &finish)

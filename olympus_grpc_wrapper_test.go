@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"time"
 
@@ -76,14 +75,26 @@ func (s *GRPCSuite) TestNothingHappens(c *C) {
 	defer conn.Close()
 }
 
-func (s *GRPCSuite) TestEndToEnd(c *C) {
+func connectZone(c *C) (proto.Olympus_ZoneClient, func(), error) {
 	conn, err := grpc.Dial("localhost:12345", proto.DefaultDialOptions...)
-	c.Assert(err, IsNil)
-	defer conn.Close()
+	if err != nil {
+		return nil, func() {}, err
+	}
 
 	client := proto.NewOlympusClient(conn)
-
 	stream, err := client.Zone(context.Background(), proto.DefaultCallOptions...)
+	if err != nil {
+		return nil, func() { c.Check(conn.Close(), IsNil) }, err
+	}
+	return stream, func() {
+		c.Check(stream.CloseSend(), IsNil)
+		c.Check(conn.Close(), IsNil)
+	}, nil
+}
+
+func (s *GRPCSuite) TestEndToEnd(c *C) {
+	stream, cleanUp, err := connectZone(c)
+	defer cleanUp()
 	c.Assert(err, IsNil)
 
 	reports := []*proto.ClimateReport{
@@ -135,24 +146,14 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 		Reports: reports[4:],
 		Target:  target,
 	}), IsNil)
+	_, err = stream.Recv()
+	c.Check(err, IsNil)
 
 	c.Check(stream.Send(&proto.ZoneUpStream{
 		Reports: reports[:4],
 	}), IsNil)
-
-	for s.o.ZoneIsRegistered("somehost", "box") == false {
-		time.Sleep(1 * time.Millisecond)
-	}
-
-	for {
-		series, err := s.o.GetClimateTimeSerie("somehost", "box", "")
-		c.Assert(err, IsNil)
-		fmt.Println(len(series.Humidity))
-		if len(series.Humidity) == 5 {
-			break
-		}
-		time.Sleep(1 * time.Millisecond)
-	}
+	_, err = stream.Recv()
+	c.Check(err, IsNil)
 
 	report, err := s.o.GetZoneReport("somehost", "box")
 	if c.Check(err, IsNil) == true {
@@ -167,11 +168,43 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 			Alarms: []AlarmReport{},
 		})
 	}
-
 	c.Check(stream.CloseSend(), IsNil)
 
 	for s.o.ZoneIsRegistered("somehost", "box") == true {
 		time.Sleep(1 * time.Millisecond)
 	}
 
+}
+
+func (s *GRPCSuite) TestDoubleZoneRegistrationError(c *C) {
+	streams := []proto.Olympus_ZoneClient{nil, nil}
+
+	for i := range streams {
+		stream, cleanUp, err := connectZone(c)
+		defer cleanUp()
+		c.Assert(err, IsNil)
+		streams[i] = stream
+	}
+	declaration := &proto.ZoneUpStream{
+		Declaration: &proto.ZoneDeclaration{Host: "somehost", Name: "box"},
+	}
+	c.Check(streams[0].Send(declaration), IsNil)
+	_, err := streams[0].Recv()
+	c.Check(err, IsNil)
+
+	c.Check(streams[1].Send(declaration), IsNil)
+	m, err := streams[1].Recv()
+	c.Check(m, IsNil)
+	c.Check(err, ErrorMatches, `rpc error: code = AlreadyExists desc = zone 'somehost.box' is already registered`)
+}
+
+func (s *GRPCSuite) TestLackOfZonRegistrationError(c *C) {
+	stream, cleanUp, err := connectZone(c)
+	defer cleanUp()
+	c.Assert(err, IsNil)
+
+	c.Check(stream.Send(&proto.ZoneUpStream{}), IsNil)
+	m, err := stream.Recv()
+	c.Check(m, IsNil)
+	c.Check(err, ErrorMatches, `rpc error: code = InvalidArgument desc = first message of stream must contain ZoneDeclaration`)
 }
