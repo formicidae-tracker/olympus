@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/atuleu/go-lttb"
-	"github.com/formicidae-tracker/olympus/proto"
+	"github.com/formicidae-tracker/olympus/olympuspb"
 )
 
 type AlarmEvent struct {
@@ -43,10 +43,10 @@ type ZoneClimateReport struct {
 	HumidityBounds    Bounds
 	ActiveWarnings    int
 	ActiveEmergencies int
-	Current           *proto.ClimateState
-	CurrentEnd        *proto.ClimateState
-	Next              *proto.ClimateState
-	NextEnd           *proto.ClimateState
+	Current           *olympuspb.ClimateState
+	CurrentEnd        *olympuspb.ClimateState
+	Next              *olympuspb.ClimateState
+	NextEnd           *olympuspb.ClimateState
 	NextTime          *time.Time
 }
 

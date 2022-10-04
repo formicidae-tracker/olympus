@@ -3,7 +3,7 @@ package main
 import (
 	"io"
 
-	"github.com/formicidae-tracker/olympus/proto"
+	"github.com/formicidae-tracker/olympus/olympuspb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -82,7 +82,7 @@ func mapError(err error) error {
 	}
 }
 
-func (o *OlympusGRPCWrapper) Zone(stream proto.Olympus_ZoneServer) (err error) {
+func (o *OlympusGRPCWrapper) Zone(stream olympuspb.Olympus_ZoneServer) (err error) {
 	var z ZoneLogger = nil
 	var finish <-chan struct{} = nil
 
@@ -93,8 +93,8 @@ func (o *OlympusGRPCWrapper) Zone(stream proto.Olympus_ZoneServer) (err error) {
 		graceful := err != nil
 		(*Olympus)(o).UnregisterZone(z.ZoneIdentifier(), graceful)
 	}()
-	ack := &proto.ZoneDownStream{}
-	handleMessage := func(m *proto.ZoneUpStream) (*proto.ZoneDownStream, error) {
+	ack := &olympuspb.ZoneDownStream{}
+	handleMessage := func(m *olympuspb.ZoneUpStream) (*olympuspb.ZoneDownStream, error) {
 
 		if z == nil {
 			if m.Declaration == nil {
@@ -119,10 +119,10 @@ func (o *OlympusGRPCWrapper) Zone(stream proto.Olympus_ZoneServer) (err error) {
 		return ack, nil
 	}
 
-	return serveLoop[proto.ZoneUpStream, proto.ZoneDownStream](stream, handleMessage, &finish)
+	return serveLoop[olympuspb.ZoneUpStream, olympuspb.ZoneDownStream](stream, handleMessage, &finish)
 }
 
-func (o *OlympusGRPCWrapper) Tracking(stream proto.Olympus_TrackingServer) (err error) {
+func (o *OlympusGRPCWrapper) Tracking(stream olympuspb.Olympus_TrackingServer) (err error) {
 	var t TrackingLogger = nil
 	var finish <-chan struct{} = nil
 	hostname := ""
@@ -133,8 +133,8 @@ func (o *OlympusGRPCWrapper) Tracking(stream proto.Olympus_TrackingServer) (err 
 		graceful := err != nil
 		(*Olympus)(o).UnregisterTracker(hostname, graceful)
 	}()
-	ack := &proto.TrackingDownStream{}
-	handleMessage := func(m *proto.TrackingUpStream) (*proto.TrackingDownStream, error) {
+	ack := &olympuspb.TrackingDownStream{}
+	handleMessage := func(m *olympuspb.TrackingUpStream) (*olympuspb.TrackingDownStream, error) {
 		if t == nil {
 			if m.Declaration == nil {
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain TrackingDeclaration")
@@ -149,5 +149,5 @@ func (o *OlympusGRPCWrapper) Tracking(stream proto.Olympus_TrackingServer) (err 
 		return ack, nil
 	}
 
-	return serveLoop[proto.TrackingUpStream, proto.TrackingDownStream](stream, handleMessage, &finish)
+	return serveLoop[olympuspb.TrackingUpStream, olympuspb.TrackingDownStream](stream, handleMessage, &finish)
 }

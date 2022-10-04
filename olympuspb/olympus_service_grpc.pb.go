@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: olympus_service.proto
 
-package proto
+package olympuspb
 
 import (
 	context "context"
@@ -35,7 +35,7 @@ func NewOlympusClient(cc grpc.ClientConnInterface) OlympusClient {
 }
 
 func (c *olympusClient) Zone(ctx context.Context, opts ...grpc.CallOption) (Olympus_ZoneClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Olympus_ServiceDesc.Streams[0], "/proto.Olympus/Zone", opts...)
+	stream, err := c.cc.NewStream(ctx, &Olympus_ServiceDesc.Streams[0], "/fort.olympus.Olympus/Zone", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (x *olympusZoneClient) Recv() (*ZoneDownStream, error) {
 }
 
 func (c *olympusClient) Tracking(ctx context.Context, opts ...grpc.CallOption) (Olympus_TrackingClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Olympus_ServiceDesc.Streams[1], "/proto.Olympus/Tracking", opts...)
+	stream, err := c.cc.NewStream(ctx, &Olympus_ServiceDesc.Streams[1], "/fort.olympus.Olympus/Tracking", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (x *olympusTrackingServer) Recv() (*TrackingUpStream, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Olympus_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "proto.Olympus",
+	ServiceName: "fort.olympus.Olympus",
 	HandlerType: (*OlympusServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{

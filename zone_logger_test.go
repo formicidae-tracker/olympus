@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/barkimedes/go-deepcopy"
-	"github.com/formicidae-tracker/olympus/proto"
+	"github.com/formicidae-tracker/olympus/olympuspb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
 )
@@ -17,7 +17,7 @@ type ZoneLoggerSuite struct {
 var _ = Suite(&ZoneLoggerSuite{})
 
 func (s *ZoneLoggerSuite) SetUpTest(c *C) {
-	s.l = NewZoneLogger(&proto.ZoneDeclaration{
+	s.l = NewZoneLogger(&olympuspb.ZoneDeclaration{
 		Host: "foo",
 		Name: "bar",
 	})
@@ -28,9 +28,9 @@ func (s *ZoneLoggerSuite) TearDownTest(c *C) {
 
 func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 	start := time.Now().Round(0)
-	reports := make([]*proto.ClimateReport, 60)
+	reports := make([]*olympuspb.ClimateReport, 60)
 	for i := 0; i < len(reports); i++ {
-		reports[i] = &proto.ClimateReport{
+		reports[i] = &olympuspb.ClimateReport{
 			Time:         timestamppb.New(start.Add(time.Duration(i*500+rand.Intn(20)-10) * time.Millisecond)),
 			Humidity:     newInitialized[float32](55.0),
 			Temperatures: []float32{21.0},
@@ -75,7 +75,7 @@ func (s *ZoneLoggerSuite) TestUninitialzedReport(c *C) {
 }
 
 func (s *ZoneLoggerSuite) TestLogsHumididityOnlyClimate(c *C) {
-	s.l.PushReports([]*proto.ClimateReport{
+	s.l.PushReports([]*olympuspb.ClimateReport{
 		{
 			Time:         timestamppb.New(time.Now()),
 			Humidity:     newInitialized[float32](55.0),
@@ -91,7 +91,7 @@ func (s *ZoneLoggerSuite) TestLogsHumididityOnlyClimate(c *C) {
 }
 
 func (s *ZoneLoggerSuite) TestLogsTemperatureOnlyClimate(c *C) {
-	s.l.PushReports([]*proto.ClimateReport{
+	s.l.PushReports([]*olympuspb.ClimateReport{
 		{
 			Time:         timestamppb.New(time.Now()),
 			Humidity:     nil,
@@ -109,18 +109,18 @@ func (s *ZoneLoggerSuite) TestLogsTemperatureOnlyClimate(c *C) {
 func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 	start := time.Now().Round(0)
 
-	eventList := []*proto.AlarmEvent{
+	eventList := []*olympuspb.AlarmEvent{
 		{
 			Reason: "foo",
-			Level:  1,
+			Level:  olympuspb.AlarmLevel_WARNING,
 		},
 		{
 			Reason: "bar",
-			Level:  2,
+			Level:  olympuspb.AlarmLevel_EMERGENCY,
 		},
 		{
 			Reason: "baz",
-			Level:  1,
+			Level:  olympuspb.AlarmLevel_WARNING,
 		},
 	}
 
@@ -129,16 +129,16 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 		On   bool
 	}{}
 
-	events := make([]*proto.AlarmEvent, 300)
+	events := make([]*olympuspb.AlarmEvent, 300)
 	for i := 0; i < 300; i++ {
 		r := rand.Intn(2000000)
 		t := start.Add(time.Duration(r) * time.Millisecond)
 		on := r%2 == 0
-		event := deepcopy.MustAnything(eventList[i%3]).(*proto.AlarmEvent)
+		event := deepcopy.MustAnything(eventList[i%3]).(*olympuspb.AlarmEvent)
 		if on {
-			event.Status = proto.AlarmStatus_ALARM_ON
+			event.Status = olympuspb.AlarmStatus_ON
 		} else {
-			event.Status = proto.AlarmStatus_ALARM_OFF
+			event.Status = olympuspb.AlarmStatus_OFF
 		}
 		event.Time = timestamppb.New(t)
 		ls := lastState[event.Reason]
@@ -155,11 +155,11 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 	for _, r := range reports {
 		switch r.Reason {
 		case "foo":
-			c.Check(r.Level, Equals, 1)
+			c.Check(olympuspb.AlarmLevel(r.Level), Equals, olympuspb.AlarmLevel_WARNING)
 		case "bar":
-			c.Check(r.Level, Equals, 2)
+			c.Check(olympuspb.AlarmLevel(r.Level), Equals, olympuspb.AlarmLevel_EMERGENCY)
 		case "baz":
-			c.Check(r.Level, Equals, 1)
+			c.Check(olympuspb.AlarmLevel(r.Level), Equals, olympuspb.AlarmLevel_WARNING)
 		}
 		c.Check(r.Events, HasLen, 100)
 		for i, e := range r.Events {

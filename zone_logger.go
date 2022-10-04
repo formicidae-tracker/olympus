@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/barkimedes/go-deepcopy"
-	"github.com/formicidae-tracker/olympus/proto"
+	"github.com/formicidae-tracker/olympus/olympuspb"
 )
 
 type ZoneLogger interface {
@@ -13,11 +13,11 @@ type ZoneLogger interface {
 	ZoneName() string
 	ZoneIdentifier() string
 	// PushTarget update current target for this logger.
-	PushTarget(*proto.ClimateTarget)
+	PushTarget(*olympuspb.ClimateTarget)
 	// PushReports updates a list of reports to this logger.
-	PushReports([]*proto.ClimateReport)
+	PushReports([]*olympuspb.ClimateReport)
 	// PushAlarms adds a list of AlarmEvents to this logger.
-	PushAlarms([]*proto.AlarmEvent)
+	PushAlarms([]*olympuspb.AlarmEvent)
 	GetClimateTimeSeries(window string) ClimateTimeSeries
 	GetAlarmReports() []AlarmReport
 	GetClimateReport() ZoneClimateReport
@@ -44,7 +44,7 @@ type zoneLogger struct {
 	samplersByWindow map[string]ClimateDataDownsampler
 }
 
-func NewZoneLogger(declaration *proto.ZoneDeclaration) ZoneLogger {
+func NewZoneLogger(declaration *olympuspb.ZoneDeclaration) ZoneLogger {
 	samplers := []ClimateDataDownsampler{
 		NewClimateDataDownsampler(10*time.Minute, 500),
 		NewClimateDataDownsampler(1*time.Hour, 400),
@@ -85,7 +85,7 @@ func NewZoneLogger(declaration *proto.ZoneDeclaration) ZoneLogger {
 	return res
 }
 
-func buildBatch(reports []*proto.ClimateReport) TimedValues {
+func buildBatch(reports []*olympuspb.ClimateReport) TimedValues {
 	if len(reports) == 0 {
 		return TimedValues{}
 	}
@@ -121,7 +121,7 @@ func buildBatch(reports []*proto.ClimateReport) TimedValues {
 	return TimedValues{times: times, values: values}
 }
 
-func (l *zoneLogger) PushReports(reports []*proto.ClimateReport) {
+func (l *zoneLogger) PushReports(reports []*olympuspb.ClimateReport) {
 	if len(reports) == 0 {
 		return
 	}
@@ -161,7 +161,7 @@ func (a *AlarmReport) On() bool {
 	return a.Events[len(a.Events)-1].On
 }
 
-func (l *zoneLogger) PushAlarms(events []*proto.AlarmEvent) {
+func (l *zoneLogger) PushAlarms(events []*olympuspb.AlarmEvent) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	for _, e := range events {
@@ -177,7 +177,7 @@ func (l *zoneLogger) updateActiveAlarmCounts() {
 		if r.On() == false {
 			continue
 		}
-		if r.Level == 1 {
+		if olympuspb.AlarmLevel(r.Level) == olympuspb.AlarmLevel_WARNING {
 			l.currentReport.ActiveWarnings += 1
 		} else {
 			l.currentReport.ActiveEmergencies += 1
@@ -185,7 +185,7 @@ func (l *zoneLogger) updateActiveAlarmCounts() {
 	}
 
 }
-func (l *zoneLogger) pushEventToLog(event *proto.AlarmEvent) {
+func (l *zoneLogger) pushEventToLog(event *olympuspb.AlarmEvent) {
 	// insert sort the event, in most cases, it will simply append it
 	r, ok := l.alarmReports[event.Reason]
 	if ok == false {
@@ -198,13 +198,13 @@ func (l *zoneLogger) pushEventToLog(event *proto.AlarmEvent) {
 	r.Events = BackInsertionSort(r.Events,
 		AlarmEvent{
 			Time: event.Time.AsTime(),
-			On:   (event.Status == proto.AlarmStatus_ALARM_ON),
+			On:   (event.Status == olympuspb.AlarmStatus_ON),
 		},
 		func(a, b AlarmEvent) bool { return a.Time.Before(b.Time) })
 
 }
 
-func (l *zoneLogger) PushTarget(target *proto.ClimateTarget) {
+func (l *zoneLogger) PushTarget(target *olympuspb.ClimateTarget) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 

@@ -12,7 +12,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/formicidae-tracker/olympus/proto"
+	"github.com/formicidae-tracker/olympus/olympuspb"
 	"github.com/gorilla/mux"
 )
 
@@ -68,7 +68,7 @@ func (m multipleError) Error() string {
 }
 
 type Olympus struct {
-	proto.UnimplementedOlympusServer
+	olympuspb.UnimplementedOlympusServer
 	mx                sync.RWMutex
 	log               *log.Logger
 	zoneSubscriptions map[string]subscription[ZoneLogger]
@@ -294,7 +294,7 @@ func (o *Olympus) GetAlarmReports(host, zone string) ([]AlarmReport, error) {
 	return z.GetAlarmReports(), nil
 }
 
-func (o *Olympus) RegisterZone(declaration *proto.ZoneDeclaration) (ZoneLogger, <-chan struct{}, error) {
+func (o *Olympus) RegisterZone(declaration *olympuspb.ZoneDeclaration) (ZoneLogger, <-chan struct{}, error) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
 	if o.zoneSubscriptions == nil {
@@ -336,7 +336,7 @@ func (o *Olympus) UnregisterZone(zoneIdentifier string, graceful bool) error {
 	return s.Close()
 }
 
-func (o *Olympus) RegisterTracker(declaration *proto.TrackingDeclaration) (TrackingLogger, <-chan struct{}, error) {
+func (o *Olympus) RegisterTracker(declaration *olympuspb.TrackingDeclaration) (TrackingLogger, <-chan struct{}, error) {
 	if declaration.StreamServer != o.hostname+".local" {
 		return nil, nil, fmt.Errorf("unexpected server %s (expect: %s)", declaration.StreamServer, o.hostname+".local")
 	}

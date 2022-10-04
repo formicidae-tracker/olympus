@@ -1,4 +1,4 @@
-package proto
+package olympuspb
 
 import (
 	"time"
