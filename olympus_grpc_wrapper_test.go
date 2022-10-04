@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/barkimedes/go-deepcopy"
-	"github.com/formicidae-tracker/olympus/proto"
+	"github.com/formicidae-tracker/olympus/olympuspb"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
@@ -26,8 +26,8 @@ func (s *GRPCSuite) initialize() error {
 		return err
 	}
 
-	s.server = grpc.NewServer(proto.DefaultServerOptions...)
-	proto.RegisterOlympusServer(s.server, (*OlympusGRPCWrapper)(s.o))
+	s.server = grpc.NewServer(olympuspb.DefaultServerOptions...)
+	olympuspb.RegisterOlympusServer(s.server, (*OlympusGRPCWrapper)(s.o))
 
 	s.shutdown = make(chan struct{})
 	s.done = make(chan error)
@@ -70,19 +70,19 @@ func (s *GRPCSuite) TearDownTest(c *C) {
 }
 
 func (s *GRPCSuite) TestNothingHappens(c *C) {
-	conn, err := grpc.Dial("localhost:12345", proto.DefaultDialOptions...)
+	conn, err := grpc.Dial("localhost:12345", olympuspb.DefaultDialOptions...)
 	c.Assert(err, IsNil)
 	defer conn.Close()
 }
 
-func connectZone(c *C) (proto.Olympus_ZoneClient, func(), error) {
-	conn, err := grpc.Dial("localhost:12345", proto.DefaultDialOptions...)
+func connectZone(c *C) (olympuspb.Olympus_ZoneClient, func(), error) {
+	conn, err := grpc.Dial("localhost:12345", olympuspb.DefaultDialOptions...)
 	if err != nil {
 		return nil, func() {}, err
 	}
 
-	client := proto.NewOlympusClient(conn)
-	stream, err := client.Zone(context.Background(), proto.DefaultCallOptions...)
+	client := olympuspb.NewOlympusClient(conn)
+	stream, err := client.Zone(context.Background(), olympuspb.DefaultCallOptions...)
 	if err != nil {
 		return nil, func() { c.Check(conn.Close(), IsNil) }, err
 	}
@@ -97,7 +97,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 	defer cleanUp()
 	c.Assert(err, IsNil)
 
-	reports := []*proto.ClimateReport{
+	reports := []*olympuspb.ClimateReport{
 		{
 			Time:         timestamppb.New(time.Time{}.Add(500 * time.Millisecond)),
 			Humidity:     newInitialized[float32](55.3),
@@ -125,8 +125,8 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 		},
 	}
 
-	target := &proto.ClimateTarget{
-		Current: &proto.ClimateState{
+	target := &olympuspb.ClimateTarget{
+		Current: &olympuspb.ClimateState{
 			Name:         "box",
 			Temperature:  newInitialized[float32](23.0),
 			Humidity:     newInitialized[float32](55.0),
@@ -138,8 +138,8 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 
 	lastReports := reports[len(reports)-1]
 
-	c.Check(stream.Send(&proto.ZoneUpStream{
-		Declaration: &proto.ZoneDeclaration{
+	c.Check(stream.Send(&olympuspb.ZoneUpStream{
+		Declaration: &olympuspb.ZoneDeclaration{
 			Host: "somehost",
 			Name: "box",
 		},
@@ -149,7 +149,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 	_, err = stream.Recv()
 	c.Check(err, IsNil)
 
-	c.Check(stream.Send(&proto.ZoneUpStream{
+	c.Check(stream.Send(&olympuspb.ZoneUpStream{
 		Reports: reports[:4],
 	}), IsNil)
 	_, err = stream.Recv()
@@ -163,7 +163,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 			Climate: &ZoneClimateReport{
 				Temperature: &lastReports.Temperatures[0],
 				Humidity:    lastReports.Humidity,
-				Current:     deepcopy.MustAnything(target.Current).(*proto.ClimateState),
+				Current:     deepcopy.MustAnything(target.Current).(*olympuspb.ClimateState),
 			},
 			Alarms: []AlarmReport{},
 		})
@@ -177,7 +177,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 }
 
 func (s *GRPCSuite) TestDoubleZoneRegistrationError(c *C) {
-	streams := []proto.Olympus_ZoneClient{nil, nil}
+	streams := []olympuspb.Olympus_ZoneClient{nil, nil}
 
 	for i := range streams {
 		stream, cleanUp, err := connectZone(c)
@@ -185,8 +185,8 @@ func (s *GRPCSuite) TestDoubleZoneRegistrationError(c *C) {
 		c.Assert(err, IsNil)
 		streams[i] = stream
 	}
-	declaration := &proto.ZoneUpStream{
-		Declaration: &proto.ZoneDeclaration{Host: "somehost", Name: "box"},
+	declaration := &olympuspb.ZoneUpStream{
+		Declaration: &olympuspb.ZoneDeclaration{Host: "somehost", Name: "box"},
 	}
 	c.Check(streams[0].Send(declaration), IsNil)
 	_, err := streams[0].Recv()
@@ -203,7 +203,7 @@ func (s *GRPCSuite) TestLackOfZonRegistrationError(c *C) {
 	defer cleanUp()
 	c.Assert(err, IsNil)
 
-	c.Check(stream.Send(&proto.ZoneUpStream{}), IsNil)
+	c.Check(stream.Send(&olympuspb.ZoneUpStream{}), IsNil)
 	m, err := stream.Recv()
 	c.Check(m, IsNil)
 	c.Check(err, ErrorMatches, `rpc error: code = InvalidArgument desc = first message of stream must contain ZoneDeclaration`)

@@ -1,4 +1,4 @@
-package proto
+package olympuspb
 
 import (
 	grpc "google.golang.org/grpc"

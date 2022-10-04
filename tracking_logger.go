@@ -4,7 +4,7 @@ import (
 	"path"
 
 	"github.com/barkimedes/go-deepcopy"
-	"github.com/formicidae-tracker/olympus/proto"
+	"github.com/formicidae-tracker/olympus/olympuspb"
 )
 
 type TrackingLogger interface {
@@ -15,7 +15,7 @@ type trackingLogger struct {
 	infos *StreamInfo
 }
 
-func NewTrackingLogger(declaration *proto.TrackingDeclaration) TrackingLogger {
+func NewTrackingLogger(declaration *olympuspb.TrackingDeclaration) TrackingLogger {
 	return &trackingLogger{
 		infos: &StreamInfo{
 			ExperimentName: declaration.ExperimentName,

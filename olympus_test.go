@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/formicidae-tracker/olympus/proto"
+	"github.com/formicidae-tracker/olympus/olympuspb"
 	"github.com/gorilla/mux"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
@@ -25,19 +25,19 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	var err error
 	s.o, err = NewOlympus("")
 	c.Assert(err, IsNil)
-	s.somehostBox, _, err = s.o.RegisterZone(&proto.ZoneDeclaration{
+	s.somehostBox, _, err = s.o.RegisterZone(&olympuspb.ZoneDeclaration{
 		Host: "somehost",
 		Name: "box",
 	})
 	c.Assert(err, IsNil)
 
-	s.anotherBox, _, err = s.o.RegisterZone(&proto.ZoneDeclaration{
+	s.anotherBox, _, err = s.o.RegisterZone(&olympuspb.ZoneDeclaration{
 		Host: "another",
 		Name: "box",
 	})
 	c.Assert(err, IsNil)
 
-	s.anotherTunnel, _, err = s.o.RegisterZone(&proto.ZoneDeclaration{
+	s.anotherTunnel, _, err = s.o.RegisterZone(&olympuspb.ZoneDeclaration{
 		Host: "another",
 		Name: "tunnel",
 	})
@@ -46,14 +46,14 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	hostname, err := os.Hostname()
 	c.Assert(err, IsNil)
 
-	_, _, err = s.o.RegisterTracker(&proto.TrackingDeclaration{
+	_, _, err = s.o.RegisterTracker(&olympuspb.TrackingDeclaration{
 		Hostname:       "somehost",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
 	})
 	c.Assert(err, IsNil)
 
-	_, _, err = s.o.RegisterTracker(&proto.TrackingDeclaration{
+	_, _, err = s.o.RegisterTracker(&olympuspb.TrackingDeclaration{
 		Hostname:       "fifou",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
@@ -72,9 +72,9 @@ func (s *OlympusSuite) TearDownTest(c *C) {
 }
 
 func (s *OlympusSuite) TestReportClimate(c *C) {
-	reports := make([]*proto.ClimateReport, 300)
+	reports := make([]*olympuspb.ClimateReport, 300)
 	for i := 0; i < 300; i++ {
-		reports[i] = &proto.ClimateReport{
+		reports[i] = &olympuspb.ClimateReport{
 			Time:         timestamppb.New(time.Time{}.Add(time.Duration(500*i) * time.Millisecond)),
 			Humidity:     newInitialized[float32](55.0),
 			Temperatures: []float32{21},
