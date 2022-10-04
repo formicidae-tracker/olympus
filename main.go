@@ -15,6 +15,9 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+//go:generate go run generate_version.go
+//go:generate protoc --experimental_allow_proto3_optional  --go_out=olympuspb --go-grpc_out=olympuspb ./olympuspb/olympus_service.proto
+
 type Options struct {
 	Version   bool   `long:"version" description:"print current version and exit"`
 	Address   string `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`

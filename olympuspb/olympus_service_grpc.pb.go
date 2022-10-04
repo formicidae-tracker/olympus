@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.12.4
-// source: olympus_service.proto
+// source: olympuspb/olympus_service.proto
 
 package olympuspb
 
@@ -201,5 +201,5 @@ var Olympus_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "olympus_service.proto",
+	Metadata: "olympuspb/olympus_service.proto",
 }
