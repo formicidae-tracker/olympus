@@ -1,7 +1,7 @@
 VERSION := $(shell git describe)
 LDFLAGS :=-ldflags "-X 'main.OLYMPUS_VERSION=$(VERSION)'"
 
-all: olympus webapp olympus-stream-notifier/olympus-stream-notifier
+all: olympus webapp olympus-stream-notifier/olympus-stream-notifier check
 
 clean:
 	rm -f olympus
@@ -11,6 +11,10 @@ olympus-stream-notifier/olympus-stream-notifier: olympus-stream-notifier/*.go
 
 olympus: *.go
 	go build $(LDFLAGS)
+
+check:
+	go test
+	go vet
 
 webapp:
 	make -C webapp

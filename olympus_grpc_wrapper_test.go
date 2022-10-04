@@ -93,14 +93,14 @@ func connectZone(c *C) (olympuspb.Olympus_ZoneClient, func(), error) {
 
 }
 
-func connectTracking(c *C) (proto.Olympus_TrackingClient, func(), error) {
-	conn, err := grpc.Dial("localhost:12345", proto.DefaultDialOptions...)
+func connectTracking(c *C) (olympuspb.Olympus_TrackingClient, func(), error) {
+	conn, err := grpc.Dial("localhost:12345", olympuspb.DefaultDialOptions...)
 	if err != nil {
 		return nil, func() {}, err
 	}
 
-	client := proto.NewOlympusClient(conn)
-	stream, err := client.Tracking(context.Background(), proto.DefaultCallOptions...)
+	client := olympuspb.NewOlympusClient(conn)
+	stream, err := client.Tracking(context.Background(), olympuspb.DefaultCallOptions...)
 	if err != nil {
 		return nil, func() { c.Check(conn.Close(), IsNil) }, err
 	}
