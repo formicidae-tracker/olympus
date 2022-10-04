@@ -3,4 +3,4 @@
 package main
 
 // Current package version
-var OLYMPUS_VERSION = "v0.4.0-37-gcc4d169"
+var OLYMPUS_VERSION = "v0.4.0-38-g7a2a621"

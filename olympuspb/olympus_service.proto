@@ -62,7 +62,12 @@ message ZoneUpStream {
 	repeated AlarmEvent      alarms      = 4;
 }
 
+message ZoneRegistrationConfirmation {
+	bool send_backlogs = 1;
+}
+
 message ZoneDownStream {
+	ZoneRegistrationConfirmation registration_confirmation = 1;
 }
 
 message TrackingDeclaration {

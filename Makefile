@@ -6,7 +6,7 @@ clean:
 olympus-stream-notifier/olympus-stream-notifier: olympus-stream-notifier/*.go
 	cd olympus-stream-notifier && go build
 
-olympus: *.go
+olympus: *.go olympuspb/*.go olympuspb/*.proto
 	go generate
 	go build
 
