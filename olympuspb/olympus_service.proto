@@ -63,7 +63,8 @@ message ZoneUpStream {
 }
 
 message ZoneRegistrationConfirmation {
-	bool send_backlogs = 1;
+	bool  send_backlogs = 1;
+	int32 page_size     = 2;
 }
 
 message ZoneDownStream {
