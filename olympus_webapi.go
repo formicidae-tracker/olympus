@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/atuleu/go-lttb"
@@ -25,10 +26,41 @@ type ServiceEvent struct {
 	Graceful   bool
 }
 
+type Point lttb.Point[float32]
+
+func (p Point) MarshalJSON() ([]byte, error) {
+	x, err := json.Marshal(p.X)
+	if err != nil {
+		return nil, err
+	}
+	y, err := json.Marshal(p.Y)
+	if err != nil {
+		return nil, err
+	}
+
+	res := `{"x":` + string(x) + `,"y":` + string(y) + `}`
+	return []byte(res), nil
+}
+
+type PointSeries []lttb.Point[float32]
+
+func (series PointSeries) MarshalJSON() ([]byte, error) {
+	var res []byte
+	for _, p := range series {
+		asJson, err := json.Marshal(Point(p))
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, asJson...)
+	}
+	return res, nil
+}
+
 type ClimateTimeSeries struct {
-	Humidity       []lttb.Point[float32]
-	TemperatureAnt []lttb.Point[float32]
-	TemperatureAux [][]lttb.Point[float32]
+	Unit           string
+	Humidity       PointSeries
+	TemperatureAnt PointSeries
+	TemperatureAux []PointSeries
 }
 
 type Bounds struct {

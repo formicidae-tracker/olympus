@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { formatDate } from '@angular/common';
 import { ClimateTimeSeries } from '@models/climate-time-series';
-import { Chart,ChartDataSets, ChartData, ChartTooltipItem, ChartOptions, ChartType } from 'chart.js';
+import { Chart,ChartDataset, ChartData, ChartOptions, ChartType } from 'chart.js';
 
 @Component({
 	selector: 'app-climate-chart',
@@ -9,77 +9,76 @@ import { Chart,ChartDataSets, ChartData, ChartTooltipItem, ChartOptions, ChartTy
 	styleUrls: ['./climate-chart.component.css']
 })
 export class ClimateChartComponent implements OnInit {
+	@Input() units: string;
 
 	public chartOptions: ChartOptions = {
 		responsive: true,
 		animation: null,
-		legend: {
-			position: 'bottom',
-		},
-		tooltips: {
-            callbacks: {
-                label: function(tooltipItem: ChartTooltipItem,data: ChartData) {
+		plugins: {
+			legend: {
+				position: 'bottom',
+			},
+			tooltip: {
+				callbacks: {
+					label: function(context) {
+						// let label: string = 'Time: '
 
-                    let label: string = 'Time: ' + formatDate(new Date(new Date().getTime() + parseFloat(tooltipItem.label) * 3600000),'YYYY-MM-dd HH:mm:ss','en-US')+', '
+						// if (context.parsed.x != null ) {
+						// 	label += formatDate(new Date(new Date().getTime() + parseFloat(tooltipItem.label) * 3600000),'YYYY-MM-dd HH:mm:ss','en-US')+', '
 
-					label += data.datasets[tooltipItem.datasetIndex].label + ': ';
+						// label += data.datasets[tooltipItem.datasetIndex].label + ': ';
 
-                    label += Math.round(parseFloat(tooltipItem.value) * 100) / 100;
-                    return label;
-                },
-            },
+						// label += Math.round(parseFloat(tooltipItem.value) * 100) / 100;
+						// return label;
+						let label: string = 'Time: todo';
+						return label
+					},
+				},
+			},
 		},
 		scales: {
-			xAxes: [
-				{
-					scaleLabel: {
-						display: true,
-						labelString: 'Time(h)',
-					},
+			xTime: {
+				type: 'linear',
+				display: true,
+				title: {
 					display: true,
+					text: 'Time (h)',
 				},
-			],
-			yAxes: [
-				{
-					type: 'linear',
+			},
+			yTemperature: {
+				type: 'linear',
+				display: true,
+				position: 'left',
+				grid: {
+					drawOnChartArea: true,
+				},
+				title:{
 					display: true,
-					position: 'left',
-					id: 'y-temperature',
-					gridLines: {
-						drawOnChartArea: true,
-					},
-					scaleLabel:{
-						display: true,
-						labelString: 'Temperature (°C)',
-					},
-					ticks: {
-						suggestedMin: 0,
-						suggestedMax: 25,
-					},
+					text: 'Temperature (°C)',
 				},
-				{
-					type: 'linear',
+				suggestedMin: 0,
+				suggestedMax: 25,
+
+			},
+			yHumidity: {
+				type: 'linear',
+				display: true,
+				position: 'right',
+				grid: {
+					drawOnChartArea: false,
+				},
+				title:{
 					display: true,
-					position: 'right',
-					id: 'y-humidity',
-					gridLines: {
-						drawOnChartArea: false,
-					},
-					scaleLabel:{
-						display: true,
-						labelString: 'Relative Humidity (%)',
-					},
-					ticks: {
-						suggestedMin: 0,
-						suggestedMax: 90,
-					},
+					text: 'Relative Humidity (%)',
 				},
-			],
-		}
+				suggestedMin: 0,
+				suggestedMax: 90,
+			},
+		},
 	};
 
 
-	public chartData: ChartDataSets[] = [];
+	public chartData: ChartDataset[] = [];
 
 
 	public chartType: ChartType = 'scatter';
@@ -115,9 +114,9 @@ export class ClimateChartComponent implements OnInit {
 	};
 
 	buildData(values: any[],
-					 name: string,
-					 axis: string,
-					 color: string): ChartDataSets {
+			  name: string,
+			  axis: string,
+			  color: string): ChartDataset {
 		let res = {
 			label: name,
 			borderColor: color,

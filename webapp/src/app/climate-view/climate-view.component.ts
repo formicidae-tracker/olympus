@@ -18,6 +18,9 @@ export class ClimateViewComponent implements OnInit,OnDestroy {
 
 	public hostName: string;
 	public zoneName: string;
+	public units: string;
+
+	private unitsFromWindowMap: Map<string,string>;
 
 	@Input()
 	set host(h: string) {
@@ -35,6 +38,13 @@ export class ClimateViewComponent implements OnInit,OnDestroy {
 		this.hostName = '';
 		this.zoneName = '';
 		this.window = '1d';
+		this.units = 'h';
+		this.unitsFromWindowMap = new Map<string,string>([
+			["10m","m"],
+			["1h","m"],
+			["1d","h"],
+			["1w","h"]
+		]);
 		this.climateTimeSeries = new ClimateTimeSeries();
 	}
 
@@ -74,8 +84,17 @@ export class ClimateViewComponent implements OnInit,OnDestroy {
 		return ''
 	}
 
+	unitsFromWindow(window: string): string {
+		if ( this.unitsFromWindowMap.has(window) ) {
+			return this.unitsFromWindowMap.get(window);
+		}
+		return 'h';
+	}
+
+
 	public selectTimeWindow(window: string) {
 		this.window = window;
+		this.units = this.unitsFromWindow(window);
 		this.updateChart();
 	}
 

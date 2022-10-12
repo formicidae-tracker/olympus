@@ -46,10 +46,10 @@ type zoneLogger struct {
 
 func NewZoneLogger(declaration *olympuspb.ZoneDeclaration) ZoneLogger {
 	samplers := []ClimateDataDownsampler{
-		NewClimateDataDownsampler(10*time.Minute, 500),
-		NewClimateDataDownsampler(1*time.Hour, 400),
-		NewClimateDataDownsampler(24*time.Hour, 300),
-		NewClimateDataDownsampler(7*24*time.Hour, 300),
+		NewClimateDataDownsampler(10*time.Minute, time.Minute, 500),
+		NewClimateDataDownsampler(1*time.Hour, time.Minute, 400),
+		NewClimateDataDownsampler(24*time.Hour, time.Hour, 300),
+		NewClimateDataDownsampler(7*24*time.Hour, time.Hour, 300),
 	}
 	samplersByWindow := map[string]ClimateDataDownsampler{
 		"10-minute":  samplers[0],

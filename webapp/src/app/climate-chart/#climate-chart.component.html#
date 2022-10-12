@@ -2,6 +2,6 @@
 	<canvas baseChart
 	        [datasets]="chartData"
 	        [options]="chartOptions"
-	        [type]= "'scatter'" >
+	        [chartType]= "'scatter'" >
 	</canvas>
 </div>

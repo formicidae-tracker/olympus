@@ -136,13 +136,14 @@ func (d *TimedValues) RollOutOfWindow(window time.Duration) {
 // TimeVector produces a time vector for a series, from a reference
 // point. I.e from the first registered time or the last registered
 // time.
-func (d *TimedValues) TimeVector(reference time.Time) []float32 {
+func (d *TimedValues) TimeVector(reference time.Time, unit time.Duration) []float32 {
 	if len(d.times) == 0 {
 		return nil
 	}
+	factor := 1.0 / unit.Seconds()
 	res := make([]float32, len(d.times))
 	for i, t := range d.times {
-		res[i] = float32(t.Sub(reference).Seconds())
+		res[i] = float32(t.Sub(reference).Seconds() * factor)
 	}
 	return res
 }
@@ -153,8 +154,8 @@ func (d *TimedValues) TimeVector(reference time.Time) []float32 {
 // likely not correspong to each other, as the LTTB algorithm retains
 // time reference to keep the most representative shape of the
 // original serie.
-func (d *TimedValues) Downsample(samples int, reference time.Time) [][]lttb.Point[float32] {
-	times := d.TimeVector(reference)
+func (d *TimedValues) Downsample(samples int, reference time.Time, unit time.Duration) [][]lttb.Point[float32] {
+	times := d.TimeVector(reference, unit)
 	if len(times) == 0 {
 		return nil
 	}
