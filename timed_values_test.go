@@ -297,12 +297,12 @@ func (s *TimedValuesSuite) TestDownsample(c *C) {
 			})
 	}
 
-	c.Check(data.Downsample(100, time.Time{}), AllPointClose, expected)
-	downsampled := data.Downsample(50, time.Time{})
+	c.Check(data.Downsample(100, time.Time{}, time.Second), AllPointClose, expected)
+	downsampled := data.Downsample(50, time.Time{}, time.Second)
 	c.Assert(downsampled, HasLen, 1)
 	c.Check(downsampled[0], HasLen, 50)
 
-	fromLast := data.Downsample(100, data.times[len(data.times)-1])
+	fromLast := data.Downsample(100, data.times[len(data.times)-1], time.Second)
 	c.Assert(fromLast, HasLen, 1)
 	for i, p := range fromLast[0] {
 		x := float64(p.X)
@@ -314,7 +314,7 @@ func (s *TimedValuesSuite) TestDownsample(c *C) {
 		c.Check(math.Abs(y-float64(i)) < 1e-14, Equals, true, comment)
 	}
 
-	empty := (&TimedValues{}).Downsample(100, time.Time{})
+	empty := (&TimedValues{}).Downsample(100, time.Time{}, time.Second)
 	c.Check(empty, IsNil)
 }
 
@@ -353,6 +353,6 @@ func (s *TimedValuesSuite) BenchmarkInsertionTime(c *C) {
 
 func (s *TimedValuesSuite) BenchmarkDownsampling(c *C) {
 	for i := 0; i < c.N; i++ {
-		s.benchmarkDataCutted.Downsample(300, time.Time{})
+		s.benchmarkDataCutted.Downsample(300, time.Time{}, time.Second)
 	}
 }

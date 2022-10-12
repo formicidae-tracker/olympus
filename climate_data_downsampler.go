@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -26,17 +25,19 @@ type climateDataDownsampler struct {
 	series                      ClimateTimeSeries
 }
 
-func NewClimateDataDownsampler(window, unit time.Duration, samples int) (ClimateDataDownsampler, error) {
+var supportedUnits = map[time.Duration]string{
+	time.Second:    "s",
+	time.Minute:    "m",
+	time.Hour:      "h",
+	24 * time.Hour: "d",
+}
+
+func NewClimateDataDownsampler(window, unit time.Duration, samples int) ClimateDataDownsampler {
 	targetPeriod := window / time.Duration(samples)
 	minimumPeriod := time.Duration(float64(targetPeriod) / CutOfFrequencyRatio)
 
-	okValues := map[time.Duration]bool{
-		time.Second: true,
-		time.Minute: true,
-		time.Hour:   true,
-	}
-	if okValues[unit] == false {
-		return nil, fmt.Errorf("Invalid unit %s, supported units are [ 1s, 1m, 1h]", unit)
+	if _, ok := supportedUnits[unit]; ok == false {
+		unit = time.Minute
 	}
 
 	res := &climateDataDownsampler{
@@ -45,18 +46,22 @@ func NewClimateDataDownsampler(window, unit time.Duration, samples int) (Climate
 		samples:       samples,
 		minimumPeriod: minimumPeriod,
 	}
-	return res, nil
+	return res
 }
 
 func (d *climateDataDownsampler) Add(values TimedValues) {
-	d.values.Push(values, d.minimumPeriod)
+	if d.values.Push(values, d.minimumPeriod) == false {
+		return
+	}
 	d.values.RollOutOfWindow(d.window)
 	d.computeSeries()
 }
 
 func (d *climateDataDownsampler) computeSeries() {
 	series := d.values.Downsample(d.samples, d.values.times[len(d.values.times)-1], d.unit)
-	d.series = ClimateTimeSeries{}
+	d.series = ClimateTimeSeries{
+		Unit: supportedUnits[d.unit],
+	}
 
 	if len(series) > 0 {
 		d.series.Humidity = series[0]
@@ -68,7 +73,7 @@ func (d *climateDataDownsampler) computeSeries() {
 	if len(series) > 2 {
 		d.series.TemperatureAux = make([]PointSeries, len(series)-2)
 		for i := range d.series.TemperatureAux {
-			d.series.TemperatureAux[i] = series[i-2]
+			d.series.TemperatureAux[i] = series[i+2]
 		}
 	}
 }

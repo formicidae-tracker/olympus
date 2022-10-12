@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"math"
+	"strconv"
 	"time"
 
 	"github.com/atuleu/go-lttb"
@@ -45,14 +48,24 @@ func (p Point) MarshalJSON() ([]byte, error) {
 type PointSeries []lttb.Point[float32]
 
 func (series PointSeries) MarshalJSON() ([]byte, error) {
-	var res []byte
-	for _, p := range series {
-		asJson, err := json.Marshal(Point(p))
-		if err != nil {
-			return nil, err
+	res := []byte{'['}
+	for i, p := range series {
+		if i == 0 {
+			res = append(res, `{"x":`...)
+		} else {
+			res = append(res, `,{"x":`...)
 		}
-		res = append(res, asJson...)
+		X := float64(p.X)
+		Y := float64(p.Y)
+		if math.IsNaN(X) || math.IsNaN(Y) {
+			return nil, errors.New("json: unsupported value: NaN")
+		}
+		res = strconv.AppendFloat(res, X, 'g', 5, 32)
+		res = append(res, `,"y":`...)
+		res = strconv.AppendFloat(res, Y, 'g', 5, 32)
+		res = append(res, '}')
 	}
+	res = append(res, ']')
 	return res, nil
 }
 

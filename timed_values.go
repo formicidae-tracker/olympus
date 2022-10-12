@@ -26,16 +26,16 @@ func lessTime(a, b time.Time) bool {
 
 // pushOne adds a list of values for a single point in time. It is
 // optimized to add a point at the end of the TimedValues, but is
-// robust for any given time.
-func (d *TimedValues) pushOne(t time.Time, values [][]float32, minimumPeriod time.Duration) {
+// robust for any given time. It returns true if a value was actually added.
+func (d *TimedValues) pushOne(t time.Time, values [][]float32, minimumPeriod time.Duration) bool {
 	index := BackLinearSearch(d.times, t, lessTime)
 
 	if index > 0 && t.Sub(d.times[index-1]) < minimumPeriod {
-		return
+		return false
 	}
 
 	if index < len(d.times) && d.times[index].Sub(t) < minimumPeriod {
-		return
+		return false
 	}
 
 	d.times = Insert(d.times, t, index)
@@ -49,11 +49,12 @@ func (d *TimedValues) pushOne(t time.Time, values [][]float32, minimumPeriod tim
 		}
 		d.values[i] = Insert(d.values[i], v[0], index)
 	}
+	return true
 }
 
-func (d *TimedValues) pushBatch(times []time.Time, values [][]float32, minimumPeriod time.Duration) {
+func (d *TimedValues) pushBatch(times []time.Time, values [][]float32, minimumPeriod time.Duration) bool {
 	if len(times) == 0 {
-		return
+		return false
 	}
 
 	// first we ensure we do not want to add too much values.
@@ -73,7 +74,7 @@ func (d *TimedValues) pushBatch(times []time.Time, values [][]float32, minimumPe
 		}
 	}
 	if len(times) == 0 {
-		return
+		return false
 	}
 
 	if insertionEnd < len(d.times) && d.times[insertionEnd].Sub(times[len(times)-1]) < minimumPeriod {
@@ -87,7 +88,7 @@ func (d *TimedValues) pushBatch(times []time.Time, values [][]float32, minimumPe
 
 	}
 	if len(times) == 0 {
-		return
+		return false
 	}
 
 	d.times = InsertSlice(d.times, times, insertionStart, insertionEnd)
@@ -100,6 +101,8 @@ func (d *TimedValues) pushBatch(times []time.Time, values [][]float32, minimumPe
 		}
 		d.values[i] = InsertSlice(d.values[i], v, insertionStart, insertionEnd)
 	}
+
+	return true
 }
 
 // Push adds another TimedValues to the TimedValues. values may be
@@ -108,11 +111,13 @@ func (d *TimedValues) pushBatch(times []time.Time, values [][]float32, minimumPe
 // scenarios:
 //   - Adding a single value at the end of the TimedValues.
 //   - Adding a large chunk of values to the TimedValues.
-func (d *TimedValues) Push(other TimedValues, minimumPeriod time.Duration) {
+//
+// It will return true if a value was actually added to the timed value.
+func (d *TimedValues) Push(other TimedValues, minimumPeriod time.Duration) bool {
 	if len(other.times) == 1 {
-		d.pushOne(other.times[0], other.values, minimumPeriod)
+		return d.pushOne(other.times[0], other.values, minimumPeriod)
 	} else {
-		d.pushBatch(other.times, other.values, minimumPeriod)
+		return d.pushBatch(other.times, other.values, minimumPeriod)
 	}
 }
 
