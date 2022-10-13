@@ -70,7 +70,8 @@ func (series PointSeries) MarshalJSON() ([]byte, error) {
 }
 
 type ClimateTimeSeries struct {
-	Unit           string
+	Units          string
+	Reference      time.Time
 	Humidity       PointSeries
 	TemperatureAnt PointSeries
 	TemperatureAux []PointSeries

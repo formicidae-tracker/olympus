@@ -58,9 +58,11 @@ func (d *climateDataDownsampler) Add(values TimedValues) {
 }
 
 func (d *climateDataDownsampler) computeSeries() {
-	series := d.values.Downsample(d.samples, d.values.times[len(d.values.times)-1], d.unit)
+	reference := d.values.times[len(d.values.times)-1]
+	series := d.values.Downsample(d.samples, reference, d.unit)
 	d.series = ClimateTimeSeries{
-		Unit: supportedUnits[d.unit],
+		Reference: reference,
+		Units:     supportedUnits[d.unit],
 	}
 
 	if len(series) > 0 {
