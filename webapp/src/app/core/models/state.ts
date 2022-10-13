@@ -30,12 +30,12 @@ export class State {
 		if ( item == null ) {
 			return null;
 		}
-		return new State(item.Name,
-						 item.Humidity,
-						 item.Temperature,
-						 item.Wind,
-						 item.VisibleLight,
-						 item.UVLight);
+		return new State(item.name,
+						 item.humidity,
+						 item.temperature,
+						 item.wind,
+						 item.visible_light,
+						 item.uv_light);
 	}
 
 }

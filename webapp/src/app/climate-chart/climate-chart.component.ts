@@ -1,19 +1,22 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { formatDate } from '@angular/common';
 import { ClimateTimeSeries } from '@models/climate-time-series';
-import { Chart,ChartDataset, ChartData, ChartOptions, ChartType } from 'chart.js';
+import { Chart, ChartDataset, ChartData, ChartOptions, ChartType, CartesianScaleOptions } from 'chart.js';
 
 @Component({
 	selector: 'app-climate-chart',
 	templateUrl: './climate-chart.component.html',
 	styleUrls: ['./climate-chart.component.css']
 })
+
+
 export class ClimateChartComponent implements OnInit {
 	@Input() units: string;
 
+
 	public chartOptions: ChartOptions = {
 		responsive: true,
-		animation: null,
+		animation: false,
 		plugins: {
 			legend: {
 				position: 'bottom',
@@ -21,20 +24,17 @@ export class ClimateChartComponent implements OnInit {
 			tooltip: {
 				callbacks: {
 					label: function(context) {
-						// let label: string = 'Time: '
-
-						// if (context.parsed.x != null ) {
-						// 	label += formatDate(new Date(new Date().getTime() + parseFloat(tooltipItem.label) * 3600000),'YYYY-MM-dd HH:mm:ss','en-US')+', '
-
-						// label += data.datasets[tooltipItem.datasetIndex].label + ': ';
-
-						// label += Math.round(parseFloat(tooltipItem.value) * 100) / 100;
-						// return label;
-						let label: string = 'Time: todo';
-						return label
+						if (context.dataset.data.length == 0 ) {
+							return '';
+						}
+						let reference: Date = new Date(context.dataset.data[0]['reference']);
+						let ratio: number = context.dataset.data[0]['ratio']
+						let unit: string = context.dataset.data[0]['unit']
+						let time: Date = new Date(reference.getTime() +  1000.0 * ratio * context.parsed.x)
+						return time.toLocaleString() + ': ' + context.parsed.y + ' ' + unit;
 					},
-				},
-			},
+				}
+			}
 		},
 		scales: {
 			xTime: {
@@ -80,8 +80,8 @@ export class ClimateChartComponent implements OnInit {
 
 	public chartData: ChartDataset[] = [];
 
-
 	public chartType: ChartType = 'scatter';
+
 
 	@Input()
 	set climateTimeSeries(value: ClimateTimeSeries) {
@@ -93,17 +93,17 @@ export class ClimateChartComponent implements OnInit {
 		if (value.hasData() == false ) {
 			return;
 		}
-
+		(this.chartOptions.scales.xTime as CartesianScaleOptions).title.text = "Time (" + value.units + ")";
 		if ( value.hasTemperature() == false ) {
-			this.chartOptions.scales.yAxes[0].display = false;
-			this.chartOptions.scales.yAxes[1].display = true;
-			this.chartOptions.scales.yAxes[1].gridLines.drawOnChartArea = true;
-			this.chartOptions.scales.yAxes[1].position = 'left';
+			this.chartOptions.scales.yTemperature.display = false;
+			this.chartOptions.scales.yHumidity.display = true;
+			this.chartOptions.scales.yHumidity.grid.drawOnChartArea = true;
+			(this.chartOptions.scales.yHumidity as CartesianScaleOptions).position = 'left';
 		} else {
-			this.chartOptions.scales.yAxes[0].display = true;
-			this.chartOptions.scales.yAxes[1].position = 'right';
-			this.chartOptions.scales.yAxes[1].display = value.hasHumidity();
-			this.chartOptions.scales.yAxes[1].gridLines.drawOnChartArea = false;
+			this.chartOptions.scales.yTemperature.display = true;
+			(this.chartOptions.scales.yHumidity as CartesianScaleOptions).position = 'right';
+			this.chartOptions.scales.yHumidity.display = value.hasHumidity();
+			this.chartOptions.scales.yHumidity.grid.drawOnChartArea = false;
 		}
 	}
 
@@ -113,53 +113,63 @@ export class ClimateChartComponent implements OnInit {
 		aux: [ '#2ca02c','#17becf','#ff6384']
 	};
 
-	buildData(values: any[],
+	private unitsToSeconds = new Map<string,number>([
+		["m",60],
+		["h",3600],
+		["d",24 * 3600],
+	]);
+
+	buildData(series: ClimateTimeSeries,
+			  values: any[],
 			  name: string,
 			  axis: string,
+			  unit: string,
 			  color: string): ChartDataset {
-		let res = {
+		if ( values.length > 0) {
+			values[0].reference = series.reference;
+			values[0].ratio = this.unitsToSeconds.get(series.units) ||  3600;
+			values[0].unit = unit;
+		}
+		return {
 			label: name,
 			borderColor: color,
 			fill: false,
 			showLine: true,
-			lineTension: 0,
-			data: [],
+			data: values,
 			yAxisID: axis,
 			pointRadius: 0,
 			pointBackgroundColor: color,
 			pointHoverBackgroundColor: color,
+			backgroundColor: color,
+			parsing: false,
 		};
-		let last = values[values.length-1].X;
-		let timeDiv = 3600;
-
-		for ( let p of values ) {
-			res.data.push({
-				x: (p.X - last)/timeDiv,
-				y: p.Y,
-			});
-		}
-		return res;
 	}
 
-	updateData(value: ClimateTimeSeries): void {
+	updateData(series: ClimateTimeSeries): void {
 		this.chartData = [];
-		if ( value.humidity.length > 0 ) {
-			this.chartData.push(this.buildData(value.humidity,
+		if ( series.humidity.length > 0 ) {
+			this.chartData.push(this.buildData(series,
+											   series.humidity,
 											   'Humidity',
-											   'y-humidity',
+											   'yHumidity',
+											   '% R.H.',
 											   this.colors.humidity));
 		}
-		if ( value.temperature.length > 0 ) {
-			this.chartData.push(this.buildData(value.temperature,
+		if ( series.temperature.length > 0 ) {
+			this.chartData.push(this.buildData(series,
+											   series.temperature,
 											   'Temperature',
-											   'y-temperature',
+											   'yTemperature',
+											   '°C',
 											   this.colors.temperature));
 		}
-		let numAux = Math.min(3,value.temperatureAux.length)
+		let numAux = Math.min(3,series.temperatureAux.length)
 		for ( let i = 0; i < numAux; i++ ) {
-			this.chartData.push(this.buildData(value.temperatureAux[i],
+			this.chartData.push(this.buildData(series,
+											   series.temperatureAux[i],
 											   'Temperature Aux ' + i,
-											   'y-temperature',
+											   'yTemperature',
+											   '°C',
 											   this.colors.aux[i]));
 		}
 	}
