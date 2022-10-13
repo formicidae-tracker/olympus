@@ -49,7 +49,7 @@ func NewZoneLogger(declaration *olympuspb.ZoneDeclaration) ZoneLogger {
 		NewClimateDataDownsampler(10*time.Minute, time.Minute, 500),
 		NewClimateDataDownsampler(1*time.Hour, time.Minute, 400),
 		NewClimateDataDownsampler(24*time.Hour, time.Hour, 300),
-		NewClimateDataDownsampler(7*24*time.Hour, time.Hour, 300),
+		NewClimateDataDownsampler(7*24*time.Hour, 24*time.Hour, 300),
 	}
 	samplersByWindow := map[string]ClimateDataDownsampler{
 		"10-minute":  samplers[0],
@@ -250,7 +250,12 @@ func (l *zoneLogger) GetAlarmReports() []AlarmReport {
 func (l *zoneLogger) GetClimateReport() ZoneClimateReport {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
-	return deepcopy.MustAnything(l.currentReport).(ZoneClimateReport)
+	res := deepcopy.MustAnything(l.currentReport).(ZoneClimateReport)
+	if l.currentReport.NextTime != nil {
+		res.NextTime = new(time.Time)
+		*res.NextTime = *l.currentReport.NextTime
+	}
+	return res
 }
 
 func (l *zoneLogger) Host() string {
