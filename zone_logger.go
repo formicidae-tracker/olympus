@@ -89,6 +89,7 @@ func buildBatch(reports []*olympuspb.ClimateReport) TimedValues {
 	if len(reports) == 0 {
 		return TimedValues{}
 	}
+
 	times := make([]time.Time, len(reports))
 	values := make([][]float32, 0)
 
@@ -128,9 +129,10 @@ func (l *zoneLogger) PushReports(reports []*olympuspb.ClimateReport) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 
-	toAdd := buildBatch(reports)
 	for _, s := range l.samplers {
-		s.Add(toAdd)
+		// we should rebuild the batch for each samplers as slices
+		// gets modified by frequency cut-offs
+		s.Add(buildBatch(reports))
 	}
 
 	lastReport := reports[len(reports)-1]

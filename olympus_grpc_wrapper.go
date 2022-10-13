@@ -95,7 +95,7 @@ func (o *OlympusGRPCWrapper) Zone(stream olympuspb.Olympus_ZoneServer) (err erro
 	}()
 	ack := &olympuspb.ZoneDownStream{}
 	handleMessage := func(m *olympuspb.ZoneUpStream) (*olympuspb.ZoneDownStream, error) {
-
+		var confirmation *olympuspb.ZoneDownStream
 		if z == nil {
 			if m.Declaration == nil {
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain ZoneDeclaration")
@@ -104,6 +104,11 @@ func (o *OlympusGRPCWrapper) Zone(stream olympuspb.Olympus_ZoneServer) (err erro
 			z, finish, err = (*Olympus)(o).RegisterZone(m.Declaration)
 			if err != nil {
 				return nil, mapError(err)
+			}
+			confirmation = &olympuspb.ZoneDownStream{
+				RegistrationConfirmation: &olympuspb.ZoneRegistrationConfirmation{
+					PageSize: int32(BackLogPageSize),
+				},
 			}
 		}
 
@@ -116,6 +121,11 @@ func (o *OlympusGRPCWrapper) Zone(stream olympuspb.Olympus_ZoneServer) (err erro
 		if len(m.Reports) > 0 {
 			z.PushReports(m.Reports)
 		}
+
+		if confirmation != nil {
+			return confirmation, nil
+		}
+
 		return ack, nil
 	}
 

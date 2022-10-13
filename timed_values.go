@@ -210,6 +210,7 @@ func frequencyCutoff(times []time.Time, values [][]float32, minimumPeriod time.D
 	if len(times) == 0 {
 		return nil, nil
 	}
+
 	copyValues := func(dst, src int) {
 		times[dst] = times[src]
 		for _, v := range values {
