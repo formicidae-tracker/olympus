@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
-	"net/rpc"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"sync"
 
+	"github.com/formicidae-tracker/olympus/olympuspb"
 	"github.com/gorilla/mux"
 	"github.com/jessevdk/go-flags"
+	"google.golang.org/grpc"
 )
 
 //go:generate go run generate_version.go
@@ -62,15 +64,10 @@ func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
 	return NewGracefulServer(httpServer)
 }
 
-func setUpRpcServer(o *Olympus, opts Options) GracefulServer {
-	rpcRouter := rpc.NewServer()
-	rpcRouter.RegisterName("Olympus", (*OlympusGRPCWrapper)(o))
-	rpcRouter.HandleHTTP(rpc.DefaultRPCPath, rpc.DefaultDebugPath)
-	rpcServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", opts.RPC),
-		Handler: rpcRouter,
-	}
-	return NewGracefulServer(rpcServer)
+func setUpRpcServer(o *Olympus, opts Options) *grpc.Server {
+	server := grpc.NewServer(olympuspb.DefaultServerOptions...)
+	olympuspb.RegisterOlympusServer(server, (*OlympusGRPCWrapper)(o))
+	return server
 }
 
 func Execute() error {
@@ -110,9 +107,15 @@ func Execute() error {
 
 	wg.Add(1)
 	go func() {
-		log.Printf("[rpc]: listening on :%d", opts.RPC)
-		err := rpcServer.Run()
+		l, err := net.Listen("tcp", fmt.Sprintf(":%d", opts.RPC))
 		if err != nil {
+			log.Printf("[rpc]: could not listen on :%d : %s", opts.RPC, err)
+			return
+		}
+
+		log.Printf("[rpc]: listening on :%d", opts.RPC)
+		err = rpcServer.Serve(l)
+		if err != nil && err != grpc.ErrServerStopped {
 			log.Printf("[rpc]: unhandled error: %s", err)
 		}
 		wg.Done()
@@ -122,17 +125,23 @@ func Execute() error {
 	signal.Notify(sigint, os.Interrupt)
 	<-sigint
 
-	if err := rpcServer.Close(); err != nil {
-		log.Printf("[rpc]: stop error: %s", err)
-	}
+	wg.Add(1)
+	go func() {
+		rpcServer.GracefulStop()
+		wg.Done()
+	}()
 
 	if err := httpServer.Close(); err != nil {
 		log.Printf("[http]: stop error: %s", err)
 	}
 
+	if err := o.Close(); err != nil {
+		log.Printf("[olympus]: close failure: %s", err)
+	}
+
 	wg.Wait()
 
-	return o.Close()
+	return nil
 }
 
 func main() {
