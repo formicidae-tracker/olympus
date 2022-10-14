@@ -17,7 +17,7 @@ import { ZonePreviewComponent } from './zone-preview/zone-preview.component';
 import { OlympusService } from '@services/olympus';
 import { ClimateViewComponent } from './climate-view/climate-view.component';
 import { StateComponent } from './state/state.component';
-//import { VideoJsComponent } from './video-js/video-js.component';
+import { VideoPlayerComponent } from './video-player/video-player.component';
 import { AlarmListComponent } from './alarm-list/alarm-list.component';
 import { ClimateChartComponent } from './climate-chart/climate-chart.component';
 import { NgChartsModule } from 'ng2-charts';
@@ -41,7 +41,7 @@ import { LogsComponent } from './logs/logs.component';
 		ZonePreviewComponent,
 		ClimateViewComponent,
 		StateComponent,
-//		VideoJsComponent,
+		VideoPlayerComponent,
 		AlarmListComponent,
 		ClimateChartComponent,
 		LogsComponent,
