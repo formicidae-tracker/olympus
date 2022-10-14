@@ -42,6 +42,13 @@ type {{. -}} Connection struct {
 	log         *log.Logger
 }
 
+// Creates an new unconnected {{ . -}} Connection.
+func New {{- . -}} ConnectionWithLogger(logger *log.Logger) * {{- . -}} Connection {
+	return & {{- . -}} Connection{
+		log: logger,
+	}
+}
+
 // Send sends a {{. -}} UpStream message and gets it {{. -}} DownStream
 // response (typically acknowledge).
 func (c * {{- . -}} Connection) Send(m * {{- . -}} UpStream) (* {{- . -}} DownStream, error) {

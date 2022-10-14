@@ -19,6 +19,13 @@ type ZoneConnection struct {
 	log         *log.Logger
 }
 
+// Creates an new unconnected ZoneConnection.
+func NewZoneConnectionWithLogger(logger *log.Logger) *ZoneConnection {
+	return &ZoneConnection{
+		log: logger,
+	}
+}
+
 // Send sends a ZoneUpStream message and gets it ZoneDownStream
 // response (typically acknowledge).
 func (c *ZoneConnection) Send(m *ZoneUpStream) (*ZoneDownStream, error) {
@@ -127,6 +134,13 @@ type TrackingConnection struct {
 	stream      Olympus_TrackingClient
 	acknowledge *TrackingDownStream
 	log         *log.Logger
+}
+
+// Creates an new unconnected TrackingConnection.
+func NewTrackingConnectionWithLogger(logger *log.Logger) *TrackingConnection {
+	return &TrackingConnection{
+		log: logger,
+	}
 }
 
 // Send sends a TrackingUpStream message and gets it TrackingDownStream
