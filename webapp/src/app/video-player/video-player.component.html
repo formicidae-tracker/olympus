@@ -1,1 +1,14 @@
-Coucou {{url}} {{thumbnail}}
+<vg-player>
+  <vg-overlay-play></vg-overlay-play>
+  <vg-buffering></vg-buffering>
+
+  <vg-controls [vgAutohide]="true">
+    <vg-play-pause></vg-play-pause>
+    <div class="live_preview_badge">Live</div>
+	<vg-scrub-bar style="pointer-events: none;"></vg-scrub-bar>
+	<vg-fullscreen></vg-fullscreen>
+  </vg-controls>
+
+  <video #media #vgHls="vgHls" [vgMedia]="media" [vgHls]="url" id="singleVideo" crossorigin>
+  </video>
+</vg-player>
