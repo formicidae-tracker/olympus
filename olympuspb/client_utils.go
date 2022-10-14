@@ -31,6 +31,12 @@ func (c *ZoneConnection) Established() bool {
 	return c.conn != nil && c.stream != nil
 }
 
+// Confirmation returns the ZoneDownStream acknowledgement for the
+// olympus server declaration. It can be empty.
+func (c *ZoneConnection) Confirmation() *ZoneDownStream {
+	return c.acknowledge
+}
+
 // Send sends a ZoneUpStream message and gets it ZoneDownStream
 // response (typically acknowledge).
 func (c *ZoneConnection) Send(m *ZoneUpStream) (*ZoneDownStream, error) {
@@ -54,6 +60,7 @@ func (c *ZoneConnection) CloseStream() {
 		}
 	}
 	c.stream = nil
+	c.acknowledge = nil
 }
 
 // CloseAndLogErrors() close completely the ZoneConnection, avoiding
@@ -159,6 +166,12 @@ func (c *TrackingConnection) Established() bool {
 	return c.conn != nil && c.stream != nil
 }
 
+// Confirmation returns the TrackingDownStream acknowledgement for the
+// olympus server declaration. It can be empty.
+func (c *TrackingConnection) Confirmation() *TrackingDownStream {
+	return c.acknowledge
+}
+
 // Send sends a TrackingUpStream message and gets it TrackingDownStream
 // response (typically acknowledge).
 func (c *TrackingConnection) Send(m *TrackingUpStream) (*TrackingDownStream, error) {
@@ -182,6 +195,7 @@ func (c *TrackingConnection) CloseStream() {
 		}
 	}
 	c.stream = nil
+	c.acknowledge = nil
 }
 
 // CloseAndLogErrors() close completely the TrackingConnection, avoiding

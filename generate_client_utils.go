@@ -54,6 +54,12 @@ func (c * {{- . -}} Connection) Established() bool {
 	return c.conn != nil && c.stream != nil
 }
 
+// Confirmation returns the {{ . -}} DownStream acknowledgement for the
+// olympus server declaration. It can be empty.
+func (c * {{- . -}} Connection) Confirmation() * {{- . -}} DownStream {
+	return c.acknowledge
+}
+
 // Send sends a {{. -}} UpStream message and gets it {{. -}} DownStream
 // response (typically acknowledge).
 func (c * {{- . -}} Connection) Send(m * {{- . -}} UpStream) (* {{- . -}} DownStream, error) {
@@ -77,6 +83,7 @@ func ( c * {{- . -}} Connection) CloseStream() {
 		}
 	}
 	c.stream = nil
+	c.acknowledge = nil
 }
 
 // CloseAndLogErrors() close completely the {{ . -}} Connection, avoiding
