@@ -85,7 +85,9 @@ func (c *ZoneConnection) Connect(address string, declaration *ZoneDeclaration, o
 		}
 		res.CloseAndLogErrors()
 	}()
-	res.log = c.log
+	res = &ZoneConnection{
+		log: c.log,
+	}
 	if c.conn == nil {
 		dialOptions := append(DefaultDialOptions, opts...)
 		if res.log != nil {
@@ -220,7 +222,9 @@ func (c *TrackingConnection) Connect(address string, declaration *TrackingDeclar
 		}
 		res.CloseAndLogErrors()
 	}()
-	res.log = c.log
+	res = &TrackingConnection{
+		log: c.log,
+	}
 	if c.conn == nil {
 		dialOptions := append(DefaultDialOptions, opts...)
 		if res.log != nil {

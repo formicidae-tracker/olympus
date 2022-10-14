@@ -108,7 +108,9 @@ func (c * {{- . -}} Connection) Connect(address string, declaration * {{- . -}} 
 		}
 		res.CloseAndLogErrors()
 	}()
-	res.log = c.log
+	res = & {{- . -}} Connection{
+		log: c.log,
+	}
 	if c.conn == nil {
 		dialOptions := append(DefaultDialOptions, opts...)
 		if res.log != nil {
