@@ -26,6 +26,11 @@ func NewZoneConnectionWithLogger(logger *log.Logger) *ZoneConnection {
 	}
 }
 
+// Established returns true if connection is established.
+func (c *ZoneConnection) Established() bool {
+	return c.conn != nil && c.stream != nil
+}
+
 // Send sends a ZoneUpStream message and gets it ZoneDownStream
 // response (typically acknowledge).
 func (c *ZoneConnection) Send(m *ZoneUpStream) (*ZoneDownStream, error) {
@@ -141,6 +146,11 @@ func NewTrackingConnectionWithLogger(logger *log.Logger) *TrackingConnection {
 	return &TrackingConnection{
 		log: logger,
 	}
+}
+
+// Established returns true if connection is established.
+func (c *TrackingConnection) Established() bool {
+	return c.conn != nil && c.stream != nil
 }
 
 // Send sends a TrackingUpStream message and gets it TrackingDownStream

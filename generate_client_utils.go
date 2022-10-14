@@ -49,6 +49,11 @@ func New {{- . -}} ConnectionWithLogger(logger *log.Logger) * {{- . -}} Connecti
 	}
 }
 
+// Established returns true if connection is established.
+func (c * {{- . -}} Connection) Established() bool {
+	return c.conn != nil && c.stream != nil
+}
+
 // Send sends a {{. -}} UpStream message and gets it {{. -}} DownStream
 // response (typically acknowledge).
 func (c * {{- . -}} Connection) Send(m * {{- . -}} UpStream) (* {{- . -}} DownStream, error) {
