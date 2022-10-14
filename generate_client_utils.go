@@ -39,14 +39,6 @@ type {{. -}} Connection struct {
 	conn        *grpc.ClientConn
 	stream      Olympus_ {{- . -}} Client
 	acknowledge * {{- . -}} DownStream
-	log         *log.Logger
-}
-
-// Creates an new unconnected {{ . -}} Connection.
-func New {{- . -}} ConnectionWithLogger(logger *log.Logger) * {{- . -}} Connection {
-	return & {{- . -}} Connection{
-		log: logger,
-	}
 }
 
 // Established returns true if connection is established.
@@ -58,6 +50,11 @@ func (c * {{- . -}} Connection) Established() bool {
 // olympus server declaration. It can be empty.
 func (c * {{- . -}} Connection) Confirmation() * {{- . -}} DownStream {
 	return c.acknowledge
+}
+
+// ClientConn returns the underlying grpc.ClientConn
+func (c * {{- . -}} Connection) ClienConn() *grpc.ClientConn {
+	return c.conn
 }
 
 // Send sends a {{. -}} UpStream message and gets it {{. -}} DownStream
@@ -74,55 +71,61 @@ func (c * {{- . -}} Connection) Send(m * {{- . -}} UpStream) (* {{- . -}} DownSt
 }
 
 // CloseStream close only the bi-directional string, but keeps the tcp
-// connection alive.
-func ( c * {{- . -}} Connection) CloseStream() {
+// connection alive. If logger is non-nil, will log any error to it.
+func ( c * {{- . -}} Connection) CloseStream(logger *log.Logger) {
 	if c.stream != nil {
 		err := c.stream.CloseSend()
-		if err != nil && c.log != nil {
-			c.log.Printf("gRPC CloseSend() failure: %s", err)
+		if err != nil && logger != nil {
+			logger.Printf("gRPC CloseSend() failure: %s", err)
 		}
 	}
 	c.stream = nil
 	c.acknowledge = nil
 }
 
-// CloseAndLogErrors() close completely the {{ . -}} Connection, avoiding
-// any leaking.
-func (c * {{- . -}} Connection) CloseAndLogErrors() {
-	c.CloseStream()
+// CloseAll() close completely the {{ . -}} Connection, avoiding any
+// leaking routine. If logger is non-nil, will use it to log any
+// error.
+func (c * {{- . -}} Connection) CloseAll(logger *log.Logger) {
+	c.CloseStream(logger)
 	if c.conn != nil {
 		err := c.conn.Close()
-		if err != nil && c.log != nil {
-			c.log.Printf("gRPC Close() failure: %s", err)
+		if err != nil && logger != nil {
+			logger.Printf("gRPC Close() failure: %s", err)
 		}
 	}
 	c.conn = nil
 }
 
-// Connect connects, a possibly half-connected {{ . -}} Connection,
-// and return a new connection.
-func (c * {{- . -}} Connection) Connect(address string, declaration * {{- . -}} Declaration, opts ...grpc.DialOption) (res * {{- . -}} Connection, err error) {
+// Connect {{- .}} connects a {{ . -}} Connection, to address, potentially
+// re-using conn if non-nil.
+func Connect {{- . -}} (conn *grpc.ClientConn,
+	address string,
+	declaration * {{- . -}} Declaration,
+	logger *log.Logger,
+	opts ...grpc.DialOption) (res * {{- . -}} Connection, err error) {
+
+	res = & {{- . -}} Connection{}
 	defer func() {
 		if err == nil {
 			return
 		}
-		res.CloseAndLogErrors()
+		res.CloseAll(logger)
 	}()
-	res = & {{- . -}} Connection{
-		log: c.log,
-	}
-	if c.conn == nil {
+
+	if conn == nil {
 		dialOptions := append(DefaultDialOptions, opts...)
-		if res.log != nil {
-			res.log.Printf("Dialing '%s'", address)
+		if logger != nil {
+			logger.Printf("Dialing '%s'", address)
 		}
 		res.conn, err = grpc.Dial(address, dialOptions...)
 		if err != nil {
 			return
 		}
 	} else {
-		res.conn = c.conn
+		res.conn = conn
 	}
+
 	client := NewOlympusClient(res.conn)
 
 	res.stream, err = client. {{- . -}} (context.Background(), DefaultCallOptions...)
@@ -135,34 +138,39 @@ func (c * {{- . -}} Connection) Connect(address string, declaration * {{- . -}} 
 	return
 }
 
-// ConnectAsync Connects a posibly half-connected {{ . -}} Connection
-// asynchronously.
-func (c * {{- . -}} Connection) ConnectAsync(address string,
+// Connect {{- . -}} Async connects a {{ . -}} Connection asynchronously.
+func Connect {{- . -}} Async(conn *grpc.ClientConn,
+	address string,
 	declaration * {{- . -}} Declaration,
+	logger *log.Logger,
 	opts ...grpc.DialOption) (<-chan * {{- . -}} Connection, <-chan error) {
 
 	errors := make(chan error)
 	connections := make(chan * {{- . -}} Connection)
+
 	declaration = deepcopy.MustAnything(declaration).(* {{- . -}} Declaration)
 
 	go func() {
-		conn, err := c.Connect(address, declaration, opts...)
+		defer close(connections)
+		defer close(errors)
+
+		c, err := Connect {{- . -}} (conn,address, declaration, logger, opts...)
 		if err != nil {
 			select {
 			case errors <- err:
 			default:
-				if c.log != nil {
-					c.log.Printf("gRPC connection failed after shutdown: %s", err)
+				if logger != nil {
+					logger.Printf("gRPC connection failed after shutdown: %s", err)
 				}
 			}
 		} else {
 			select {
-			case connections <- conn:
+			case connections <- c:
 			default:
-				if c.log != nil {
-					c.log.Printf("gRPC connection established after shutdown. Closing it")
+				if logger != nil {
+					logger.Printf("gRPC connection established after shutdown. Closing it")
 				}
-				conn.CloseAndLogErrors()
+				c.CloseAll(logger)
 			}
 		}
 	}()

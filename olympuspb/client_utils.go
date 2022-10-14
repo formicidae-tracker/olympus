@@ -16,14 +16,6 @@ type ZoneConnection struct {
 	conn        *grpc.ClientConn
 	stream      Olympus_ZoneClient
 	acknowledge *ZoneDownStream
-	log         *log.Logger
-}
-
-// Creates an new unconnected ZoneConnection.
-func NewZoneConnectionWithLogger(logger *log.Logger) *ZoneConnection {
-	return &ZoneConnection{
-		log: logger,
-	}
 }
 
 // Established returns true if connection is established.
@@ -35,6 +27,11 @@ func (c *ZoneConnection) Established() bool {
 // olympus server declaration. It can be empty.
 func (c *ZoneConnection) Confirmation() *ZoneDownStream {
 	return c.acknowledge
+}
+
+// ClientConn returns the underlying grpc.ClientConn
+func (c *ZoneConnection) ClienConn() *grpc.ClientConn {
+	return c.conn
 }
 
 // Send sends a ZoneUpStream message and gets it ZoneDownStream
@@ -51,55 +48,61 @@ func (c *ZoneConnection) Send(m *ZoneUpStream) (*ZoneDownStream, error) {
 }
 
 // CloseStream close only the bi-directional string, but keeps the tcp
-// connection alive.
-func (c *ZoneConnection) CloseStream() {
+// connection alive. If logger is non-nil, will log any error to it.
+func (c *ZoneConnection) CloseStream(logger *log.Logger) {
 	if c.stream != nil {
 		err := c.stream.CloseSend()
-		if err != nil && c.log != nil {
-			c.log.Printf("gRPC CloseSend() failure: %s", err)
+		if err != nil && logger != nil {
+			logger.Printf("gRPC CloseSend() failure: %s", err)
 		}
 	}
 	c.stream = nil
 	c.acknowledge = nil
 }
 
-// CloseAndLogErrors() close completely the ZoneConnection, avoiding
-// any leaking.
-func (c *ZoneConnection) CloseAndLogErrors() {
-	c.CloseStream()
+// CloseAll() close completely the ZoneConnection, avoiding any
+// leaking routine. If logger is non-nil, will use it to log any
+// error.
+func (c *ZoneConnection) CloseAll(logger *log.Logger) {
+	c.CloseStream(logger)
 	if c.conn != nil {
 		err := c.conn.Close()
-		if err != nil && c.log != nil {
-			c.log.Printf("gRPC Close() failure: %s", err)
+		if err != nil && logger != nil {
+			logger.Printf("gRPC Close() failure: %s", err)
 		}
 	}
 	c.conn = nil
 }
 
-// Connect connects, a possibly half-connected ZoneConnection,
-// and return a new connection.
-func (c *ZoneConnection) Connect(address string, declaration *ZoneDeclaration, opts ...grpc.DialOption) (res *ZoneConnection, err error) {
+// ConnectZone connects a ZoneConnection, to address, potentially
+// re-using conn if non-nil.
+func ConnectZone(conn *grpc.ClientConn,
+	address string,
+	declaration *ZoneDeclaration,
+	logger *log.Logger,
+	opts ...grpc.DialOption) (res *ZoneConnection, err error) {
+
+	res = &ZoneConnection{}
 	defer func() {
 		if err == nil {
 			return
 		}
-		res.CloseAndLogErrors()
+		res.CloseAll(logger)
 	}()
-	res = &ZoneConnection{
-		log: c.log,
-	}
-	if c.conn == nil {
+
+	if conn == nil {
 		dialOptions := append(DefaultDialOptions, opts...)
-		if res.log != nil {
-			res.log.Printf("Dialing '%s'", address)
+		if logger != nil {
+			logger.Printf("Dialing '%s'", address)
 		}
 		res.conn, err = grpc.Dial(address, dialOptions...)
 		if err != nil {
 			return
 		}
 	} else {
-		res.conn = c.conn
+		res.conn = conn
 	}
+
 	client := NewOlympusClient(res.conn)
 
 	res.stream, err = client.Zone(context.Background(), DefaultCallOptions...)
@@ -112,34 +115,39 @@ func (c *ZoneConnection) Connect(address string, declaration *ZoneDeclaration, o
 	return
 }
 
-// ConnectAsync Connects a posibly half-connected ZoneConnection
-// asynchronously.
-func (c *ZoneConnection) ConnectAsync(address string,
+// ConnectZoneAsync connects a ZoneConnection asynchronously.
+func ConnectZoneAsync(conn *grpc.ClientConn,
+	address string,
 	declaration *ZoneDeclaration,
+	logger *log.Logger,
 	opts ...grpc.DialOption) (<-chan *ZoneConnection, <-chan error) {
 
 	errors := make(chan error)
 	connections := make(chan *ZoneConnection)
+
 	declaration = deepcopy.MustAnything(declaration).(*ZoneDeclaration)
 
 	go func() {
-		conn, err := c.Connect(address, declaration, opts...)
+		defer close(connections)
+		defer close(errors)
+
+		c, err := ConnectZone(conn, address, declaration, logger, opts...)
 		if err != nil {
 			select {
 			case errors <- err:
 			default:
-				if c.log != nil {
-					c.log.Printf("gRPC connection failed after shutdown: %s", err)
+				if logger != nil {
+					logger.Printf("gRPC connection failed after shutdown: %s", err)
 				}
 			}
 		} else {
 			select {
-			case connections <- conn:
+			case connections <- c:
 			default:
-				if c.log != nil {
-					c.log.Printf("gRPC connection established after shutdown. Closing it")
+				if logger != nil {
+					logger.Printf("gRPC connection established after shutdown. Closing it")
 				}
-				conn.CloseAndLogErrors()
+				c.CloseAll(logger)
 			}
 		}
 	}()
@@ -153,14 +161,6 @@ type TrackingConnection struct {
 	conn        *grpc.ClientConn
 	stream      Olympus_TrackingClient
 	acknowledge *TrackingDownStream
-	log         *log.Logger
-}
-
-// Creates an new unconnected TrackingConnection.
-func NewTrackingConnectionWithLogger(logger *log.Logger) *TrackingConnection {
-	return &TrackingConnection{
-		log: logger,
-	}
 }
 
 // Established returns true if connection is established.
@@ -172,6 +172,11 @@ func (c *TrackingConnection) Established() bool {
 // olympus server declaration. It can be empty.
 func (c *TrackingConnection) Confirmation() *TrackingDownStream {
 	return c.acknowledge
+}
+
+// ClientConn returns the underlying grpc.ClientConn
+func (c *TrackingConnection) ClienConn() *grpc.ClientConn {
+	return c.conn
 }
 
 // Send sends a TrackingUpStream message and gets it TrackingDownStream
@@ -188,55 +193,61 @@ func (c *TrackingConnection) Send(m *TrackingUpStream) (*TrackingDownStream, err
 }
 
 // CloseStream close only the bi-directional string, but keeps the tcp
-// connection alive.
-func (c *TrackingConnection) CloseStream() {
+// connection alive. If logger is non-nil, will log any error to it.
+func (c *TrackingConnection) CloseStream(logger *log.Logger) {
 	if c.stream != nil {
 		err := c.stream.CloseSend()
-		if err != nil && c.log != nil {
-			c.log.Printf("gRPC CloseSend() failure: %s", err)
+		if err != nil && logger != nil {
+			logger.Printf("gRPC CloseSend() failure: %s", err)
 		}
 	}
 	c.stream = nil
 	c.acknowledge = nil
 }
 
-// CloseAndLogErrors() close completely the TrackingConnection, avoiding
-// any leaking.
-func (c *TrackingConnection) CloseAndLogErrors() {
-	c.CloseStream()
+// CloseAll() close completely the TrackingConnection, avoiding any
+// leaking routine. If logger is non-nil, will use it to log any
+// error.
+func (c *TrackingConnection) CloseAll(logger *log.Logger) {
+	c.CloseStream(logger)
 	if c.conn != nil {
 		err := c.conn.Close()
-		if err != nil && c.log != nil {
-			c.log.Printf("gRPC Close() failure: %s", err)
+		if err != nil && logger != nil {
+			logger.Printf("gRPC Close() failure: %s", err)
 		}
 	}
 	c.conn = nil
 }
 
-// Connect connects, a possibly half-connected TrackingConnection,
-// and return a new connection.
-func (c *TrackingConnection) Connect(address string, declaration *TrackingDeclaration, opts ...grpc.DialOption) (res *TrackingConnection, err error) {
+// ConnectTracking connects a TrackingConnection, to address, potentially
+// re-using conn if non-nil.
+func ConnectTracking(conn *grpc.ClientConn,
+	address string,
+	declaration *TrackingDeclaration,
+	logger *log.Logger,
+	opts ...grpc.DialOption) (res *TrackingConnection, err error) {
+
+	res = &TrackingConnection{}
 	defer func() {
 		if err == nil {
 			return
 		}
-		res.CloseAndLogErrors()
+		res.CloseAll(logger)
 	}()
-	res = &TrackingConnection{
-		log: c.log,
-	}
-	if c.conn == nil {
+
+	if conn == nil {
 		dialOptions := append(DefaultDialOptions, opts...)
-		if res.log != nil {
-			res.log.Printf("Dialing '%s'", address)
+		if logger != nil {
+			logger.Printf("Dialing '%s'", address)
 		}
 		res.conn, err = grpc.Dial(address, dialOptions...)
 		if err != nil {
 			return
 		}
 	} else {
-		res.conn = c.conn
+		res.conn = conn
 	}
+
 	client := NewOlympusClient(res.conn)
 
 	res.stream, err = client.Tracking(context.Background(), DefaultCallOptions...)
@@ -249,34 +260,39 @@ func (c *TrackingConnection) Connect(address string, declaration *TrackingDeclar
 	return
 }
 
-// ConnectAsync Connects a posibly half-connected TrackingConnection
-// asynchronously.
-func (c *TrackingConnection) ConnectAsync(address string,
+// ConnectTrackingAsync connects a TrackingConnection asynchronously.
+func ConnectTrackingAsync(conn *grpc.ClientConn,
+	address string,
 	declaration *TrackingDeclaration,
+	logger *log.Logger,
 	opts ...grpc.DialOption) (<-chan *TrackingConnection, <-chan error) {
 
 	errors := make(chan error)
 	connections := make(chan *TrackingConnection)
+
 	declaration = deepcopy.MustAnything(declaration).(*TrackingDeclaration)
 
 	go func() {
-		conn, err := c.Connect(address, declaration, opts...)
+		defer close(connections)
+		defer close(errors)
+
+		c, err := ConnectTracking(conn, address, declaration, logger, opts...)
 		if err != nil {
 			select {
 			case errors <- err:
 			default:
-				if c.log != nil {
-					c.log.Printf("gRPC connection failed after shutdown: %s", err)
+				if logger != nil {
+					logger.Printf("gRPC connection failed after shutdown: %s", err)
 				}
 			}
 		} else {
 			select {
-			case connections <- conn:
+			case connections <- c:
 			default:
-				if c.log != nil {
-					c.log.Printf("gRPC connection established after shutdown. Closing it")
+				if logger != nil {
+					logger.Printf("gRPC connection established after shutdown. Closing it")
 				}
-				conn.CloseAndLogErrors()
+				c.CloseAll(logger)
 			}
 		}
 	}()

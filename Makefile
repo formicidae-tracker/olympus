@@ -1,4 +1,4 @@
-all: olympus webapp olympus-stream-notifier/olympus-stream-notifier check
+all: olympus olympus-stream-notifier/olympus-stream-notifier check webapp
 
 clean:
 	rm -f olympus
@@ -13,6 +13,7 @@ olympus: *.go olympuspb/*.go olympuspb/*.proto
 check:
 	go test
 	go vet
+	make -C olympuspb check
 
 webapp:
 	make -C webapp
