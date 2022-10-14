@@ -44,9 +44,9 @@ func (c *ZoneConnection) Send(m *ZoneUpStream) (*ZoneDownStream, error) {
 	return c.stream.Recv()
 }
 
-// CloseAndLogErrors() close completely the ZoneConnection, avoiding
-// any leaking.
-func (c *ZoneConnection) CloseAndLogErrors() {
+// CloseStream close only the bi-directional string, but keeps the tcp
+// connection alive.
+func (c *ZoneConnection) CloseStream() {
 	if c.stream != nil {
 		err := c.stream.CloseSend()
 		if err != nil && c.log != nil {
@@ -54,6 +54,12 @@ func (c *ZoneConnection) CloseAndLogErrors() {
 		}
 	}
 	c.stream = nil
+}
+
+// CloseAndLogErrors() close completely the ZoneConnection, avoiding
+// any leaking.
+func (c *ZoneConnection) CloseAndLogErrors() {
+	c.CloseStream()
 	if c.conn != nil {
 		err := c.conn.Close()
 		if err != nil && c.log != nil {
@@ -166,9 +172,9 @@ func (c *TrackingConnection) Send(m *TrackingUpStream) (*TrackingDownStream, err
 	return c.stream.Recv()
 }
 
-// CloseAndLogErrors() close completely the TrackingConnection, avoiding
-// any leaking.
-func (c *TrackingConnection) CloseAndLogErrors() {
+// CloseStream close only the bi-directional string, but keeps the tcp
+// connection alive.
+func (c *TrackingConnection) CloseStream() {
 	if c.stream != nil {
 		err := c.stream.CloseSend()
 		if err != nil && c.log != nil {
@@ -176,6 +182,12 @@ func (c *TrackingConnection) CloseAndLogErrors() {
 		}
 	}
 	c.stream = nil
+}
+
+// CloseAndLogErrors() close completely the TrackingConnection, avoiding
+// any leaking.
+func (c *TrackingConnection) CloseAndLogErrors() {
+	c.CloseStream()
 	if c.conn != nil {
 		err := c.conn.Close()
 		if err != nil && c.log != nil {

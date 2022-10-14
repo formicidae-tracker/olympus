@@ -67,9 +67,9 @@ func (c * {{- . -}} Connection) Send(m * {{- . -}} UpStream) (* {{- . -}} DownSt
 	return c.stream.Recv()
 }
 
-// CloseAndLogErrors() close completely the {{ . -}} Connection, avoiding
-// any leaking.
-func (c * {{- . -}} Connection) CloseAndLogErrors() {
+// CloseStream close only the bi-directional string, but keeps the tcp
+// connection alive.
+func ( c * {{- . -}} Connection) CloseStream() {
 	if c.stream != nil {
 		err := c.stream.CloseSend()
 		if err != nil && c.log != nil {
@@ -77,6 +77,12 @@ func (c * {{- . -}} Connection) CloseAndLogErrors() {
 		}
 	}
 	c.stream = nil
+}
+
+// CloseAndLogErrors() close completely the {{ . -}} Connection, avoiding
+// any leaking.
+func (c * {{- . -}} Connection) CloseAndLogErrors() {
+	c.CloseStream()
 	if c.conn != nil {
 		err := c.conn.Close()
 		if err != nil && c.log != nil {
