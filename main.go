@@ -18,6 +18,8 @@ import (
 )
 
 //go:generate go run generate_version.go
+//go:generate go run generate_client_utils.go
+//go:generate go fmt olympuspb/client_utils.go
 //go:generate protoc --experimental_allow_proto3_optional  --go_out=olympuspb --go-grpc_out=olympuspb ./olympuspb/olympus_service.proto
 
 type Options struct {
