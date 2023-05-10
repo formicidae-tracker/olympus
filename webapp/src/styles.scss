@@ -7,9 +7,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 
-$olympus-light-primary: mat.define-palette(mat.$indigo-palette);
-$olympus-light-accent: mat.define-palette(mat.$pink-palette, A200, A100, A400);
-$olympus-light-warn: mat.define-palette(mat.$red-palette);
+$olympus-light-primary: mat.define-palette(mat.$teal-palette, 300, 500,900);
+$olympus-light-accent: mat.define-palette(mat.$amber-palette, A200, A100, A400);
+$olympus-light-warn: mat.define-palette(mat.$red-palette, A100);
 
 $olympus-light-theme: mat.define-light-theme((
   color: (
@@ -24,10 +24,10 @@ $olympus-light-theme: mat.define-light-theme((
 // Dark Theme
 ////////////////////////////////////////////////////////////////////////////////
 
-$olympus-dark-primary: mat.define-palette(mat.$indigo-palette);
-$olympus-dark-accent: mat.define-palette(mat.$pink-palette, A200, A100, A400);
-$olympus-dark-warn: mat.define-palette(mat.$red-palette);
-
+$olympus-dark-primary: mat.define-palette(mat.$teal-palette,300,500,900);
+$olympus-dark-accent: mat.define-palette(mat.$amber-palette, A200, A100, A400);
+$olympus-dark-warn: mat.define-palette(mat.$red-palette,A100);
+$olympus-dark-on-primary: mat.define-palette(mat.$amber-palette,  A100);
 
 @include mat.all-component-themes($olympus-light-theme);
 
