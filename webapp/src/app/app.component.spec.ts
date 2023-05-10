@@ -1,36 +1,29 @@
-import { TestBed, waitForAsync } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 
-
 describe('AppComponent', () => {
-	beforeEach(waitForAsync(() => {
-		TestBed.configureTestingModule({
-			imports: [
-				RouterTestingModule,
-			],
-			declarations: [
-				AppComponent,
-			],
-		}).compileComponents();
-	}));
+  beforeEach(() => TestBed.configureTestingModule({
+    imports: [RouterTestingModule],
+    declarations: [AppComponent]
+  }));
 
-	it('should create the app', () => {
+  it('should create the app', () => {
     const fixture = TestBed.createComponent(AppComponent);
-		const app = fixture.debugElement.componentInstance;
-		expect(app).toBeTruthy();
-	});
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
+  });
 
-	it(`should have as title 'Olympus'`, () => {
-		const fixture = TestBed.createComponent(AppComponent);
-		const app = fixture.debugElement.componentInstance;
-		expect(app.title).toEqual('Olympus');
-	});
+  it(`should have as title 'olympus'`, () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    expect(app.title).toEqual('olympus');
+  });
 
-	it('should render title in a header tag', () => {
-		const fixture = TestBed.createComponent(AppComponent);
-		fixture.detectChanges();
-		const compiled = fixture.debugElement.nativeElement;
-		expect(compiled.querySelector('header').textContent).toContain('FORT Olympus');
-	});
+  it('should render title', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.content span')?.textContent).toContain('olympus app is running!');
+  });
 });
