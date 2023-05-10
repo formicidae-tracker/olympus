@@ -4,4 +4,12 @@
 	<button mat-icon-button>
 		<mat-icon>settings</mat-icon>
 	</button>
+	<button mat-icon-button *ngIf="darkTheme; else lightBlock" (click)="setDarkTheme(false)">
+		<mat-icon>light_mode</mat-icon>
+	</button>
+	<ng-template #lightBlock>
+		<button mat-icon-button (click)="setDarkTheme(true)">
+			<mat-icon>dark_mode</mat-icon>
+		</button>
+	</ng-template>
 </mat-toolbar>
