@@ -105,8 +105,8 @@ type ZoneClimateReport struct {
 type ZoneReportSummary struct {
 	Host    string             `json:"host"`
 	Name    string             `json:"name"`
-	Climate *ZoneClimateReport `json:"climate"`
-	Stream  *StreamInfo        `json:"stream"`
+	Climate *ZoneClimateReport `json:"climate,omitempty"`
+	Stream  *StreamInfo        `json:"stream,omitempty"`
 }
 
 type ZoneReport struct {
