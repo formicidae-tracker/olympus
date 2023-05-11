@@ -2,21 +2,177 @@
 
 @include mat.core();
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Custom palettes
+////////////////////////////////////////////////////////////////////////////////
+$teal-hc-palette: (
+  050: #edfcff,
+  100: #d0f8ff,
+  200: #98f0ff,
+  300: #4fd8eb,
+  400: #23bccf,
+  500: #009fb1,
+  600: #008392,
+  700: #006874,
+  800: #004f58,
+  900: #00363d,
+  contrast: (
+    050: rgba(0,0,0,0.87),
+    100: rgba(0,0,0,0.87),
+    200: #001f24,
+    300: #00363d,
+    400: #00363d,
+    500: #f6feff,
+    600: white,
+    700: white,
+    800: white,
+    900: white
+  )
+);
+
+//low contrast version
+$teal-lc-palette: (
+  050: #edfcff,
+  100: #d0f8ff,
+  200: #98f0ff,
+  300: #4fd8eb,
+  400: #23bccf,
+  500: #009fb1,
+  600: #008392,
+  700: #006874,
+  800: #004f58,
+  900: #00363d,
+  contrast: (
+    050: rgba(0,0,0,0.87),
+    100: rgba(0,0,0,0.87),
+    200: #001f24,
+    300: #00363d,
+    400: #00363d ,
+    500: #98f0ff ,
+    700: #98f0ff,
+    800: #98f0ff,
+    900: #edfcff
+  )
+);
+
+$beige-hc-palette: (
+  050: #fff9ee,
+  100: #fff0c0,
+  200: #ffe165,
+  300: #e2c54b,
+  400: #c4aa31,
+  500: #a88f14,
+  600: #8b7600,
+  700: #6f5d00,
+  800: #544600,
+  900: #3a3000,
+  contrast: (
+    050: rgba(0,0,0,0.87),
+    100: rgba(0,0,0,0.87),
+    200: #221b00,
+    300: #221b00,
+    400: #3a3000 ,
+    500: #3a3000,
+    600: #fff9ee,
+    700: white,
+    800: white,
+    900: white
+  )
+);
+
+//low contrast version
+$beige-lc-palette: (
+  050: #fff9ee,
+  100: #fff0c0,
+  200: #ffe165,
+  300: #e2c54b,
+  400: #c4aa31,
+  500: #a88f14,
+  600: #8b7600,
+  700: #6f5d00,
+  800: #544600,
+  900: #3a3000,
+  contrast: (
+    050: rgba(0,0,0,0.87),
+    100: rgba(0,0,0,0.87),
+    200: #221b00,
+    300: #3a3000,
+    400: #3a3000,
+    500: #3a3000,
+    600: #ffe165,
+    700: #ffe165,
+    800: #ffe165,
+    900: #fff9ee
+  )
+);
+
+$red-hc-palette: (
+  050: #fff8f7,
+  100: #ffedea,
+  200: #ffdad6,
+  300: #ffb4ab,
+  400: #ff897d,
+  500: #ff5449,
+  600: #de3730,
+  700: #ba1a1a,
+  800: #93000a,
+  900: #690005,
+  contrast: (
+    050: rgba(0,0,0,0.87),
+    100: rgba(0,0,0,0.87),
+    200: #410002,
+    300: #410002,
+    400: #690005,
+    500: #690005,
+    600: #fff8f7,
+    700: white,
+    800: white,
+    900: white,
+  )
+);
+
+$red-lc-palette: (
+  050: #fff8f7,
+  100: #ffedea,
+  200: #ffdad6,
+  300: #ffb4ab,
+  400: #ff897d,
+  500: #ff5449,
+  600: #de3730,
+  700: #ba1a1a,
+  800: #93000a,
+  900: #690005,
+  contrast: (
+    050: rgba(0,0,0,0.87),
+    100: rgba(0,0,0,0.87),
+    200: #410002,
+    300: #690005,
+    400: #690005,
+    500: #690005,
+    600: #ffdad6,
+    700: #ffdad6,
+    800: #ffdad6,
+    900: #fff8f7,
+  )
+);
+
 ////////////////////////////////////////////////////////////////////////////////
 // Light Theme
 ////////////////////////////////////////////////////////////////////////////////
 
 
-$olympus-light-primary: mat.define-palette(mat.$teal-palette, 300, 500,900);
-$olympus-light-accent: mat.define-palette(mat.$amber-palette, A200, A100, A400);
-$olympus-light-warn: mat.define-palette(mat.$red-palette, A100);
+$olympus-light-primary: mat.define-palette($teal-hc-palette, 700, 200, 800);
+$olympus-light-accent: mat.define-palette($beige-hc-palette, 700, 200 ,800);
+$olympus-light-warn: mat.define-palette($red-hc-palette, 700, 200, 800);
 
 $olympus-light-theme: mat.define-light-theme((
   color: (
     primary: $olympus-light-primary,
     accent: $olympus-light-accent,
     warn: $olympus-light-warn,
-  )
+  ),
+  typography: mat.define-typography-config(),
 ));
 
 
@@ -24,10 +180,9 @@ $olympus-light-theme: mat.define-light-theme((
 // Dark Theme
 ////////////////////////////////////////////////////////////////////////////////
 
-$olympus-dark-primary: mat.define-palette(mat.$teal-palette,300,500,900);
-$olympus-dark-accent: mat.define-palette(mat.$amber-palette, A200, A100, A400);
-$olympus-dark-warn: mat.define-palette(mat.$red-palette,A100);
-$olympus-dark-on-primary: mat.define-palette(mat.$amber-palette,  A100);
+$olympus-dark-primary: mat.define-palette($teal-lc-palette, 300, 800, 200);
+$olympus-dark-accent: mat.define-palette($beige-lc-palette, 300, 800, 200);
+$olympus-dark-warn: mat.define-palette($red-lc-palette, 300, 800, 200);
 
 @include mat.all-component-themes($olympus-light-theme);
 
@@ -38,6 +193,7 @@ $olympus-dark-theme: mat.define-dark-theme((
     warn: $olympus-dark-warn,
 )
 ));
+
 
 .dark-theme {
   @include mat.all-component-colors($olympus-dark-theme);
