@@ -14,6 +14,7 @@ export class NavToolbarComponent implements OnInit {
   ngOnInit(): void {
     this.themeService.isDarkTheme.subscribe((dark) => (this.darkTheme = dark));
   }
+
   public setDarkTheme(dark: boolean): void {
     this.themeService.setDarkTheme(dark);
   }

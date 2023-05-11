@@ -1,4 +1,6 @@
 <div class="mat-app-background" [class.dark-theme]="darkTheme">
   <app-nav-toolbar/>
-  <router-outlet/>
+  <div class="content" fxLayout="row" fxLayout.xs="column" fxLayoutGap="16px">
+    <router-outlet/>
+  </div>
 </div>

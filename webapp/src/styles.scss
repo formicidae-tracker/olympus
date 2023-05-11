@@ -2,7 +2,6 @@
 
 @include mat.core();
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Custom palettes
 ////////////////////////////////////////////////////////////////////////////////
@@ -157,6 +156,9 @@ $red-lc-palette: (
   )
 );
 
+$olympus-typography: mat.define-typography-config();
+@include mat.typography-hierarchy($olympus-typography);
+
 ////////////////////////////////////////////////////////////////////////////////
 // Light Theme
 ////////////////////////////////////////////////////////////////////////////////
@@ -172,7 +174,8 @@ $olympus-light-theme: mat.define-light-theme((
     accent: $olympus-light-accent,
     warn: $olympus-light-warn,
   ),
-  typography: mat.define-typography-config(),
+  typography: $olympus-typography,
+  density: 0,
 ));
 
 
