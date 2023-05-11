@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/formicidae-tracker/olympus/olympuspb"
+	olympuspb "github.com/formicidae-tracker/olympus/api"
 	"github.com/gorilla/mux"
 	"github.com/jessevdk/go-flags"
 	"google.golang.org/grpc"
@@ -19,8 +19,9 @@ import (
 
 //go:generate go run generate_version.go
 //go:generate go run generate_client_utils.go
-//go:generate go fmt olympuspb/client_utils.go
-//go:generate protoc --experimental_allow_proto3_optional  --go_out=olympuspb --go-grpc_out=olympuspb ./olympuspb/olympus_service.proto
+//go:generate go fmt api/client_utils.go
+//go:generate protoc --experimental_allow_proto3_optional  --go_out=api --go-grpc_out=api ./api/olympus_service.proto
+//go:generate go run ./api/examples/generate.go
 
 type Options struct {
 	Version   bool   `long:"version" description:"print current version and exit"`

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/barkimedes/go-deepcopy"
-	"github.com/formicidae-tracker/olympus/olympuspb"
+	"github.com/formicidae-tracker/olympus/api"
 )
 
 type ZoneLogger interface {
@@ -13,14 +13,14 @@ type ZoneLogger interface {
 	ZoneName() string
 	ZoneIdentifier() string
 	// PushTarget update current target for this logger.
-	PushTarget(*olympuspb.ClimateTarget)
+	PushTarget(*api.ClimateTarget)
 	// PushReports updates a list of reports to this logger.
-	PushReports([]*olympuspb.ClimateReport)
+	PushReports([]*api.ClimateReport)
 	// PushAlarms adds a list of AlarmEvents to this logger.
-	PushAlarms([]*olympuspb.AlarmEvent)
-	GetClimateTimeSeries(window string) ClimateTimeSeries
-	GetAlarmReports() []AlarmReport
-	GetClimateReport() ZoneClimateReport
+	PushAlarms([]*api.AlarmEvent)
+	GetClimateTimeSeries(window string) api.ClimateTimeSeries
+	GetAlarmReports() []api.WebAlarmReport
+	GetClimateReport() api.ZoneClimateReport
 }
 
 const (
@@ -34,17 +34,17 @@ const (
 
 type zoneLogger struct {
 	mx           sync.RWMutex
-	alarmReports map[string]*AlarmReport
+	alarmReports map[string]*api.WebAlarmReport
 
 	host, name     string
-	currentReport  ZoneClimateReport
+	currentReport  api.ZoneClimateReport
 	lastReportTime time.Time
 
 	samplers         []ClimateDataDownsampler
 	samplersByWindow map[string]ClimateDataDownsampler
 }
 
-func NewZoneLogger(declaration *olympuspb.ZoneDeclaration) ZoneLogger {
+func NewZoneLogger(declaration *api.ZoneDeclaration) ZoneLogger {
 	samplers := []ClimateDataDownsampler{
 		NewClimateDataDownsampler(10*time.Minute, time.Minute, 500),
 		NewClimateDataDownsampler(1*time.Hour, time.Minute, 400),
@@ -68,15 +68,15 @@ func NewZoneLogger(declaration *olympuspb.ZoneDeclaration) ZoneLogger {
 		samplersByWindow: samplersByWindow,
 		host:             declaration.Host,
 		name:             declaration.Name,
-		alarmReports:     make(map[string]*AlarmReport),
-		currentReport: ZoneClimateReport{
+		alarmReports:     make(map[string]*api.WebAlarmReport),
+		currentReport: api.ZoneClimateReport{
 			Temperature: nil,
-			TemperatureBounds: Bounds{
+			TemperatureBounds: api.Bounds{
 				Min: declaration.MinTemperature,
 				Max: declaration.MaxTemperature,
 			},
 			Humidity: nil,
-			HumidityBounds: Bounds{
+			HumidityBounds: api.Bounds{
 				Min: declaration.MinHumidity,
 				Max: declaration.MaxHumidity,
 			},
@@ -85,7 +85,7 @@ func NewZoneLogger(declaration *olympuspb.ZoneDeclaration) ZoneLogger {
 	return res
 }
 
-func buildBatch(reports []*olympuspb.ClimateReport) TimedValues {
+func buildBatch(reports []*api.ClimateReport) TimedValues {
 	if len(reports) == 0 {
 		return TimedValues{}
 	}
@@ -122,7 +122,7 @@ func buildBatch(reports []*olympuspb.ClimateReport) TimedValues {
 	return TimedValues{times: times, values: values}
 }
 
-func (l *zoneLogger) PushReports(reports []*olympuspb.ClimateReport) {
+func (l *zoneLogger) PushReports(reports []*api.ClimateReport) {
 	if len(reports) == 0 {
 		return
 	}
@@ -156,14 +156,7 @@ func (l *zoneLogger) PushReports(reports []*olympuspb.ClimateReport) {
 	}
 }
 
-func (a *AlarmReport) On() bool {
-	if len(a.Events) == 0 {
-		return false
-	}
-	return a.Events[len(a.Events)-1].On
-}
-
-func (l *zoneLogger) PushAlarms(events []*olympuspb.AlarmEvent) {
+func (l *zoneLogger) PushAlarms(events []*api.AlarmEvent) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	for _, e := range events {
@@ -179,7 +172,7 @@ func (l *zoneLogger) updateActiveAlarmCounts() {
 		if r.On() == false {
 			continue
 		}
-		if olympuspb.AlarmLevel(r.Level) == olympuspb.AlarmLevel_WARNING {
+		if api.AlarmLevel(r.Level) == api.AlarmLevel_WARNING {
 			l.currentReport.ActiveWarnings += 1
 		} else {
 			l.currentReport.ActiveEmergencies += 1
@@ -187,26 +180,26 @@ func (l *zoneLogger) updateActiveAlarmCounts() {
 	}
 
 }
-func (l *zoneLogger) pushEventToLog(event *olympuspb.AlarmEvent) {
+func (l *zoneLogger) pushEventToLog(event *api.AlarmEvent) {
 	// insert sort the event, in most cases, it will simply append it
 	r, ok := l.alarmReports[event.Reason]
 	if ok == false {
-		r = &AlarmReport{
+		r = &api.WebAlarmReport{
 			Reason: event.Reason,
 			Level:  int(event.Level),
 		}
 		l.alarmReports[r.Reason] = r
 	}
 	r.Events = BackInsertionSort(r.Events,
-		AlarmEvent{
+		api.WebAlarmEvent{
 			Time: event.Time.AsTime(),
-			On:   (event.Status == olympuspb.AlarmStatus_ON),
+			On:   (event.Status == api.AlarmStatus_ON),
 		},
-		func(a, b AlarmEvent) bool { return a.Time.Before(b.Time) })
+		func(a, b api.WebAlarmEvent) bool { return a.Time.Before(b.Time) })
 
 }
 
-func (l *zoneLogger) PushTarget(target *olympuspb.ClimateTarget) {
+func (l *zoneLogger) PushTarget(target *api.ClimateTarget) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 
@@ -224,7 +217,7 @@ func (l *zoneLogger) PushTarget(target *olympuspb.ClimateTarget) {
 	}
 }
 
-func (l *zoneLogger) fromWindow(window string) ClimateTimeSeries {
+func (l *zoneLogger) fromWindow(window string) api.ClimateTimeSeries {
 	sampler, ok := l.samplersByWindow[window]
 	if ok == false {
 		sampler = l.samplers[0]
@@ -232,27 +225,27 @@ func (l *zoneLogger) fromWindow(window string) ClimateTimeSeries {
 	return sampler.TimeSeries()
 }
 
-func (l *zoneLogger) GetClimateTimeSeries(window string) ClimateTimeSeries {
+func (l *zoneLogger) GetClimateTimeSeries(window string) api.ClimateTimeSeries {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
 	// already a data copy, so it is safe
 	return l.fromWindow(window)
 }
 
-func (l *zoneLogger) GetAlarmReports() []AlarmReport {
+func (l *zoneLogger) GetAlarmReports() []api.WebAlarmReport {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
-	res := make([]AlarmReport, 0, len(l.alarmReports))
+	res := make([]api.WebAlarmReport, 0, len(l.alarmReports))
 	for _, report := range l.alarmReports {
 		res = append(res, *report)
 	}
 	return res
 }
 
-func (l *zoneLogger) GetClimateReport() ZoneClimateReport {
+func (l *zoneLogger) GetClimateReport() api.ZoneClimateReport {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
-	res := deepcopy.MustAnything(l.currentReport).(ZoneClimateReport)
+	res := deepcopy.MustAnything(l.currentReport).(api.ZoneClimateReport)
 	if l.currentReport.NextTime != nil {
 		res.NextTime = new(time.Time)
 		*res.NextTime = *l.currentReport.NextTime

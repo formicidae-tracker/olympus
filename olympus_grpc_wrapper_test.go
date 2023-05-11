@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/barkimedes/go-deepcopy"
-	"github.com/formicidae-tracker/olympus/olympuspb"
+	"github.com/formicidae-tracker/olympus/api"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
@@ -26,8 +26,8 @@ func (s *GRPCSuite) initialize() error {
 		return err
 	}
 
-	s.server = grpc.NewServer(olympuspb.DefaultServerOptions...)
-	olympuspb.RegisterOlympusServer(s.server, (*OlympusGRPCWrapper)(s.o))
+	s.server = grpc.NewServer(api.DefaultServerOptions...)
+	api.RegisterOlympusServer(s.server, (*OlympusGRPCWrapper)(s.o))
 
 	s.shutdown = make(chan struct{})
 	s.done = make(chan error)
@@ -70,19 +70,19 @@ func (s *GRPCSuite) TearDownTest(c *C) {
 }
 
 func (s *GRPCSuite) TestNothingHappens(c *C) {
-	conn, err := grpc.Dial("localhost:12345", olympuspb.DefaultDialOptions...)
+	conn, err := grpc.Dial("localhost:12345", api.DefaultDialOptions...)
 	c.Assert(err, IsNil)
 	defer conn.Close()
 }
 
-func connectZone(c *C) (olympuspb.Olympus_ZoneClient, func(), error) {
-	conn, err := grpc.Dial("localhost:12345", olympuspb.DefaultDialOptions...)
+func connectZone(c *C) (api.Olympus_ZoneClient, func(), error) {
+	conn, err := grpc.Dial("localhost:12345", api.DefaultDialOptions...)
 	if err != nil {
 		return nil, func() {}, err
 	}
 
-	client := olympuspb.NewOlympusClient(conn)
-	stream, err := client.Zone(context.Background(), olympuspb.DefaultCallOptions...)
+	client := api.NewOlympusClient(conn)
+	stream, err := client.Zone(context.Background(), api.DefaultCallOptions...)
 	if err != nil {
 		return nil, func() { c.Check(conn.Close(), IsNil) }, err
 	}
@@ -93,14 +93,14 @@ func connectZone(c *C) (olympuspb.Olympus_ZoneClient, func(), error) {
 
 }
 
-func connectTracking(c *C) (olympuspb.Olympus_TrackingClient, func(), error) {
-	conn, err := grpc.Dial("localhost:12345", olympuspb.DefaultDialOptions...)
+func connectTracking(c *C) (api.Olympus_TrackingClient, func(), error) {
+	conn, err := grpc.Dial("localhost:12345", api.DefaultDialOptions...)
 	if err != nil {
 		return nil, func() {}, err
 	}
 
-	client := olympuspb.NewOlympusClient(conn)
-	stream, err := client.Tracking(context.Background(), olympuspb.DefaultCallOptions...)
+	client := api.NewOlympusClient(conn)
+	stream, err := client.Tracking(context.Background(), api.DefaultCallOptions...)
 	if err != nil {
 		return nil, func() { c.Check(conn.Close(), IsNil) }, err
 	}
@@ -115,7 +115,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 	defer cleanUp()
 	c.Assert(err, IsNil)
 
-	reports := []*olympuspb.ClimateReport{
+	reports := []*api.ClimateReport{
 		{
 			Time:         timestamppb.New(time.Time{}.Add(500 * time.Millisecond)),
 			Humidity:     newInitialized[float32](55.3),
@@ -143,8 +143,8 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 		},
 	}
 
-	target := &olympuspb.ClimateTarget{
-		Current: &olympuspb.ClimateState{
+	target := &api.ClimateTarget{
+		Current: &api.ClimateState{
 			Name:         "box",
 			Temperature:  newInitialized[float32](23.0),
 			Humidity:     newInitialized[float32](55.0),
@@ -156,8 +156,8 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 
 	lastReports := reports[len(reports)-1]
 
-	c.Check(stream.Send(&olympuspb.ZoneUpStream{
-		Declaration: &olympuspb.ZoneDeclaration{
+	c.Check(stream.Send(&api.ZoneUpStream{
+		Declaration: &api.ZoneDeclaration{
 			Host: "somehost",
 			Name: "box",
 		},
@@ -167,7 +167,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 	_, err = stream.Recv()
 	c.Check(err, IsNil)
 
-	c.Check(stream.Send(&olympuspb.ZoneUpStream{
+	c.Check(stream.Send(&api.ZoneUpStream{
 		Reports: reports[:4],
 	}), IsNil)
 	_, err = stream.Recv()
@@ -175,15 +175,15 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 
 	report, err := s.o.GetZoneReport("somehost", "box")
 	if c.Check(err, IsNil) == true {
-		c.Check(report, DeepEquals, ZoneReport{
+		c.Check(report, DeepEquals, api.ZoneReport{
 			Host: "somehost",
 			Name: "box",
-			Climate: &ZoneClimateReport{
+			Climate: &api.ZoneClimateReport{
 				Temperature: &lastReports.Temperatures[0],
 				Humidity:    lastReports.Humidity,
-				Current:     deepcopy.MustAnything(target.Current).(*olympuspb.ClimateState),
+				Current:     deepcopy.MustAnything(target.Current).(*api.ClimateState),
 			},
-			Alarms: []AlarmReport{},
+			Alarms: []api.WebAlarmReport{},
 		})
 	}
 	c.Check(stream.CloseSend(), IsNil)
@@ -195,7 +195,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 }
 
 func (s *GRPCSuite) TestDoubleZoneRegistrationError(c *C) {
-	streams := []olympuspb.Olympus_ZoneClient{nil, nil}
+	streams := []api.Olympus_ZoneClient{nil, nil}
 
 	for i := range streams {
 		stream, cleanUp, err := connectZone(c)
@@ -203,8 +203,8 @@ func (s *GRPCSuite) TestDoubleZoneRegistrationError(c *C) {
 		c.Assert(err, IsNil)
 		streams[i] = stream
 	}
-	declaration := &olympuspb.ZoneUpStream{
-		Declaration: &olympuspb.ZoneDeclaration{Host: "somehost", Name: "box"},
+	declaration := &api.ZoneUpStream{
+		Declaration: &api.ZoneDeclaration{Host: "somehost", Name: "box"},
 	}
 	c.Check(streams[0].Send(declaration), IsNil)
 	_, err := streams[0].Recv()
@@ -221,7 +221,7 @@ func (s *GRPCSuite) TestLackOfZonRegistrationError(c *C) {
 	defer cleanUp()
 	c.Assert(err, IsNil)
 
-	c.Check(stream.Send(&olympuspb.ZoneUpStream{}), IsNil)
+	c.Check(stream.Send(&api.ZoneUpStream{}), IsNil)
 	m, err := stream.Recv()
 	c.Check(m, IsNil)
 	c.Check(err, ErrorMatches, `rpc error: code = InvalidArgument desc = first message of stream must contain ZoneDeclaration`)

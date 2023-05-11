@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -8,18 +8,24 @@ import (
 	"time"
 
 	"github.com/atuleu/go-lttb"
-	"github.com/formicidae-tracker/olympus/olympuspb"
 )
 
-type AlarmEvent struct {
+type WebAlarmEvent struct {
 	On   bool
 	Time time.Time
 }
 
-type AlarmReport struct {
+type WebAlarmReport struct {
 	Reason string
 	Level  int
-	Events []AlarmEvent
+	Events []WebAlarmEvent
+}
+
+func (r *WebAlarmReport) On() bool {
+	if len(r.Events) == 0 {
+		return false
+	}
+	return r.Events[len(r.Events)-1].On
 }
 
 type ServiceEvent struct {
@@ -78,29 +84,29 @@ type ClimateTimeSeries struct {
 }
 
 type Bounds struct {
-	Min *float32
-	Max *float32
+	Min *float32 `json:"min,omitempty"`
+	Max *float32 `json:"max,omitempty"`
 }
 
 type ZoneClimateReport struct {
-	Temperature       *float32
-	Humidity          *float32
-	TemperatureBounds Bounds
-	HumidityBounds    Bounds
-	ActiveWarnings    int
-	ActiveEmergencies int
-	Current           *olympuspb.ClimateState
-	CurrentEnd        *olympuspb.ClimateState
-	Next              *olympuspb.ClimateState
-	NextEnd           *olympuspb.ClimateState
-	NextTime          *time.Time
+	Temperature       *float32      `json:"temperature,omitempty"`
+	Humidity          *float32      `json:"humidity,omitempty"`
+	TemperatureBounds Bounds        `json:"temperature_bounds"`
+	HumidityBounds    Bounds        `json:"humidity_bounds"`
+	ActiveWarnings    int           `json:"active_warnings"`
+	ActiveEmergencies int           `json:"active_emergencies"`
+	Current           *ClimateState `json:"current,omitempty"`
+	CurrentEnd        *ClimateState `json:"current_end,omitempty"`
+	Next              *ClimateState `json:"next,omitempty"`
+	NextEnd           *ClimateState `json:"next_empty,omitempty"`
+	NextTime          *time.Time    `json:"next_time,omitempty"`
 }
 
 type ZoneReportSummary struct {
-	Host    string
-	Name    string
-	Climate *ZoneClimateReport
-	Stream  *StreamInfo
+	Host    string             `json:"host"`
+	Name    string             `json:"name"`
+	Climate *ZoneClimateReport `json:"climate"`
+	Stream  *StreamInfo        `json:"stream"`
 }
 
 type ZoneReport struct {
@@ -108,7 +114,7 @@ type ZoneReport struct {
 	Name    string
 	Climate *ZoneClimateReport
 	Stream  *StreamInfo
-	Alarms  []AlarmReport
+	Alarms  []WebAlarmReport
 }
 
 type ServiceLogs struct {
@@ -117,7 +123,7 @@ type ServiceLogs struct {
 }
 
 type StreamInfo struct {
-	ExperimentName string
-	StreamURL      string
-	ThumbnailURL   string
+	ExperimentName string `json:"experiment_name"`
+	StreamURL      string `json:"stream_URL"`
+	ThumbnailURL   string `json:"thumbnail_URL"`
 }

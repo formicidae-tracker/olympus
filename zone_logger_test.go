@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/barkimedes/go-deepcopy"
-	"github.com/formicidae-tracker/olympus/olympuspb"
+	"github.com/formicidae-tracker/olympus/api"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
 )
@@ -17,7 +17,7 @@ type ZoneLoggerSuite struct {
 var _ = Suite(&ZoneLoggerSuite{})
 
 func (s *ZoneLoggerSuite) SetUpTest(c *C) {
-	s.l = NewZoneLogger(&olympuspb.ZoneDeclaration{
+	s.l = NewZoneLogger(&api.ZoneDeclaration{
 		Host: "foo",
 		Name: "bar",
 	})
@@ -28,9 +28,9 @@ func (s *ZoneLoggerSuite) TearDownTest(c *C) {
 
 func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 	start := time.Now().Round(0)
-	reports := make([]*olympuspb.ClimateReport, 60)
+	reports := make([]*api.ClimateReport, 60)
 	for i := 0; i < len(reports); i++ {
-		reports[i] = &olympuspb.ClimateReport{
+		reports[i] = &api.ClimateReport{
 			Time:         timestamppb.New(start.Add(time.Duration(i*500+rand.Intn(20)-10) * time.Millisecond)),
 			Humidity:     newInitialized[float32](55.0),
 			Temperatures: []float32{21.0},
@@ -38,7 +38,7 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 	}
 	s.l.PushReports(reports)
 
-	checkReport := func(c *C, series ClimateTimeSeries, size int) {
+	checkReport := func(c *C, series api.ClimateTimeSeries, size int) {
 		if c.Check(len(series.Humidity), Equals, size) == false {
 			return
 		}
@@ -75,7 +75,7 @@ func (s *ZoneLoggerSuite) TestUninitialzedReport(c *C) {
 }
 
 func (s *ZoneLoggerSuite) TestLogsHumididityOnlyClimate(c *C) {
-	s.l.PushReports([]*olympuspb.ClimateReport{
+	s.l.PushReports([]*api.ClimateReport{
 		{
 			Time:         timestamppb.New(time.Now()),
 			Humidity:     newInitialized[float32](55.0),
@@ -91,7 +91,7 @@ func (s *ZoneLoggerSuite) TestLogsHumididityOnlyClimate(c *C) {
 }
 
 func (s *ZoneLoggerSuite) TestLogsTemperatureOnlyClimate(c *C) {
-	s.l.PushReports([]*olympuspb.ClimateReport{
+	s.l.PushReports([]*api.ClimateReport{
 		{
 			Time:         timestamppb.New(time.Now()),
 			Humidity:     nil,
@@ -109,18 +109,18 @@ func (s *ZoneLoggerSuite) TestLogsTemperatureOnlyClimate(c *C) {
 func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 	start := time.Now().Round(0)
 
-	eventList := []*olympuspb.AlarmEvent{
+	eventList := []*api.AlarmEvent{
 		{
 			Reason: "foo",
-			Level:  olympuspb.AlarmLevel_WARNING,
+			Level:  api.AlarmLevel_WARNING,
 		},
 		{
 			Reason: "bar",
-			Level:  olympuspb.AlarmLevel_EMERGENCY,
+			Level:  api.AlarmLevel_EMERGENCY,
 		},
 		{
 			Reason: "baz",
-			Level:  olympuspb.AlarmLevel_WARNING,
+			Level:  api.AlarmLevel_WARNING,
 		},
 	}
 
@@ -129,16 +129,16 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 		On   bool
 	}{}
 
-	events := make([]*olympuspb.AlarmEvent, 300)
+	events := make([]*api.AlarmEvent, 300)
 	for i := 0; i < 300; i++ {
 		r := rand.Intn(2000000)
 		t := start.Add(time.Duration(r) * time.Millisecond)
 		on := r%2 == 0
-		event := deepcopy.MustAnything(eventList[i%3]).(*olympuspb.AlarmEvent)
+		event := deepcopy.MustAnything(eventList[i%3]).(*api.AlarmEvent)
 		if on {
-			event.Status = olympuspb.AlarmStatus_ON
+			event.Status = api.AlarmStatus_ON
 		} else {
-			event.Status = olympuspb.AlarmStatus_OFF
+			event.Status = api.AlarmStatus_OFF
 		}
 		event.Time = timestamppb.New(t)
 		ls := lastState[event.Reason]
@@ -155,11 +155,11 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 	for _, r := range reports {
 		switch r.Reason {
 		case "foo":
-			c.Check(olympuspb.AlarmLevel(r.Level), Equals, olympuspb.AlarmLevel_WARNING)
+			c.Check(api.AlarmLevel(r.Level), Equals, api.AlarmLevel_WARNING)
 		case "bar":
-			c.Check(olympuspb.AlarmLevel(r.Level), Equals, olympuspb.AlarmLevel_EMERGENCY)
+			c.Check(api.AlarmLevel(r.Level), Equals, api.AlarmLevel_EMERGENCY)
 		case "baz":
-			c.Check(olympuspb.AlarmLevel(r.Level), Equals, olympuspb.AlarmLevel_WARNING)
+			c.Check(api.AlarmLevel(r.Level), Equals, api.AlarmLevel_WARNING)
 		}
 		c.Check(r.Events, HasLen, 100)
 		for i, e := range r.Events {

@@ -1,4 +1,4 @@
-package olympuspb
+package api
 
 import (
 	"time"

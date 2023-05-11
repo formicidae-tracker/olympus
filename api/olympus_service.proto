@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = ".;olympuspb";
+option go_package = ".;api";
 package fort.olympus;
 
 import "google/protobuf/timestamp.proto";

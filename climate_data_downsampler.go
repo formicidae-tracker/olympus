@@ -2,6 +2,8 @@ package main
 
 import (
 	"time"
+
+	"github.com/formicidae-tracker/olympus/api"
 )
 
 var CutOfFrequencyRatio float64 = 15.0
@@ -15,14 +17,14 @@ type ClimateDataDownsampler interface {
 	Add(values TimedValues)
 
 	// Returns the resulting time series
-	TimeSeries() ClimateTimeSeries
+	TimeSeries() api.ClimateTimeSeries
 }
 
 type climateDataDownsampler struct {
 	window, minimumPeriod, unit time.Duration
 	samples                     int
 	values                      TimedValues
-	series                      ClimateTimeSeries
+	series                      api.ClimateTimeSeries
 }
 
 var supportedUnits = map[time.Duration]string{
@@ -60,7 +62,7 @@ func (d *climateDataDownsampler) Add(values TimedValues) {
 func (d *climateDataDownsampler) computeSeries() {
 	reference := d.values.times[len(d.values.times)-1]
 	series := d.values.Downsample(d.samples, reference, d.unit)
-	d.series = ClimateTimeSeries{
+	d.series = api.ClimateTimeSeries{
 		Reference: reference,
 		Units:     supportedUnits[d.unit],
 	}
@@ -73,13 +75,13 @@ func (d *climateDataDownsampler) computeSeries() {
 	}
 
 	if len(series) > 2 {
-		d.series.TemperatureAux = make([]PointSeries, len(series)-2)
+		d.series.TemperatureAux = make([]api.PointSeries, len(series)-2)
 		for i := range d.series.TemperatureAux {
 			d.series.TemperatureAux[i] = series[i+2]
 		}
 	}
 }
 
-func (d *climateDataDownsampler) TimeSeries() ClimateTimeSeries {
+func (d *climateDataDownsampler) TimeSeries() api.ClimateTimeSeries {
 	return d.series
 }

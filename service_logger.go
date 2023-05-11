@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/barkimedes/go-deepcopy"
+	"github.com/formicidae-tracker/olympus/api"
 )
 
 type ServiceLogger interface {
 	Log(identifier string, on, graceful bool)
-	Logs() [][]ServiceEvent
+	Logs() [][]api.ServiceEvent
 	OnServices() []string
 	OffServices() []string
 }
@@ -19,7 +20,7 @@ type serviceLogger struct {
 	mx sync.RWMutex
 
 	indexes map[string]int
-	logs    [][]ServiceEvent
+	logs    [][]api.ServiceEvent
 }
 
 func (l *serviceLogger) Log(identifier string, on, graceful bool) {
@@ -29,7 +30,7 @@ func (l *serviceLogger) Log(identifier string, on, graceful bool) {
 	if on == true {
 		graceful = true
 	}
-	l.logs[index] = append(l.logs[index], ServiceEvent{
+	l.logs[index] = append(l.logs[index], api.ServiceEvent{
 		Identifier: identifier,
 		Time:       time.Now(),
 		On:         on,
@@ -37,11 +38,11 @@ func (l *serviceLogger) Log(identifier string, on, graceful bool) {
 	})
 }
 
-func (l *serviceLogger) Logs() [][]ServiceEvent {
+func (l *serviceLogger) Logs() [][]api.ServiceEvent {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
 
-	return deepcopy.MustAnything(l.logs).([][]ServiceEvent)
+	return deepcopy.MustAnything(l.logs).([][]api.ServiceEvent)
 }
 
 func (l *serviceLogger) find(on bool) []string {
@@ -81,7 +82,7 @@ func (l *serviceLogger) getOrNew(identifier string) int {
 
 func (l *serviceLogger) sort() {
 	oldIndexes := make(map[string]int)
-	oldData := make([][]ServiceEvent, len(l.logs))
+	oldData := make([][]api.ServiceEvent, len(l.logs))
 	copy(oldData, l.logs)
 	identifiers := make([]string, 0, len(oldIndexes))
 	for identifier, index := range l.indexes {

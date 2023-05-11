@@ -12,7 +12,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/formicidae-tracker/olympus/olympuspb"
+	"github.com/formicidae-tracker/olympus/api"
 	"github.com/gorilla/mux"
 )
 
@@ -68,7 +68,7 @@ func (m multipleError) Error() string {
 }
 
 type Olympus struct {
-	olympuspb.UnimplementedOlympusServer
+	api.UnimplementedOlympusServer
 	mx                sync.RWMutex
 	log               *log.Logger
 	zoneSubscriptions map[string]subscription[ZoneLogger]
@@ -156,8 +156,8 @@ func (o *Olympus) Close() error {
 	return multipleError(errs)
 }
 
-func (o *Olympus) GetServiceLogs() ServiceLogs {
-	return ServiceLogs{
+func (o *Olympus) GetServiceLogs() api.ServiceLogs {
+	return api.ServiceLogs{
 		Climates: o.climateLogger.Logs(),
 		Tracking: o.trackingLogger.Logs(),
 	}
@@ -173,21 +173,21 @@ func (o *Olympus) ZoneIsRegistered(host, zone string) bool {
 	return ok
 }
 
-func (o *Olympus) GetZones() []ZoneReportSummary {
+func (o *Olympus) GetZones() []api.ZoneReportSummary {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
 	if o.zoneSubscriptions == nil || o.hostSubscriptions == nil {
-		return []ZoneReportSummary{}
+		return []api.ZoneReportSummary{}
 	}
 
 	nbActiveZones := len(o.climateLogger.OnServices())
 	nbActiveTrackers := len(o.climateLogger.OnServices())
-	res := make([]ZoneReportSummary, 0, nbActiveZones+nbActiveTrackers)
+	res := make([]api.ZoneReportSummary, 0, nbActiveZones+nbActiveTrackers)
 
 	for _, s := range o.zoneSubscriptions {
 		z := s.object
 		r := z.GetClimateReport()
-		sum := ZoneReportSummary{
+		sum := api.ZoneReportSummary{
 			Host:    z.Host(),
 			Name:    z.ZoneName(),
 			Climate: &r,
@@ -208,7 +208,7 @@ func (o *Olympus) GetZones() []ZoneReportSummary {
 		if _, ok := o.zoneSubscriptions[ZoneIdentifier(host, "box")]; ok == true {
 			continue
 		}
-		res = append(res, ZoneReportSummary{
+		res = append(res, api.ZoneReportSummary{
 			Host:   host,
 			Name:   "box",
 			Stream: t.StreamInfo(),
@@ -257,21 +257,21 @@ func (o *Olympus) getTracking(host string) (TrackingLogger, error) {
 // GetClimateTimeSeries returns the time series for a zone within a
 // given window. window should be one of "10m","1h","1d", "1w".  It
 // may return a ZoneNotFoundError.
-func (o *Olympus) GetClimateTimeSerie(host, zone, window string) (ClimateTimeSeries, error) {
+func (o *Olympus) GetClimateTimeSerie(host, zone, window string) (api.ClimateTimeSeries, error) {
 	z, err := o.getZoneLogger(host, zone)
 	if err != nil {
-		return ClimateTimeSeries{}, err
+		return api.ClimateTimeSeries{}, err
 	}
 	return z.GetClimateTimeSeries(window), nil
 }
 
-func (o *Olympus) GetZoneReport(host, zone string) (ZoneReport, error) {
+func (o *Olympus) GetZoneReport(host, zone string) (api.ZoneReport, error) {
 	z, errZone := o.getZoneLogger(host, zone)
 	i, errTracking := o.getTracking(host)
 	if errZone != nil && errTracking != nil {
-		return ZoneReport{}, errZone
+		return api.ZoneReport{}, errZone
 	}
-	res := ZoneReport{
+	res := api.ZoneReport{
 		Host: host,
 		Name: zone,
 	}
@@ -286,7 +286,7 @@ func (o *Olympus) GetZoneReport(host, zone string) (ZoneReport, error) {
 	return res, nil
 }
 
-func (o *Olympus) GetAlarmReports(host, zone string) ([]AlarmReport, error) {
+func (o *Olympus) GetAlarmReports(host, zone string) ([]api.WebAlarmReport, error) {
 	z, err := o.getZoneLogger(host, zone)
 	if err != nil {
 		return nil, err
@@ -294,7 +294,7 @@ func (o *Olympus) GetAlarmReports(host, zone string) ([]AlarmReport, error) {
 	return z.GetAlarmReports(), nil
 }
 
-func (o *Olympus) RegisterZone(declaration *olympuspb.ZoneDeclaration) (ZoneLogger, <-chan struct{}, error) {
+func (o *Olympus) RegisterZone(declaration *api.ZoneDeclaration) (ZoneLogger, <-chan struct{}, error) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
 	if o.zoneSubscriptions == nil {
@@ -336,7 +336,7 @@ func (o *Olympus) UnregisterZone(zoneIdentifier string, graceful bool) error {
 	return s.Close()
 }
 
-func (o *Olympus) RegisterTracker(declaration *olympuspb.TrackingDeclaration) (TrackingLogger, <-chan struct{}, error) {
+func (o *Olympus) RegisterTracker(declaration *api.TrackingDeclaration) (TrackingLogger, <-chan struct{}, error) {
 	if declaration.StreamServer != o.hostname+".local" {
 		return nil, nil, fmt.Errorf("unexpected server %s (expect: %s)", declaration.StreamServer, o.hostname+".local")
 	}

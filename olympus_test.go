@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/formicidae-tracker/olympus/olympuspb"
+	"github.com/formicidae-tracker/olympus/api"
 	"github.com/gorilla/mux"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
@@ -25,19 +25,19 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	var err error
 	s.o, err = NewOlympus("")
 	c.Assert(err, IsNil)
-	s.somehostBox, _, err = s.o.RegisterZone(&olympuspb.ZoneDeclaration{
+	s.somehostBox, _, err = s.o.RegisterZone(&api.ZoneDeclaration{
 		Host: "somehost",
 		Name: "box",
 	})
 	c.Assert(err, IsNil)
 
-	s.anotherBox, _, err = s.o.RegisterZone(&olympuspb.ZoneDeclaration{
+	s.anotherBox, _, err = s.o.RegisterZone(&api.ZoneDeclaration{
 		Host: "another",
 		Name: "box",
 	})
 	c.Assert(err, IsNil)
 
-	s.anotherTunnel, _, err = s.o.RegisterZone(&olympuspb.ZoneDeclaration{
+	s.anotherTunnel, _, err = s.o.RegisterZone(&api.ZoneDeclaration{
 		Host: "another",
 		Name: "tunnel",
 	})
@@ -46,14 +46,14 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	hostname, err := os.Hostname()
 	c.Assert(err, IsNil)
 
-	_, _, err = s.o.RegisterTracker(&olympuspb.TrackingDeclaration{
+	_, _, err = s.o.RegisterTracker(&api.TrackingDeclaration{
 		Hostname:       "somehost",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
 	})
 	c.Assert(err, IsNil)
 
-	_, _, err = s.o.RegisterTracker(&olympuspb.TrackingDeclaration{
+	_, _, err = s.o.RegisterTracker(&api.TrackingDeclaration{
 		Hostname:       "fifou",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
@@ -72,9 +72,9 @@ func (s *OlympusSuite) TearDownTest(c *C) {
 }
 
 func (s *OlympusSuite) TestReportClimate(c *C) {
-	reports := make([]*olympuspb.ClimateReport, 300)
+	reports := make([]*api.ClimateReport, 300)
 	for i := 0; i < 300; i++ {
-		reports[i] = &olympuspb.ClimateReport{
+		reports[i] = &api.ClimateReport{
 			Time:         timestamppb.New(time.Time{}.Add(time.Duration(500*i) * time.Millisecond)),
 			Humidity:     newInitialized[float32](55.0),
 			Temperatures: []float32{21},

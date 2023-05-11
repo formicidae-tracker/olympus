@@ -4,20 +4,20 @@ import (
 	"path"
 
 	"github.com/barkimedes/go-deepcopy"
-	"github.com/formicidae-tracker/olympus/olympuspb"
+	"github.com/formicidae-tracker/olympus/api"
 )
 
 type TrackingLogger interface {
-	StreamInfo() *StreamInfo
+	StreamInfo() *api.StreamInfo
 }
 
 type trackingLogger struct {
-	infos *StreamInfo
+	infos *api.StreamInfo
 }
 
-func NewTrackingLogger(declaration *olympuspb.TrackingDeclaration) TrackingLogger {
+func NewTrackingLogger(declaration *api.TrackingDeclaration) TrackingLogger {
 	return &trackingLogger{
-		infos: &StreamInfo{
+		infos: &api.StreamInfo{
 			ExperimentName: declaration.ExperimentName,
 			StreamURL:      path.Join("/olympus/hls", declaration.Hostname+".m3u8"),
 			ThumbnailURL:   path.Join("/olympus", declaration.Hostname+".png"),
@@ -25,6 +25,6 @@ func NewTrackingLogger(declaration *olympuspb.TrackingDeclaration) TrackingLogge
 	}
 }
 
-func (l *trackingLogger) StreamInfo() *StreamInfo {
-	return deepcopy.MustAnything(l.infos).(*StreamInfo)
+func (l *trackingLogger) StreamInfo() *api.StreamInfo {
+	return deepcopy.MustAnything(l.infos).(*api.StreamInfo)
 }

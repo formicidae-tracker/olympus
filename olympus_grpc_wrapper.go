@@ -3,7 +3,7 @@ package main
 import (
 	"io"
 
-	"github.com/formicidae-tracker/olympus/olympuspb"
+	"github.com/formicidae-tracker/olympus/api"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -82,7 +82,7 @@ func mapError(err error) error {
 	}
 }
 
-func (o *OlympusGRPCWrapper) Zone(stream olympuspb.Olympus_ZoneServer) (err error) {
+func (o *OlympusGRPCWrapper) Zone(stream api.Olympus_ZoneServer) (err error) {
 	var z ZoneLogger = nil
 	var finish <-chan struct{} = nil
 
@@ -93,9 +93,9 @@ func (o *OlympusGRPCWrapper) Zone(stream olympuspb.Olympus_ZoneServer) (err erro
 		graceful := err != nil
 		(*Olympus)(o).UnregisterZone(z.ZoneIdentifier(), graceful)
 	}()
-	ack := &olympuspb.ZoneDownStream{}
-	handleMessage := func(m *olympuspb.ZoneUpStream) (*olympuspb.ZoneDownStream, error) {
-		var confirmation *olympuspb.ZoneDownStream
+	ack := &api.ZoneDownStream{}
+	handleMessage := func(m *api.ZoneUpStream) (*api.ZoneDownStream, error) {
+		var confirmation *api.ZoneDownStream
 		if z == nil {
 			if m.Declaration == nil {
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain ZoneDeclaration")
@@ -105,8 +105,8 @@ func (o *OlympusGRPCWrapper) Zone(stream olympuspb.Olympus_ZoneServer) (err erro
 			if err != nil {
 				return nil, mapError(err)
 			}
-			confirmation = &olympuspb.ZoneDownStream{
-				RegistrationConfirmation: &olympuspb.ZoneRegistrationConfirmation{
+			confirmation = &api.ZoneDownStream{
+				RegistrationConfirmation: &api.ZoneRegistrationConfirmation{
 					PageSize: int32(BackLogPageSize),
 				},
 			}
@@ -129,10 +129,10 @@ func (o *OlympusGRPCWrapper) Zone(stream olympuspb.Olympus_ZoneServer) (err erro
 		return ack, nil
 	}
 
-	return serveLoop[olympuspb.ZoneUpStream, olympuspb.ZoneDownStream](stream, handleMessage, &finish)
+	return serveLoop[api.ZoneUpStream, api.ZoneDownStream](stream, handleMessage, &finish)
 }
 
-func (o *OlympusGRPCWrapper) Tracking(stream olympuspb.Olympus_TrackingServer) (err error) {
+func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err error) {
 	var t TrackingLogger = nil
 	var finish <-chan struct{} = nil
 	hostname := ""
@@ -143,8 +143,8 @@ func (o *OlympusGRPCWrapper) Tracking(stream olympuspb.Olympus_TrackingServer) (
 		graceful := err != nil
 		(*Olympus)(o).UnregisterTracker(hostname, graceful)
 	}()
-	ack := &olympuspb.TrackingDownStream{}
-	handleMessage := func(m *olympuspb.TrackingUpStream) (*olympuspb.TrackingDownStream, error) {
+	ack := &api.TrackingDownStream{}
+	handleMessage := func(m *api.TrackingUpStream) (*api.TrackingDownStream, error) {
 		if t == nil {
 			if m.Declaration == nil {
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain TrackingDeclaration")
@@ -159,5 +159,5 @@ func (o *OlympusGRPCWrapper) Tracking(stream olympuspb.Olympus_TrackingServer) (
 		return ack, nil
 	}
 
-	return serveLoop[olympuspb.TrackingUpStream, olympuspb.TrackingDownStream](stream, handleMessage, &finish)
+	return serveLoop[api.TrackingUpStream, api.TrackingDownStream](stream, handleMessage, &finish)
 }
