@@ -156,17 +156,112 @@ $red-lc-palette: (
   )
 );
 
+$light-foreground: #191c1d;
+$light-background: #fbfcfd;
+
+$olympus-light-foreground-palette: (
+  base: $light-foreground,
+  divider: rgba($light-foreground, 0.12),
+  dividers: rgba($light-foreground, 0.12),
+  disabled: rgba($light-foreground, 0.38),
+  disabled-button: rgba($light-foreground, 0.26),
+  disabled-text: rgba($light-foreground, 0.38),
+  elevation: $light-foreground,
+  hint-text: rgba($light-foreground, 0.38),
+  secondary-text: rgba($light-foreground, 0.54),
+  icon: rgba($light-foreground, 0.54),
+  icons: rgba($light-foreground, 0.54),
+  text: rgba($light-foreground, 0.87),
+  slider-min: rgba($light-foreground, 0.87),
+  slider-off: rgba($light-foreground, 0.26),
+  slider-off-active: rgba($light-foreground, 0.38)
+);
+
+$olympus-light-background-palette: (
+    status-bar: #e1e3e3,
+    app-bar: #eff1f1,
+    background: #fbfcfd,
+    hover: rgba(0, 0, 0, 0.04),
+    card: white,
+    dialog: white,
+    disabled-button: rgba(0, 0, 0, 0.12),
+    raised-button: white,
+    focused-button: rgba(0, 0, 0, 0.12),
+    selected-button: #e1e3e3,
+    selected-disabled-button: #c4c7c7,
+    disabled-button-toggle: #eff1f1,
+    unselected-chip: #e1e3e3,
+    disabled-list-option: #eff1f1,
+    tooltip: #747878,
+);
+
+$dark-foreground: #e1e3e3;
+$olympus-dark-foreground-palette: (
+  base: $dark-foreground,
+  divider: rgba($dark-foreground, 0.12),
+  dividers: rgba($dark-foreground, 0.12),
+  disabled: rgba($dark-foreground, 0.5),
+  disabled-button: rgba($dark-foreground, 0.3),
+  disabled-text: rgba($dark-foreground, 0.5),
+  elevation: $dark-foreground,
+  hint-text: rgba($dark-foreground, 0.5),
+  secondary-text: rgba($dark-foreground, 0.7),
+  icon: $dark-foreground,
+  icons: $dark-foreground,
+  text: $dark-foreground,
+  slider-min: $dark-foreground,
+  slider-off: rgba($dark-foreground, 0.3),
+  slider-off-active: rgba($dark-foreground, 0.3)
+);
+
+$olympus-dark-background-palette: (
+    status-bar: black,
+    app-bar: black,
+    background: #191c1d,
+    hover: rgba(255,255, 255, 0.04),
+    card: #2e3132,
+    dialog: #2e3132,
+    disabled-button: rgba(255, 255, 255, 0.12),
+    raised-button: #2e3132,
+    focused-button: rgba(255, 255, 255, 0.12),
+    selected-button: black,
+    selected-disabled-button: #2e3132,
+    disabled-button-toggle: black,
+    unselected-chip: #444748,
+    disabled-list-option: rgba(255,255,255,0.12),
+    tooltip: #5c5f5f,
+);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Typography
+////////////////////////////////////////////////////////////////////////////////
 $olympus-typography: mat.define-typography-config();
 @include mat.typography-hierarchy($olympus-typography);
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Helper function to modify background and foreground colors
+////////////////////////////////////////////////////////////////////////////////
+
+@function theme-update-fg-bg-palettes($theme,$fg-palette,$bg-palette) {
+  $theme-color: map-get($theme,color);
+  @return map-merge($theme,
+                    (color: map-merge($theme-color,(foreground:$fg-palette,
+                                                    background:$bg-palette)),
+                     foreground: $fg-palette,
+                     background: $bg-palette));
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Light Theme
 ////////////////////////////////////////////////////////////////////////////////
 
 
-$olympus-light-primary: mat.define-palette($teal-hc-palette, 700, 200, 800);
-$olympus-light-accent: mat.define-palette($beige-hc-palette, 700, 200 ,800);
-$olympus-light-warn: mat.define-palette($red-hc-palette, 700, 200, 800);
+$olympus-light-primary: mat.define-palette($teal-hc-palette, 500, 200, 800);
+$olympus-light-accent: mat.define-palette($beige-hc-palette, 300, 100 ,700);
+$olympus-light-warn: mat.define-palette($red-hc-palette, 500, 200, 800);
 
 $olympus-light-theme: mat.define-light-theme((
   color: (
@@ -178,16 +273,20 @@ $olympus-light-theme: mat.define-light-theme((
   density: 0,
 ));
 
+$olympus-light-theme : theme-update-fg-bg-palettes($olympus-light-theme,
+                                                   $olympus-light-foreground-palette,
+                                                   $olympus-light-background-palette);
+
+@include mat.all-component-themes($olympus-light-theme);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Dark Theme
 ////////////////////////////////////////////////////////////////////////////////
 
-$olympus-dark-primary: mat.define-palette($teal-lc-palette, 300, 800, 200);
-$olympus-dark-accent: mat.define-palette($beige-lc-palette, 300, 800, 200);
+$olympus-dark-primary: mat.define-palette($teal-lc-palette, 700, 200, 800);
+$olympus-dark-accent: mat.define-palette($beige-lc-palette, 700, 200, 800);
 $olympus-dark-warn: mat.define-palette($red-lc-palette, 300, 800, 200);
 
-@include mat.all-component-themes($olympus-light-theme);
 
 $olympus-dark-theme: mat.define-dark-theme((
   color: (
@@ -196,6 +295,10 @@ $olympus-dark-theme: mat.define-dark-theme((
     warn: $olympus-dark-warn,
 )
 ));
+
+$olympus-dark-theme : theme-update-fg-bg-palettes($olympus-dark-theme,
+                                                  $olympus-dark-foreground-palette,
+                                                  $olympus-dark-background-palette);
 
 
 .dark-theme {
