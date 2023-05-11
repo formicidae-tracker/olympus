@@ -1,15 +1,16 @@
 <mat-toolbar color="primary">
-	<span>FORT Olympus</span>
-	<span class="spacer"></span>
-	<button mat-icon-button>
-		<mat-icon>settings</mat-icon>
-	</button>
-	<button mat-icon-button *ngIf="darkTheme; else lightBlock" (click)="setDarkTheme(false)">
-		<mat-icon>light_mode</mat-icon>
-	</button>
-	<ng-template #lightBlock>
-		<button mat-icon-button (click)="setDarkTheme(true)">
-			<mat-icon>dark_mode</mat-icon>
-		</button>
-	</ng-template>
+  <img class="logo" src="/assets/fort.svg"/>
+  <span>Olympus</span>
+  <span class="spacer"></span>
+  <button mat-icon-button>
+    <mat-icon>settings</mat-icon>
+  </button>
+  <button mat-icon-button *ngIf="darkTheme; else lightBlock" (click)="setDarkTheme(false)">
+    <mat-icon>light_mode</mat-icon>
+  </button>
+  <ng-template #lightBlock>
+    <button mat-icon-button (click)="setDarkTheme(true)">
+      <mat-icon>dark_mode</mat-icon>
+    </button>
+  </ng-template>
 </mat-toolbar>
