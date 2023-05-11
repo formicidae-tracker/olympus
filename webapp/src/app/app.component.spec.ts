@@ -43,7 +43,7 @@ describe('AppComponent', () => {
     it('should render title in navigation bar', () => {
       expect(
         compiled.querySelector('.mat-toolbar span')?.textContent
-      ).toContain('FORT Olympus');
+      ).toContain('Olympus');
     });
     it('should apply mode accordingly', () => {
       let classes = compiled

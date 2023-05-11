@@ -1,16 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { IndexComponent } from './index.component.ts~';
+import { NodeIndexComponent } from './node-index.component.ts~';
 
 describe('IndexComponent', () => {
-  let component: IndexComponent;
-  let fixture: ComponentFixture<IndexComponent>;
+  let component: NodeIndexComponent;
+  let fixture: ComponentFixture<NodeIndexComponent>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [IndexComponent],
+      declarations: [NodeIndexComponent],
     });
-    fixture = TestBed.createComponent(IndexComponent);
+    fixture = TestBed.createComponent(NodeIndexComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

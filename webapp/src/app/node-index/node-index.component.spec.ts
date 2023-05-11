@@ -1,0 +1,21 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { NodeIndexComponent } from './node-index.component';
+
+describe('IndexComponent', () => {
+  let component: NodeIndexComponent;
+  let fixture: ComponentFixture<NodeIndexComponent>;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      declarations: [NodeIndexComponent],
+    });
+    fixture = TestBed.createComponent(NodeIndexComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});

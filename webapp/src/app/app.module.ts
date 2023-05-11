@@ -6,10 +6,16 @@ import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { CoreModule } from './core/core.module';
 import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
-import { IndexComponent } from './index/index.component';
+import { NodeIndexComponent } from './node-index/node-index.component';
+import { NodeCardComponent } from './node-index/node-card/node-card.component';
 
 @NgModule({
-  declarations: [AppComponent, NavToolbarComponent, IndexComponent],
+  declarations: [
+    AppComponent,
+    NavToolbarComponent,
+    NodeIndexComponent,
+    NodeCardComponent,
+  ],
   imports: [
     BrowserModule,
     AppRoutingModule,

@@ -1,8 +1,6 @@
-.mat-app-background {
-	height: 100%;
-}
-
 .content {
-    padding: 16px;
-    min-height: 100vh;
+  padding: 6px;
+  @media (min-width: 600px) {
+    padding: 20px;
+  }
 }
