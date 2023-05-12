@@ -175,15 +175,17 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 
 	report, err := s.o.GetZoneReport("somehost", "box")
 	if c.Check(err, IsNil) == true {
-		c.Check(report, DeepEquals, api.ZoneReport{
+		c.Check(report, DeepEquals, &api.ZoneReport{
 			Host: "somehost",
 			Name: "box",
 			Climate: &api.ZoneClimateReport{
-				Temperature: &lastReports.Temperatures[0],
-				Humidity:    lastReports.Humidity,
-				Current:     deepcopy.MustAnything(target.Current).(*api.ClimateState),
+				Temperature:       &lastReports.Temperatures[0],
+				Humidity:          lastReports.Humidity,
+				Current:           deepcopy.MustAnything(target.Current).(*api.ClimateState),
+				TemperatureBounds: &api.Bounds{},
+				HumidityBounds:    &api.Bounds{},
 			},
-			Alarms: []api.WebAlarmReport{},
+			Alarms: []*api.AlarmReport{},
 		})
 	}
 	c.Check(stream.CloseSend(), IsNil)

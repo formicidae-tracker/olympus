@@ -1,15 +1,14 @@
 syntax = "proto3";
 
-option go_package = ".;api";
+option  go_package = ".;api";
 package fort.olympus;
 
 import "google/protobuf/timestamp.proto";
 
-
 message ClimateReport {
-	repeated float            temperatures    = 2;
-	optional float            humidity        = 3;
-	google.protobuf.Timestamp time            = 4;
+	repeated float            temperatures = 2;
+	optional float            humidity     = 3;
+	google.protobuf.Timestamp time         = 4;
 }
 
 enum AlarmStatus {
@@ -18,15 +17,15 @@ enum AlarmStatus {
 }
 
 enum AlarmLevel {
-	WARNING = 0;
+	WARNING   = 0;
 	EMERGENCY = 1;
 }
 
 message AlarmEvent {
-	string                    reason          = 1;
-	AlarmLevel                level           = 2;
-	AlarmStatus               status          = 3;
-	google.protobuf.Timestamp time            = 4;
+	optional string           reason = 1;
+	optional AlarmLevel       level  = 2;
+	AlarmStatus               status = 3;
+	google.protobuf.Timestamp time   = 4;
 }
 
 message ClimateState {
@@ -39,20 +38,20 @@ message ClimateState {
 }
 
 message ZoneDeclaration {
-	string         host             = 1;
-	string         name             = 2;
-	optional float min_temperature  = 3;
-	optional float max_temperature  = 4;
-	optional float min_humidity     = 5;
-	optional float max_humidity     = 6;
+	string         host            = 1;
+	string         name            = 2;
+	optional float min_temperature = 3;
+	optional float max_temperature = 4;
+	optional float min_humidity    = 5;
+	optional float max_humidity    = 6;
 }
 
 message ClimateTarget {
-	ClimateState                       current     = 1;
-	optional ClimateState              current_end = 2;
-	optional ClimateState              next        = 3;
-	optional ClimateState              next_end    = 4;
-	optional google.protobuf.Timestamp next_time   = 5;
+	ClimateState          current                = 1;
+	optional ClimateState current_end            = 2;
+	optional ClimateState next                   = 3;
+	optional ClimateState next_end               = 4;
+	optional google.protobuf.Timestamp next_time = 5;
 }
 
 message ZoneUpStream {
@@ -77,14 +76,11 @@ message TrackingDeclaration {
 	string experiment_name = 3;
 }
 
-message TrackingUpStream {
-	optional TrackingDeclaration declaration = 1;
-}
+message TrackingUpStream { optional TrackingDeclaration declaration = 1; }
 
-message TrackingDownStream {
-}
+message TrackingDownStream {}
 
 service Olympus {
-	rpc Zone(stream ZoneUpStream) returns ( stream ZoneDownStream );
-	rpc Tracking (stream TrackingUpStream) returns ( stream TrackingDownStream);
+	rpc Zone(stream ZoneUpStream) returns (stream ZoneDownStream);
+	rpc Tracking(stream TrackingUpStream) returns (stream TrackingDownStream);
 }

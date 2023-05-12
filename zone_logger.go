@@ -19,8 +19,8 @@ type ZoneLogger interface {
 	// PushAlarms adds a list of AlarmEvents to this logger.
 	PushAlarms([]*api.AlarmEvent)
 	GetClimateTimeSeries(window string) api.ClimateTimeSeries
-	GetAlarmReports() []api.WebAlarmReport
-	GetClimateReport() api.ZoneClimateReport
+	GetAlarmReports() []*api.AlarmReport
+	GetClimateReport() *api.ZoneClimateReport
 }
 
 const (
@@ -34,10 +34,10 @@ const (
 
 type zoneLogger struct {
 	mx           sync.RWMutex
-	alarmReports map[string]*api.WebAlarmReport
+	alarmReports map[string]*api.AlarmReport
 
 	host, name     string
-	currentReport  api.ZoneClimateReport
+	currentReport  *api.ZoneClimateReport
 	lastReportTime time.Time
 
 	samplers         []ClimateDataDownsampler
@@ -68,17 +68,17 @@ func NewZoneLogger(declaration *api.ZoneDeclaration) ZoneLogger {
 		samplersByWindow: samplersByWindow,
 		host:             declaration.Host,
 		name:             declaration.Name,
-		alarmReports:     make(map[string]*api.WebAlarmReport),
-		currentReport: api.ZoneClimateReport{
+		alarmReports:     make(map[string]*api.AlarmReport),
+		currentReport: &api.ZoneClimateReport{
 			Temperature: nil,
-			TemperatureBounds: api.Bounds{
-				Min: declaration.MinTemperature,
-				Max: declaration.MaxTemperature,
+			TemperatureBounds: &api.Bounds{
+				Minimum: declaration.MinTemperature,
+				Maximum: declaration.MaxTemperature,
 			},
 			Humidity: nil,
-			HumidityBounds: api.Bounds{
-				Min: declaration.MinHumidity,
-				Max: declaration.MaxHumidity,
+			HumidityBounds: &api.Bounds{
+				Minimum: declaration.MinHumidity,
+				Maximum: declaration.MaxHumidity,
 			},
 		},
 	}
@@ -182,20 +182,20 @@ func (l *zoneLogger) updateActiveAlarmCounts() {
 }
 func (l *zoneLogger) pushEventToLog(event *api.AlarmEvent) {
 	// insert sort the event, in most cases, it will simply append it
-	r, ok := l.alarmReports[event.Reason]
+	r, ok := l.alarmReports[*event.Reason]
 	if ok == false {
-		r = &api.WebAlarmReport{
-			Reason: event.Reason,
-			Level:  int(event.Level),
+		r = &api.AlarmReport{
+			Reason: *event.Reason,
+			Level:  *event.Level,
 		}
 		l.alarmReports[r.Reason] = r
 	}
 	r.Events = BackInsertionSort(r.Events,
-		api.WebAlarmEvent{
-			Time: event.Time.AsTime(),
-			On:   (event.Status == api.AlarmStatus_ON),
+		&api.AlarmEvent{
+			Time:   event.Time,
+			Status: event.Status,
 		},
-		func(a, b api.WebAlarmEvent) bool { return a.Time.Before(b.Time) })
+		func(a, b *api.AlarmEvent) bool { return a.Time.AsTime().Before(b.Time.AsTime()) })
 
 }
 
@@ -207,8 +207,7 @@ func (l *zoneLogger) PushTarget(target *api.ClimateTarget) {
 	l.currentReport.CurrentEnd = target.CurrentEnd
 	if target.Next != nil && target.NextTime != nil {
 		l.currentReport.Next = target.Next
-		t := target.NextTime.AsTime()
-		l.currentReport.NextTime = &t
+		l.currentReport.NextTime = target.NextTime
 		l.currentReport.NextEnd = target.NextEnd
 	} else {
 		l.currentReport.Next = nil
@@ -232,23 +231,22 @@ func (l *zoneLogger) GetClimateTimeSeries(window string) api.ClimateTimeSeries {
 	return l.fromWindow(window)
 }
 
-func (l *zoneLogger) GetAlarmReports() []api.WebAlarmReport {
+func (l *zoneLogger) GetAlarmReports() []*api.AlarmReport {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
-	res := make([]api.WebAlarmReport, 0, len(l.alarmReports))
+	res := make([]*api.AlarmReport, 0, len(l.alarmReports))
 	for _, report := range l.alarmReports {
-		res = append(res, *report)
+		res = append(res, deepcopy.MustAnything(report).(*api.AlarmReport))
 	}
 	return res
 }
 
-func (l *zoneLogger) GetClimateReport() api.ZoneClimateReport {
+func (l *zoneLogger) GetClimateReport() *api.ZoneClimateReport {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
-	res := deepcopy.MustAnything(l.currentReport).(api.ZoneClimateReport)
+	res := deepcopy.MustAnything(l.currentReport).(*api.ZoneClimateReport)
 	if l.currentReport.NextTime != nil {
-		res.NextTime = new(time.Time)
-		*res.NextTime = *l.currentReport.NextTime
+		res.NextTime = l.currentReport.NextTime
 	}
 	return res
 }

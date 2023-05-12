@@ -14,13 +14,13 @@ func (s *ServiceLoggerSuite) TestKeepsLogsSorted(c *C) {
 	l.Log("zeLast", false, true)
 	logs := l.Logs()
 	c.Assert(logs, HasLen, 2)
-	for i, e := range logs[0] {
-		c.Check(e.Identifier, Matches, "aFirst")
-		c.Check(e.On, Equals, i == 0)
-	}
-	for i, e := range logs[1] {
-		c.Check(e.Identifier, Matches, "zeLast")
-		c.Check(e.On, Equals, i == 0)
+	c.Assert(logs[0].Identifier, Equals, "aFirst")
+	c.Assert(logs[1].Identifier, Equals, "zeLast")
+	c.Assert(logs[0].Events, HasLen, 2)
+	c.Assert(logs[1].Events, HasLen, 2)
+	for i := 0; i < 2; i++ {
+		c.Check(logs[0].Events[i].On, Equals, i == 0)
+		c.Check(logs[1].Events[i].On, Equals, i == 0)
 	}
 }
 
@@ -32,11 +32,11 @@ func (s *ServiceLoggerSuite) TestEnforceGracefulCorrectness(c *C) {
 	l.Log("a", false, true)
 	logs := l.Logs()
 	c.Assert(logs, HasLen, 1)
-	c.Assert(logs[0], HasLen, 4)
-	c.Check(logs[0][0].Graceful, Equals, true)
-	c.Check(logs[0][1].Graceful, Equals, true)
-	c.Check(logs[0][2].Graceful, Equals, false)
-	c.Check(logs[0][3].Graceful, Equals, true)
+	c.Assert(logs[0].Events, HasLen, 4)
+	c.Check(logs[0].Events[0].Graceful, Equals, true)
+	c.Check(logs[0].Events[1].Graceful, Equals, true)
+	c.Check(logs[0].Events[2].Graceful, Equals, false)
+	c.Check(logs[0].Events[3].Graceful, Equals, true)
 }
 
 func (s *ServiceLoggerSuite) TestFetchLastStatus(c *C) {

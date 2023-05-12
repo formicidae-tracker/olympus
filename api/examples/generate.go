@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/formicidae-tracker/olympus/api"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func main() {
@@ -27,9 +28,7 @@ func generateData() map[string][]interface{} {
 	return map[string][]interface{}{
 		"Bounds.json": {
 			api.Bounds{},
-			api.Bounds{Min: newWithValue[float32](1.0)},
-			api.Bounds{Max: newWithValue[float32](2.0)},
-			api.Bounds{Min: newWithValue[float32](1.0), Max: newWithValue[float32](2.0)},
+			api.Bounds{Minimum: newWithValue[float32](1.0), Maximum: newWithValue[float32](2.0)},
 		},
 		"ClimateState.json": {
 			api.ClimateState{},
@@ -46,32 +45,42 @@ func generateData() map[string][]interface{} {
 			api.ZoneClimateReport{
 				Temperature:       newWithValue[float32](18.0),
 				Humidity:          newWithValue[float32](60.0),
-				TemperatureBounds: api.Bounds{Min: newWithValue[float32](15.0), Max: newWithValue[float32](20.0)},
-				HumidityBounds:    api.Bounds{Min: newWithValue[float32](40.0), Max: newWithValue[float32](70.0)},
+				TemperatureBounds: &api.Bounds{},
+				HumidityBounds:    &api.Bounds{},
 				ActiveWarnings:    1,
 				ActiveEmergencies: 2,
 				Current:           &api.ClimateState{},
 				CurrentEnd:        &api.ClimateState{},
 				Next:              &api.ClimateState{},
 				NextEnd:           &api.ClimateState{},
-				NextTime:          newWithValue(time.Unix(0, 0)),
+				NextTime:          timestamppb.New(time.Unix(0, 0)),
 			},
 		},
 		"StreamInfo.json": {
 			api.StreamInfo{},
 			api.StreamInfo{
 				ExperimentName: "foo",
-				StreamURL:      "/olympus/hls/somehost.m3u",
-				ThumbnailURL:   "/olympus/somehost.png",
+				Stream_URL:     "/olympus/hls/somehost.m3u",
+				Thumbnail_URL:  "/olympus/somehost.png",
 			},
 		},
+		"TrackingInfo.json": {
+			api.TrackingInfo{},
+			api.TrackingInfo{
+				TotalBytes:     1000*1024 ^ 2,
+				FreeBytes:      800*1024 ^ 2,
+				BytesPerSecond: 10*1024 ^ 2,
+				Stream:         &api.StreamInfo{},
+			},
+		},
+
 		"ZoneReportSummary.json": {
 			api.ZoneReportSummary{},
 			api.ZoneReportSummary{
-				Host:    "somehost",
-				Name:    "box",
-				Climate: &api.ZoneClimateReport{},
-				Stream:  &api.StreamInfo{},
+				Host:     "somehost",
+				Name:     "box",
+				Climate:  &api.ZoneClimateReport{},
+				Tracking: &api.TrackingInfo{},
 			},
 		},
 	}

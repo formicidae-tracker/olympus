@@ -71,7 +71,7 @@ func (d *climateDataDownsampler) computeSeries() {
 		d.series.Humidity = series[0]
 	}
 	if len(series) > 1 {
-		d.series.TemperatureAnt = series[1]
+		d.series.Temperature = series[1]
 	}
 
 	if len(series) > 2 {

@@ -1,1 +1,1 @@
-[{"host":"","name":""},{"host":"somehost","name":"box","climate":{"temperature_bounds":{},"humidity_bounds":{},"active_warnings":0,"active_emergencies":0},"stream":{"experiment_name":"","stream_URL":"","thumbnail_URL":""}}]
+[{},{"host":"somehost","name":"box","climate":{},"tracking":{}}]

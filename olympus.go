@@ -156,8 +156,8 @@ func (o *Olympus) Close() error {
 	return multipleError(errs)
 }
 
-func (o *Olympus) GetServiceLogs() api.ServiceLogs {
-	return api.ServiceLogs{
+func (o *Olympus) GetServiceLogs() api.ServicesLogs {
+	return api.ServicesLogs{
 		Climates: o.climateLogger.Logs(),
 		Tracking: o.trackingLogger.Logs(),
 	}
@@ -173,29 +173,29 @@ func (o *Olympus) ZoneIsRegistered(host, zone string) bool {
 	return ok
 }
 
-func (o *Olympus) GetZones() []api.ZoneReportSummary {
+func (o *Olympus) GetZones() []*api.ZoneReportSummary {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
 	if o.zoneSubscriptions == nil || o.hostSubscriptions == nil {
-		return []api.ZoneReportSummary{}
+		return []*api.ZoneReportSummary{}
 	}
 
 	nbActiveZones := len(o.climateLogger.OnServices())
 	nbActiveTrackers := len(o.climateLogger.OnServices())
-	res := make([]api.ZoneReportSummary, 0, nbActiveZones+nbActiveTrackers)
+	res := make([]*api.ZoneReportSummary, 0, nbActiveZones+nbActiveTrackers)
 
 	for _, s := range o.zoneSubscriptions {
 		z := s.object
 		r := z.GetClimateReport()
-		sum := api.ZoneReportSummary{
+		sum := &api.ZoneReportSummary{
 			Host:    z.Host(),
 			Name:    z.ZoneName(),
-			Climate: &r,
+			Climate: r,
 		}
 
 		if t, ok := o.hostSubscriptions[z.Host()]; ok == true {
 			if ok == true {
-				sum.Stream = t.object.StreamInfo()
+				sum.Tracking = t.object.TrackingInfo()
 			}
 		}
 
@@ -208,10 +208,10 @@ func (o *Olympus) GetZones() []api.ZoneReportSummary {
 		if _, ok := o.zoneSubscriptions[ZoneIdentifier(host, "box")]; ok == true {
 			continue
 		}
-		res = append(res, api.ZoneReportSummary{
-			Host:   host,
-			Name:   "box",
-			Stream: t.StreamInfo(),
+		res = append(res, &api.ZoneReportSummary{
+			Host:     host,
+			Name:     "box",
+			Tracking: t.TrackingInfo(),
 		})
 	}
 
@@ -265,28 +265,27 @@ func (o *Olympus) GetClimateTimeSerie(host, zone, window string) (api.ClimateTim
 	return z.GetClimateTimeSeries(window), nil
 }
 
-func (o *Olympus) GetZoneReport(host, zone string) (api.ZoneReport, error) {
+func (o *Olympus) GetZoneReport(host, zone string) (*api.ZoneReport, error) {
 	z, errZone := o.getZoneLogger(host, zone)
 	i, errTracking := o.getTracking(host)
 	if errZone != nil && errTracking != nil {
-		return api.ZoneReport{}, errZone
+		return nil, errZone
 	}
-	res := api.ZoneReport{
+	res := &api.ZoneReport{
 		Host: host,
 		Name: zone,
 	}
 	if errZone == nil {
-		r := z.GetClimateReport()
-		res.Climate = &r
+		res.Climate = z.GetClimateReport()
 		res.Alarms = z.GetAlarmReports()
 	}
 	if errTracking == nil {
-		res.Stream = i.StreamInfo()
+		res.Tracking = i.TrackingInfo()
 	}
 	return res, nil
 }
 
-func (o *Olympus) GetAlarmReports(host, zone string) ([]api.WebAlarmReport, error) {
+func (o *Olympus) GetAlarmReports(host, zone string) ([]*api.AlarmReport, error) {
 	z, err := o.getZoneLogger(host, zone)
 	if err != nil {
 		return nil, err

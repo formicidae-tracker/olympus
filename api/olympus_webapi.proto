@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+option  go_package = ".;api";
+package fort.olympus;
+
+import 'api/olympus_service.proto';
+import 'google/protobuf/timestamp.proto';
+
+message AlarmReport {
+	string              reason = 1;
+	AlarmLevel          level  = 2;
+	repeated AlarmEvent events = 3;
+};
+
+message Bounds {
+	optional float minimum = 1;
+	optional float maximum = 2;
+};
+
+message ZoneClimateReport {
+	optional float        temperature            = 1;
+	optional float        humidity               = 2;
+	Bounds                temperature_bounds     = 3;
+	Bounds                humidity_bounds        = 4;
+	int32                 active_warnings        = 5;
+	int32                 active_emergencies     = 6;
+	optional ClimateState current                = 7;
+	optional ClimateState current_end            = 8;
+	optional ClimateState next                   = 9;
+	optional ClimateState next_end               = 10;
+	optional google.protobuf.Timestamp next_time = 11;
+};
+
+message StreamInfo {
+	string experiment_name = 1;
+	string stream_URL      = 2;
+	string thumbnail_URL   = 3;
+}
+
+message TrackingInfo {
+	int64               total_bytes      = 1;
+	int64               free_bytes       = 2;
+	int64               bytes_per_second = 3;
+	optional StreamInfo stream           = 4;
+}
+
+message ZoneReportSummary {
+	string                     host     = 1;
+	string                     name     = 2;
+	optional ZoneClimateReport climate  = 3;
+	optional TrackingInfo      tracking = 4;
+}
+
+message ServiceEvent {
+	google.protobuf.Timestamp time     = 1;
+	bool                      on       = 2;
+	bool                      graceful = 3;
+};
+
+message ServiceEventLogs {
+	string                identifier = 1;
+	repeated ServiceEvent events     = 2;
+}
+
+message ServicesLogs {
+	repeated ServiceEventLogs climates = 1;
+	repeated ServiceEventLogs tracking = 2;
+}
+
+message ZoneReport {
+	string                     host     = 1;
+	string                     name     = 2;
+	optional ZoneClimateReport climate  = 3;
+	optional TrackingInfo      tracking = 4;
+	repeated AlarmReport       alarms   = 5;
+}

@@ -42,7 +42,7 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 		if c.Check(len(series.Humidity), Equals, size) == false {
 			return
 		}
-		if c.Check(len(series.TemperatureAnt), Equals, size) == false {
+		if c.Check(len(series.Temperature), Equals, size) == false {
 			return
 		}
 
@@ -53,7 +53,7 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 			c.Check(series.Humidity[i-1].X <= series.Humidity[i].X,
 				Equals,
 				true, Commentf("at index %i", i))
-			c.Check(series.TemperatureAnt[i-1].X <= series.TemperatureAnt[i].X,
+			c.Check(series.Temperature[i-1].X <= series.Temperature[i].X,
 				Equals,
 				true, Commentf("at index %i", i))
 		}
@@ -68,7 +68,7 @@ func (s *ZoneLoggerSuite) TestLogsClimate(c *C) {
 func (s *ZoneLoggerSuite) TestUninitialzedReport(c *C) {
 	series := s.l.GetClimateTimeSeries("")
 	c.Check(series.Humidity, HasLen, 0)
-	c.Check(series.TemperatureAnt, HasLen, 0)
+	c.Check(series.Temperature, HasLen, 0)
 	report := s.l.GetClimateReport()
 	c.Check(report.Humidity, IsNil)
 	c.Check(report.Temperature, IsNil)
@@ -84,7 +84,7 @@ func (s *ZoneLoggerSuite) TestLogsHumididityOnlyClimate(c *C) {
 	})
 	series := s.l.GetClimateTimeSeries("")
 	c.Check(series.Humidity, HasLen, 1)
-	c.Check(series.TemperatureAnt, HasLen, 0)
+	c.Check(series.Temperature, HasLen, 0)
 	report := s.l.GetClimateReport()
 	c.Check(*report.Humidity, Equals, float32(55.0))
 	c.Check(report.Temperature, IsNil)
@@ -100,10 +100,16 @@ func (s *ZoneLoggerSuite) TestLogsTemperatureOnlyClimate(c *C) {
 	})
 	series := s.l.GetClimateTimeSeries("")
 	c.Check(series.Humidity, HasLen, 0)
-	c.Check(series.TemperatureAnt, HasLen, 1)
+	c.Check(series.Temperature, HasLen, 1)
 	report := s.l.GetClimateReport()
 	c.Check(report.Humidity, IsNil)
 	c.Check(*report.Temperature, Equals, float32(20.0))
+}
+
+func newWithValue[T any](v T) *T {
+	res := new(T)
+	*res = v
+	return res
 }
 
 func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
@@ -111,16 +117,16 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 
 	eventList := []*api.AlarmEvent{
 		{
-			Reason: "foo",
-			Level:  api.AlarmLevel_WARNING,
+			Reason: newWithValue("foo"),
+			Level:  newWithValue(api.AlarmLevel_WARNING),
 		},
 		{
-			Reason: "bar",
-			Level:  api.AlarmLevel_EMERGENCY,
+			Reason: newWithValue("bar"),
+			Level:  newWithValue(api.AlarmLevel_EMERGENCY),
 		},
 		{
-			Reason: "baz",
-			Level:  api.AlarmLevel_WARNING,
+			Reason: newWithValue("baz"),
+			Level:  newWithValue(api.AlarmLevel_WARNING),
 		},
 	}
 
@@ -141,11 +147,11 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 			event.Status = api.AlarmStatus_OFF
 		}
 		event.Time = timestamppb.New(t)
-		ls := lastState[event.Reason]
+		ls := lastState[*event.Reason]
 		if ls.Time.Before(t) {
 			ls.Time = t
 			ls.On = on
-			lastState[event.Reason] = ls
+			lastState[*event.Reason] = ls
 		}
 		events[i] = event
 	}
@@ -166,12 +172,12 @@ func (s *ZoneLoggerSuite) TestLogsAlarms(c *C) {
 			if i == 0 {
 				continue
 			}
-			c.Check(r.Events[i-1].Time.After(e.Time), Equals, false)
+			c.Check(r.Events[i-1].Time.AsTime().After(e.Time.AsTime()), Equals, false)
 		}
 	}
 
-	expectedWarning := 0
-	expectedEmergency := 0
+	var expectedWarning int32 = 0
+	var expectedEmergency int32 = 0
 	if lastState["bar"].On == true {
 		expectedEmergency = 1
 	}

@@ -8,23 +8,25 @@ import (
 )
 
 type TrackingLogger interface {
-	StreamInfo() *api.StreamInfo
+	TrackingInfo() *api.TrackingInfo
 }
 
 type trackingLogger struct {
-	infos *api.StreamInfo
+	infos *api.TrackingInfo
 }
 
 func NewTrackingLogger(declaration *api.TrackingDeclaration) TrackingLogger {
 	return &trackingLogger{
-		infos: &api.StreamInfo{
-			ExperimentName: declaration.ExperimentName,
-			StreamURL:      path.Join("/olympus/hls", declaration.Hostname+".m3u8"),
-			ThumbnailURL:   path.Join("/olympus", declaration.Hostname+".png"),
+		infos: &api.TrackingInfo{
+			Stream: &api.StreamInfo{
+				ExperimentName: declaration.ExperimentName,
+				Stream_URL:     path.Join("/olympus/hls", declaration.Hostname+".m3u8"),
+				Thumbnail_URL:  path.Join("/olympus", declaration.Hostname+".png"),
+			},
 		},
 	}
 }
 
-func (l *trackingLogger) StreamInfo() *api.StreamInfo {
-	return deepcopy.MustAnything(l.infos).(*api.StreamInfo)
+func (l *trackingLogger) TrackingInfo() *api.TrackingInfo {
+	return deepcopy.MustAnything(l.infos).(*api.TrackingInfo)
 }

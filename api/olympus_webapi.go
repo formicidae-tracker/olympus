@@ -10,29 +10,11 @@ import (
 	"github.com/atuleu/go-lttb"
 )
 
-type WebAlarmEvent struct {
-	On   bool
-	Time time.Time
-}
-
-type WebAlarmReport struct {
-	Reason string
-	Level  int
-	Events []WebAlarmEvent
-}
-
-func (r *WebAlarmReport) On() bool {
+func (r *AlarmReport) On() bool {
 	if len(r.Events) == 0 {
 		return false
 	}
-	return r.Events[len(r.Events)-1].On
-}
-
-type ServiceEvent struct {
-	Identifier string
-	Time       time.Time
-	On         bool
-	Graceful   bool
+	return r.Events[len(r.Events)-1].Status == AlarmStatus_ON
 }
 
 type Point lttb.Point[float32]
@@ -76,54 +58,9 @@ func (series PointSeries) MarshalJSON() ([]byte, error) {
 }
 
 type ClimateTimeSeries struct {
-	Units          string
-	Reference      time.Time
-	Humidity       PointSeries
-	TemperatureAnt PointSeries
-	TemperatureAux []PointSeries
-}
-
-type Bounds struct {
-	Min *float32 `json:"min,omitempty"`
-	Max *float32 `json:"max,omitempty"`
-}
-
-type ZoneClimateReport struct {
-	Temperature       *float32      `json:"temperature,omitempty"`
-	Humidity          *float32      `json:"humidity,omitempty"`
-	TemperatureBounds Bounds        `json:"temperature_bounds"`
-	HumidityBounds    Bounds        `json:"humidity_bounds"`
-	ActiveWarnings    int           `json:"active_warnings"`
-	ActiveEmergencies int           `json:"active_emergencies"`
-	Current           *ClimateState `json:"current,omitempty"`
-	CurrentEnd        *ClimateState `json:"current_end,omitempty"`
-	Next              *ClimateState `json:"next,omitempty"`
-	NextEnd           *ClimateState `json:"next_empty,omitempty"`
-	NextTime          *time.Time    `json:"next_time,omitempty"`
-}
-
-type ZoneReportSummary struct {
-	Host    string             `json:"host"`
-	Name    string             `json:"name"`
-	Climate *ZoneClimateReport `json:"climate,omitempty"`
-	Stream  *StreamInfo        `json:"stream,omitempty"`
-}
-
-type ZoneReport struct {
-	Host    string
-	Name    string
-	Climate *ZoneClimateReport
-	Stream  *StreamInfo
-	Alarms  []WebAlarmReport
-}
-
-type ServiceLogs struct {
-	Climates [][]ServiceEvent
-	Tracking [][]ServiceEvent
-}
-
-type StreamInfo struct {
-	ExperimentName string `json:"experiment_name"`
-	StreamURL      string `json:"stream_URL"`
-	ThumbnailURL   string `json:"thumbnail_URL"`
+	Units          string        `json:"units,omitempty"`
+	Reference      time.Time     `json:"reference,omitempty"`
+	Humidity       PointSeries   `json:"humidity,omitempty"`
+	Temperature    PointSeries   `json:"temperature,omitempty"`
+	TemperatureAux []PointSeries `json:"temperatureAux,omitempty"`
 }

@@ -7,11 +7,12 @@ import (
 
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/api"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ServiceLogger interface {
 	Log(identifier string, on, graceful bool)
-	Logs() [][]api.ServiceEvent
+	Logs() []*api.ServiceEventLogs
 	OnServices() []string
 	OffServices() []string
 }
@@ -19,40 +20,56 @@ type ServiceLogger interface {
 type serviceLogger struct {
 	mx sync.RWMutex
 
-	indexes map[string]int
-	logs    [][]api.ServiceEvent
+	logs map[string]*api.ServiceEventLogs
 }
 
 func (l *serviceLogger) Log(identifier string, on, graceful bool) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
-	index := l.getOrNew(identifier)
+	if _, ok := l.logs[identifier]; ok == false {
+		l.logs[identifier] = &api.ServiceEventLogs{
+			Identifier: identifier,
+		}
+	}
 	if on == true {
 		graceful = true
 	}
-	l.logs[index] = append(l.logs[index], api.ServiceEvent{
-		Identifier: identifier,
-		Time:       time.Now(),
-		On:         on,
-		Graceful:   graceful,
+	l.logs[identifier].Events = append(l.logs[identifier].Events, &api.ServiceEvent{
+		Time:     timestamppb.New(time.Now()),
+		On:       on,
+		Graceful: graceful,
 	})
 }
 
-func (l *serviceLogger) Logs() [][]api.ServiceEvent {
+func (l *serviceLogger) Logs() []*api.ServiceEventLogs {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
 
-	return deepcopy.MustAnything(l.logs).([][]api.ServiceEvent)
+	services := make([]string, 0, len(l.logs))
+	logs := make([]*api.ServiceEventLogs, 0, len(l.logs))
+
+	for idt := range l.logs {
+		services = append(services, idt)
+	}
+	sort.Strings(services)
+
+	for _, idt := range services {
+		logs = append(logs, deepcopy.MustAnything(l.logs[idt]).(*api.ServiceEventLogs))
+	}
+
+	return logs
 }
 
 func (l *serviceLogger) find(on bool) []string {
 	res := make([]string, 0, len(l.logs))
-	for _, logs := range l.logs {
-		if len(logs) == 0 || logs[len(logs)-1].On != on {
+	for _, log := range l.logs {
+		events := log.Events
+		if len(events) == 0 || events[len(events)-1].On != on {
 			continue
 		}
-		res = append(res, logs[0].Identifier)
+		res = append(res, log.Identifier)
 	}
+	sort.Strings(res)
 	return res
 }
 
@@ -70,34 +87,8 @@ func (l *serviceLogger) OffServices() []string {
 	return l.find(false)
 }
 
-func (l *serviceLogger) getOrNew(identifier string) int {
-	if index, ok := l.indexes[identifier]; ok == true {
-		return index
-	}
-	l.indexes[identifier] = len(l.logs)
-	l.logs = append(l.logs, nil)
-	l.sort()
-	return l.indexes[identifier]
-}
-
-func (l *serviceLogger) sort() {
-	oldIndexes := make(map[string]int)
-	oldData := make([][]api.ServiceEvent, len(l.logs))
-	copy(oldData, l.logs)
-	identifiers := make([]string, 0, len(oldIndexes))
-	for identifier, index := range l.indexes {
-		oldIndexes[identifier] = index
-		identifiers = append(identifiers, identifier)
-	}
-	sort.Strings(identifiers)
-	for index, identifier := range identifiers {
-		l.indexes[identifier] = index
-		l.logs[index] = oldData[oldIndexes[identifier]]
-	}
-}
-
 func NewServiceLogger() ServiceLogger {
 	return &serviceLogger{
-		indexes: make(map[string]int),
+		logs: make(map[string]*api.ServiceEventLogs),
 	}
 }
