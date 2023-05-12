@@ -5,11 +5,12 @@ import {
   ZoneClimateReport,
   ZoneReportSummary,
 } from './olympus-api.module';
-import boundsData from './examples/Bounds.json';
-import climateStateData from './examples/ClimateState.json';
-import streamInfoData from './examples/StreamInfo.json';
-import zoneClimateReportData from './examples/ZoneClimateReport.json';
-import zoneReportSummaryData from './examples/ZoneReportSummary.json';
+
+import boundsData from './unit-testdata/Bounds.json';
+import climateStateData from './unit-testdata/ClimateState.json';
+import streamInfoData from './unit-testdata/StreamInfo.json';
+import zoneClimateReportData from './unit-testdata/ZoneClimateReport.json';
+import zoneReportSummaryData from './unit-testdata/ZoneReportSummary.json';
 
 describe('Bounds', () => {
   it('should be parsable', () => {

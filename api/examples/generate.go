@@ -26,11 +26,30 @@ func newWithValue[T any](v T) *T {
 
 func generateData() map[string][]interface{} {
 	return map[string][]interface{}{
-		"Bounds.json": {
+		"unit-testdata/AlarmEvent.json": {
+			api.AlarmEvent{},
+			api.AlarmEvent{
+				Identification: newWithValue("climate.temperature.out-of-bound"),
+				Description:    newWithValue("Current Temperature (34.2°C) is outside [15°C,25°C]"),
+				Time:           timestamppb.New(time.Unix(0, 0)),
+				Status:         api.AlarmStatus_ON,
+				Level:          newWithValue(api.AlarmLevel_EMERGENCY),
+			},
+		},
+		"unit-testdata/AlarmReport.json": {
+			api.AlarmReport{},
+			api.AlarmReport{
+				Identification: "climate.temperature.out-of-bound",
+				Description:    "Current Temperature (34.2°C) is outside [15°C,25°C]",
+				Level:          api.AlarmLevel_EMERGENCY,
+				Events:         []*api.AlarmEvent{},
+			},
+		},
+		"unit-testdata/Bounds.json": {
 			api.Bounds{},
 			api.Bounds{Minimum: newWithValue[float32](1.0), Maximum: newWithValue[float32](2.0)},
 		},
-		"ClimateState.json": {
+		"unit-testdata/ClimateState.json": {
 			api.ClimateState{},
 			api.ClimateState{Name: "day",
 				Temperature:  newWithValue[float32](18.0),
@@ -40,7 +59,7 @@ func generateData() map[string][]interface{} {
 				UvLight:      newWithValue[float32](10.0),
 			},
 		},
-		"ZoneClimateReport.json": {
+		"unit-testdata/ZoneClimateReport.json": {
 			api.ZoneClimateReport{},
 			api.ZoneClimateReport{
 				Temperature:       newWithValue[float32](18.0),
@@ -54,7 +73,7 @@ func generateData() map[string][]interface{} {
 				NextTime:          timestamppb.New(time.Unix(0, 0)),
 			},
 		},
-		"StreamInfo.json": {
+		"unit-testdata/StreamInfo.json": {
 			api.StreamInfo{},
 			api.StreamInfo{
 				ExperimentName: "foo",
@@ -62,7 +81,7 @@ func generateData() map[string][]interface{} {
 				Thumbnail_URL:  "/olympus/somehost.png",
 			},
 		},
-		"TrackingInfo.json": {
+		"unit-testdata/TrackingInfo.json": {
 			api.TrackingInfo{},
 			api.TrackingInfo{
 				TotalBytes:     1000*1024 ^ 2,
@@ -71,8 +90,7 @@ func generateData() map[string][]interface{} {
 				Stream:         &api.StreamInfo{},
 			},
 		},
-
-		"ZoneReportSummary.json": {
+		"unit-testdata/ZoneReportSummary.json": {
 			api.ZoneReportSummary{},
 			api.ZoneReportSummary{
 				Host:     "somehost",
@@ -81,13 +99,42 @@ func generateData() map[string][]interface{} {
 				Tracking: &api.TrackingInfo{},
 			},
 		},
+		"unit-testdata/ServiceEvent.json": {
+			api.ServiceEvent{},
+			api.ServiceEvent{
+				Time:     timestamppb.New(time.Unix(1, 1)),
+				On:       false,
+				Graceful: true,
+			},
+		},
+		"unit-testdata/ServeEventLogs.json": {
+			api.ServiceEventLogs{},
+			api.ServiceEventLogs{
+				Identifier: "somehost.box",
+				Events:     []*api.ServiceEvent{},
+			},
+		},
+		"unit-testdata/ServiceLogs.json": {
+			api.ServicesLogs{},
+			api.ServicesLogs{
+				Climates: []*api.ServiceEventLogs{},
+				Tracking: []*api.ServiceEventLogs{},
+			},
+		},
 	}
 }
 
-var BASEDIR string = "./webapp/src/app/olympus-api/examples"
+var BASEDIR string = "./webapp/src/app/olympus-api/"
 
 func writeFileAsJSON(filename string, data []interface{}) error {
+
 	filepath := path.Join(BASEDIR, filename)
+
+	dirpath := path.Dir(filepath)
+	if err := os.MkdirAll(dirpath, 0755); err != nil {
+		return err
+	}
+
 	fmt.Printf("Writing '%s'\n", filepath)
 	f, err := os.Create(filepath)
 	if err != nil {
@@ -99,9 +146,6 @@ func writeFileAsJSON(filename string, data []interface{}) error {
 }
 
 func writeExamples(dataPerFilename map[string][]interface{}) error {
-	if err := os.MkdirAll(BASEDIR, 0755); err != nil {
-		return err
-	}
 	for filename, data := range dataPerFilename {
 		if err := writeFileAsJSON(filename, data); err != nil {
 			return err

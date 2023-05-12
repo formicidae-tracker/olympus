@@ -28,16 +28,16 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 
 	eventList := []*api.AlarmEvent{
 		{
-			Reason: newWithValue("foo"),
-			Level:  newWithValue(api.AlarmLevel_WARNING),
+			Identification: newWithValue("foo"),
+			Level:          newWithValue(api.AlarmLevel_WARNING),
 		},
 		{
-			Reason: newWithValue("bar"),
-			Level:  newWithValue(api.AlarmLevel_EMERGENCY),
+			Identification: newWithValue("bar"),
+			Level:          newWithValue(api.AlarmLevel_EMERGENCY),
 		},
 		{
-			Reason: newWithValue("baz"),
-			Level:  newWithValue(api.AlarmLevel_WARNING),
+			Identification: newWithValue("baz"),
+			Level:          newWithValue(api.AlarmLevel_WARNING),
 		},
 	}
 
@@ -58,11 +58,11 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 			event.Status = api.AlarmStatus_OFF
 		}
 		event.Time = timestamppb.New(t)
-		ls := lastState[*event.Reason]
+		ls := lastState[*event.Identification]
 		if ls.Time.Before(t) {
 			ls.Time = t
 			ls.On = on
-			lastState[*event.Reason] = ls
+			lastState[*event.Identification] = ls
 		}
 		events[i] = event
 	}
@@ -70,7 +70,7 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 
 	reports := s.l.GetReports()
 	for _, r := range reports {
-		switch r.Reason {
+		switch r.Identification {
 		case "foo":
 			c.Check(api.AlarmLevel(r.Level), Equals, api.AlarmLevel_WARNING)
 		case "bar":

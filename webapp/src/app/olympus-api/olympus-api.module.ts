@@ -8,8 +8,8 @@ import { CommonModule } from '@angular/common';
 export class OlympusApiModule {}
 
 export interface Bounds {
-  min?: number;
-  max?: number;
+  minimum?: number;
+  maximum?: number;
 }
 
 export interface ClimateState {
@@ -24,10 +24,8 @@ export interface ClimateState {
 export interface ZoneClimateReport {
   temperature?: number;
   humidity?: number;
-  temperature_bounds: Bounds;
-  humidity_bounds: Bounds;
-  active_warnings: number;
-  active_emergencies: number;
+  temperature_bounds?: Bounds;
+  humidity_bounds?: Bounds;
   current?: ClimateState;
   current_end?: ClimateState;
   next?: ClimateState;
@@ -41,9 +39,17 @@ export interface StreamInfo {
   thumbnail_URL: string;
 }
 
+export interface TrackingInfo {
+  total_bytes: number;
+  free_bytes: number;
+  bytes_per_second: number;
+  stream?: StreamInfo;
+}
 export interface ZoneReportSummary {
   host: string;
   name: string;
   climate?: ZoneClimateReport;
-  stream?: StreamInfo;
+  stream?: TrackingInfo;
+  active_warnings: number;
+  active_emergencies: number;
 }

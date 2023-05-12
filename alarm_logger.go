@@ -50,14 +50,21 @@ func timestampBefore(a, b *timestamppb.Timestamp) bool {
 	return a.Seconds < b.Seconds
 }
 
+func timestampEqual(a, b *timestamppb.Timestamp) bool {
+	return a.Seconds == b.Seconds && a.Nanos == b.Nanos
+}
+
 func (l *alarmLogger) pushEventToLog(event *api.AlarmEvent) {
-	report, ok := l.reports[*event.Reason]
+	if event.Identification == nil || event.Level == nil {
+		return
+	}
+	report, ok := l.reports[*event.Identification]
 	if ok == false {
 		report = &api.AlarmReport{
-			Reason: *event.Reason,
-			Level:  *event.Level,
+			Identification: *event.Identification,
+			Level:          *event.Level,
 		}
-		l.reports[report.Reason] = report
+		l.reports[report.Identification] = report
 	}
 	report.Events = BackInsertionSort(report.Events,
 		&api.AlarmEvent{
@@ -67,6 +74,11 @@ func (l *alarmLogger) pushEventToLog(event *api.AlarmEvent) {
 		func(a, b *api.AlarmEvent) bool {
 			return timestampBefore(a.Time, b.Time)
 		})
+
+	lastEvent := report.Events[len(report.Events)-1]
+	if timestampEqual(lastEvent.Time, event.Time) && event.Description != nil {
+		report.Description = *event.Description
+	}
 }
 
 func (l *alarmLogger) computeActives() {

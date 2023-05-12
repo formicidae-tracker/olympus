@@ -7,9 +7,12 @@ import 'api/olympus_service.proto';
 import 'google/protobuf/timestamp.proto';
 
 message AlarmReport {
-	string              reason = 1;
-	AlarmLevel          level  = 2;
-	repeated AlarmEvent events = 3;
+	reserved "reason";
+
+	string              identification = 1;
+	AlarmLevel          level          = 2;
+	repeated AlarmEvent events         = 3;
+	string              description    = 4;
 };
 
 message Bounds {

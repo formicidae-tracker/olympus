@@ -22,10 +22,13 @@ enum AlarmLevel {
 }
 
 message AlarmEvent {
-	optional string           reason = 1;
-	optional AlarmLevel       level  = 2;
-	AlarmStatus               status = 3;
-	google.protobuf.Timestamp time   = 4;
+	reserved "reason";
+
+	optional string           identification = 1;
+	optional AlarmLevel       level          = 2;
+	AlarmStatus               status         = 3;
+	google.protobuf.Timestamp time           = 4;
+	optional string           description    = 5;
 }
 
 message ClimateState {
@@ -56,9 +59,9 @@ message ClimateTarget {
 
 message ClimateUpStream {
 	optional ClimateDeclaration declaration = 1;
-	repeated ClimateReport   reports     = 2;
-	optional ClimateTarget   target      = 3;
-	repeated AlarmEvent      alarms      = 4;
+	repeated ClimateReport      reports     = 2;
+	optional ClimateTarget      target      = 3;
+	repeated AlarmEvent         alarms      = 4;
 }
 
 message ClimateRegistrationConfirmation {
@@ -78,7 +81,7 @@ message TrackingDeclaration {
 
 message TrackingUpStream {
 	optional TrackingDeclaration declaration = 1;
-	repeated AlarmEvent alarms = 2;
+	repeated AlarmEvent          alarms      = 2;
 }
 
 message TrackingDownStream {}
