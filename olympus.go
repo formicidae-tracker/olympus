@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -22,10 +21,16 @@ func (z ZoneNotFoundError) Error() string {
 	return fmt.Sprintf("olympus: unknown zone '%s'", string(z))
 }
 
-type HostNotFoundError string
+type NoClimateRunningError string
 
-func (h HostNotFoundError) Error() string {
-	return fmt.Sprintf("olympus: unknown host '%s'", string(h))
+func (z NoClimateRunningError) Error() string {
+	return fmt.Sprintf("olympus: no climate running in zone '%s'", string(z))
+}
+
+type NoTrackingRunningError string
+
+func (z NoTrackingRunningError) Error() string {
+	return fmt.Sprintf("olympus: no tracking running in zone '%s'", string(z))
 }
 
 type AlreadyExistError string
@@ -69,10 +74,9 @@ func (m multipleError) Error() string {
 
 type Olympus struct {
 	api.UnimplementedOlympusServer
-	mx                sync.RWMutex
-	log               *log.Logger
-	zoneSubscriptions map[string]subscription[ZoneLogger]
-	hostSubscriptions map[string]subscription[TrackingLogger]
+	mx            sync.RWMutex
+	log           *log.Logger
+	subscriptions map[string]*subscription
 
 	trackingLogger ServiceLogger
 	climateLogger  ServiceLogger
@@ -81,12 +85,13 @@ type Olympus struct {
 	slackURL string
 }
 
-type subscription[T any] struct {
-	object T
-	finish chan struct{}
+type GrpcSubscription[T any] struct {
+	object      T
+	alarmLogger AlarmLogger
+	finish      chan struct{}
 }
 
-func (s subscription[T]) Close() (err error) {
+func (s GrpcSubscription[T]) Close() (err error) {
 	defer func() {
 		if recover() != nil {
 			err = fmt.Errorf("already closed")
@@ -96,14 +101,20 @@ func (s subscription[T]) Close() (err error) {
 	return nil
 }
 
+type subscription struct {
+	host, name  string
+	climate     *GrpcSubscription[ClimateLogger]
+	tracking    *GrpcSubscription[TrackingLogger]
+	alarmLogger AlarmLogger
+}
+
 func NewOlympus(slackURL string) (*Olympus, error) {
 	res := &Olympus{
-		log:               log.New(os.Stderr, "[olympus] :", log.LstdFlags),
-		zoneSubscriptions: make(map[string]subscription[ZoneLogger]),
-		hostSubscriptions: make(map[string]subscription[TrackingLogger]),
-		trackingLogger:    NewServiceLogger(),
-		climateLogger:     NewServiceLogger(),
-		slackURL:          slackURL,
+		log:            log.New(os.Stderr, "[olympus] :", log.LstdFlags),
+		subscriptions:  make(map[string]*subscription),
+		trackingLogger: NewServiceLogger(),
+		climateLogger:  NewServiceLogger(),
+		slackURL:       slackURL,
 	}
 	var err error
 	res.hostname, err = os.Hostname()
@@ -113,42 +124,27 @@ func NewOlympus(slackURL string) (*Olympus, error) {
 	return res, nil
 }
 
-func closeAll[T io.Closer](m *sync.Map) []error {
-	var errs []error = nil
-	m.Range(func(key, s any) bool {
-		o, ok := s.(T)
-		if ok == false {
-			return true
-		}
-		err := o.Close()
-		if err != nil {
-			errs = append(errs, err)
-		}
-		return true
-	})
-	return errs
-}
-
 func (o *Olympus) Close() error {
 	o.mx.Lock()
 	defer o.mx.Unlock()
 
 	var errs []error
-	for _, s := range o.zoneSubscriptions {
-		err := s.Close()
-		if err != nil {
-			errs = append(errs, err)
+	for _, s := range o.subscriptions {
+		if s.climate != nil {
+			err := s.climate.Close()
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
-	}
-	o.zoneSubscriptions = nil
 
-	for _, s := range o.hostSubscriptions {
-		err := s.Close()
-		if err != nil {
-			errs = append(errs, err)
+		if s.tracking != nil {
+			err := s.tracking.Close()
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
-	o.hostSubscriptions = nil
+	o.subscriptions = nil
 
 	if errs == nil {
 		return nil
@@ -166,53 +162,40 @@ func (o *Olympus) GetServiceLogs() api.ServicesLogs {
 func (o *Olympus) ZoneIsRegistered(host, zone string) bool {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
-	if o.zoneSubscriptions == nil {
+	if o.subscriptions == nil {
 		return false
 	}
-	_, ok := o.zoneSubscriptions[ZoneIdentifier(host, zone)]
+	_, ok := o.subscriptions[ZoneIdentifier(host, zone)]
 	return ok
 }
 
 func (o *Olympus) GetZones() []*api.ZoneReportSummary {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
-	if o.zoneSubscriptions == nil || o.hostSubscriptions == nil {
+	if o.subscriptions == nil {
 		return []*api.ZoneReportSummary{}
 	}
 
-	nbActiveZones := len(o.climateLogger.OnServices())
-	nbActiveTrackers := len(o.climateLogger.OnServices())
-	res := make([]*api.ZoneReportSummary, 0, nbActiveZones+nbActiveTrackers)
+	res := make([]*api.ZoneReportSummary, 0, len(o.subscriptions))
 
-	for _, s := range o.zoneSubscriptions {
-		z := s.object
-		r := z.GetClimateReport()
+	for _, s := range o.subscriptions {
 		sum := &api.ZoneReportSummary{
-			Host:    z.Host(),
-			Name:    z.ZoneName(),
-			Climate: r,
+			Host: s.host,
+			Name: s.name,
+		}
+		if s.climate != nil {
+			sum.Climate = s.climate.object.GetClimateReport()
 		}
 
-		if t, ok := o.hostSubscriptions[z.Host()]; ok == true {
-			if ok == true {
-				sum.Tracking = t.object.TrackingInfo()
-			}
+		if s.tracking != nil {
+			sum.Tracking = s.tracking.object.TrackingInfo()
+		}
+
+		if s.alarmLogger != nil {
+			sum.ActiveWarnings, sum.ActiveEmergencies = s.alarmLogger.ActiveAlarmsCount()
 		}
 
 		res = append(res, sum)
-
-	}
-
-	for host, s := range o.hostSubscriptions {
-		t := s.object
-		if _, ok := o.zoneSubscriptions[ZoneIdentifier(host, "box")]; ok == true {
-			continue
-		}
-		res = append(res, &api.ZoneReportSummary{
-			Host:     host,
-			Name:     "box",
-			Tracking: t.TrackingInfo(),
-		})
 	}
 
 	sort.Slice(res, func(i, j int) bool {
@@ -225,40 +208,63 @@ func (o *Olympus) GetZones() []*api.ZoneReportSummary {
 	return res
 }
 
-func (o *Olympus) getZoneLogger(host, zone string) (ZoneLogger, error) {
+func (o *Olympus) getClimateLogger(host, zone string) (ClimateLogger, error) {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
-	if o.zoneSubscriptions == nil {
+	if o.subscriptions == nil {
 		return nil, ClosedOlympusServerError{}
 	}
 	zoneIdentifier := ZoneIdentifier(host, zone)
-	s, ok := o.zoneSubscriptions[zoneIdentifier]
+	s, ok := o.subscriptions[zoneIdentifier]
 	if ok == false {
 		return nil, ZoneNotFoundError(zoneIdentifier)
 	}
-	return s.object, nil
+	if s.climate == nil {
+		return nil, NoClimateRunningError(zoneIdentifier)
+	}
+	return s.climate.object, nil
 }
 
-func (o *Olympus) getTracking(host string) (TrackingLogger, error) {
+func (o *Olympus) getTrackingLogger(host string) (TrackingLogger, error) {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
 
-	if o.hostSubscriptions == nil {
+	if o.subscriptions == nil {
 		return nil, ClosedOlympusServerError{}
 	}
+	zoneIdentifier := ZoneIdentifier(host, "box")
 
-	s, ok := o.hostSubscriptions[host]
+	s, ok := o.subscriptions[zoneIdentifier]
 	if ok == false {
-		return nil, HostNotFoundError(host)
+		return nil, ZoneNotFoundError(host)
 	}
-	return s.object, nil
+	if s.tracking == nil {
+		return nil, NoTrackingRunningError(zoneIdentifier)
+	}
+	return s.tracking.object, nil
+}
+
+func (o *Olympus) getAlarmLogger(host, zone string) (AlarmLogger, error) {
+	o.mx.RLock()
+	defer o.mx.RUnlock()
+
+	if o.subscriptions == nil {
+		return nil, ClosedOlympusServerError{}
+	}
+	zoneIdentifier := ZoneIdentifier(host, zone)
+
+	s, ok := o.subscriptions[zoneIdentifier]
+	if ok == false || s.alarmLogger == nil {
+		return nil, ZoneNotFoundError(zoneIdentifier)
+	}
+	return s.alarmLogger, nil
 }
 
 // GetClimateTimeSeries returns the time series for a zone within a
 // given window. window should be one of "10m","1h","1d", "1w".  It
 // may return a ZoneNotFoundError.
 func (o *Olympus) GetClimateTimeSerie(host, zone, window string) (api.ClimateTimeSeries, error) {
-	z, err := o.getZoneLogger(host, zone)
+	z, err := o.getClimateLogger(host, zone)
 	if err != nil {
 		return api.ClimateTimeSeries{}, err
 	}
@@ -266,9 +272,10 @@ func (o *Olympus) GetClimateTimeSerie(host, zone, window string) (api.ClimateTim
 }
 
 func (o *Olympus) GetZoneReport(host, zone string) (*api.ZoneReport, error) {
-	z, errZone := o.getZoneLogger(host, zone)
-	i, errTracking := o.getTracking(host)
-	if errZone != nil && errTracking != nil {
+	z, errZone := o.getClimateLogger(host, zone)
+	i, errTracking := o.getTrackingLogger(host)
+	a, errAlarm := o.getAlarmLogger(host, zone)
+	if errZone != nil && errTracking != nil && errAlarm != nil {
 		return nil, errZone
 	}
 	res := &api.ZoneReport{
@@ -277,109 +284,146 @@ func (o *Olympus) GetZoneReport(host, zone string) (*api.ZoneReport, error) {
 	}
 	if errZone == nil {
 		res.Climate = z.GetClimateReport()
-		res.Alarms = z.GetAlarmReports()
 	}
 	if errTracking == nil {
 		res.Tracking = i.TrackingInfo()
 	}
+	if errAlarm == nil {
+		res.Alarms = a.GetReports()
+	}
+
 	return res, nil
 }
 
 func (o *Olympus) GetAlarmReports(host, zone string) ([]*api.AlarmReport, error) {
-	z, err := o.getZoneLogger(host, zone)
+	a, err := o.getAlarmLogger(host, zone)
 	if err != nil {
 		return nil, err
 	}
-	return z.GetAlarmReports(), nil
+	return a.GetReports(), nil
 }
 
-func (o *Olympus) RegisterZone(declaration *api.ZoneDeclaration) (ZoneLogger, <-chan struct{}, error) {
+func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration) (*GrpcSubscription[ClimateLogger], error) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
-	if o.zoneSubscriptions == nil {
-		return nil, nil, ClosedOlympusServerError{}
+	if o.subscriptions == nil {
+		return nil, ClosedOlympusServerError{}
 	}
 
-	zID := ZoneIdentifier(declaration.Host, declaration.Name)
+	zoneIdentifier := ZoneIdentifier(declaration.Host, declaration.Name)
+	sub, ok := o.subscriptions[zoneIdentifier]
+	if ok == true && sub.climate != nil {
+		return nil, AlreadyExistError("zone '" + zoneIdentifier + "'")
+	}
 
-	if _, ok := o.zoneSubscriptions[zID]; ok == true {
-		return nil, nil, AlreadyExistError("zone '" + zID + "'")
+	if ok == false {
+		alarmLogger := NewAlarmLogger()
+		sub = &subscription{
+			host:        declaration.Host,
+			name:        declaration.Name,
+			alarmLogger: alarmLogger,
+		}
+		o.subscriptions[zoneIdentifier] = sub
 	}
-	z := NewZoneLogger(declaration)
-	finish := make(chan struct{})
-	o.zoneSubscriptions[zID] = subscription[ZoneLogger]{
-		object: z,
-		finish: finish,
+	sub.climate = &GrpcSubscription[ClimateLogger]{
+		object:      NewClimateLogger(declaration),
+		finish:      make(chan struct{}),
+		alarmLogger: sub.alarmLogger,
 	}
-	go o.climateLogger.Log(z.ZoneIdentifier(), true, true)
-	return z, finish, nil
+
+	go o.climateLogger.Log(zoneIdentifier, true, true)
+	return sub.climate, nil
 }
 
-func (o *Olympus) UnregisterZone(zoneIdentifier string, graceful bool) error {
+func (o *Olympus) UnregisterClimate(host, name string, graceful bool) error {
+	zoneIdentifier := ZoneIdentifier(host, name)
 	o.mx.Lock()
 	defer o.mx.Unlock()
-	if o.zoneSubscriptions == nil {
+
+	if o.subscriptions == nil {
 		return ClosedOlympusServerError{}
 	}
 
-	s, ok := o.zoneSubscriptions[zoneIdentifier]
-	if ok == false {
+	s, ok := o.subscriptions[zoneIdentifier]
+	if ok == false || s.climate == nil {
 		return ZoneNotFoundError(zoneIdentifier)
 	}
-	delete(o.zoneSubscriptions, zoneIdentifier)
+
+	defer func() { s.climate = nil }()
+	if s.tracking == nil {
+		delete(o.subscriptions, zoneIdentifier)
+	}
+
 	o.climateLogger.Log(zoneIdentifier, false, graceful)
 	if graceful == false {
 		go o.postToSlack(":warning: Climate on *%s* ended unexpectedly.", zoneIdentifier)
 	}
 
-	return s.Close()
+	return s.climate.Close()
 }
 
-func (o *Olympus) RegisterTracker(declaration *api.TrackingDeclaration) (TrackingLogger, <-chan struct{}, error) {
+func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (*GrpcSubscription[TrackingLogger], error) {
 	if declaration.StreamServer != o.hostname+".local" {
-		return nil, nil, fmt.Errorf("unexpected server %s (expect: %s)", declaration.StreamServer, o.hostname+".local")
+		return nil, fmt.Errorf("unexpected server %s (expect: %s)", declaration.StreamServer, o.hostname+".local")
 	}
 
 	o.mx.Lock()
 	defer o.mx.Unlock()
-	if o.hostSubscriptions == nil {
-		return nil, nil, ClosedOlympusServerError{}
+
+	if o.subscriptions == nil {
+		return nil, ClosedOlympusServerError{}
 	}
 
-	if _, ok := o.hostSubscriptions[declaration.Hostname]; ok == true {
-		return nil, nil, AlreadyExistError("tracking '" + declaration.Hostname + "'")
+	zoneIdentifier := ZoneIdentifier(declaration.Hostname, "box")
+
+	sub, ok := o.subscriptions[zoneIdentifier]
+	if ok == true && sub.tracking != nil {
+		return nil, AlreadyExistError("tracking '" + declaration.Hostname + "'")
 	}
 
-	t := NewTrackingLogger(declaration)
-	finish := make(chan struct{})
-	o.hostSubscriptions[declaration.Hostname] = subscription[TrackingLogger]{
-		object: t,
-		finish: finish,
+	if ok == false {
+		alarmLogger := NewAlarmLogger()
+		sub = &subscription{
+			host:        declaration.Hostname,
+			name:        "box",
+			alarmLogger: alarmLogger,
+		}
+		o.subscriptions[zoneIdentifier] = sub
+	}
+	sub.tracking = &GrpcSubscription[TrackingLogger]{
+		object:      NewTrackingLogger(declaration),
+		finish:      make(chan struct{}),
+		alarmLogger: sub.alarmLogger,
 	}
 
 	o.trackingLogger.Log(declaration.Hostname, true, true)
 
-	return t, finish, nil
+	return sub.tracking, nil
 }
 
 func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 	o.mx.Lock()
 	defer o.mx.Unlock()
 
-	if o.hostSubscriptions == nil {
+	if o.subscriptions == nil {
 		return ClosedOlympusServerError{}
 	}
-
-	s, ok := o.hostSubscriptions[host]
-	if ok == false {
-		return HostNotFoundError(host)
+	zoneIdentifier := ZoneIdentifier(host, "box")
+	s, ok := o.subscriptions[zoneIdentifier]
+	if ok == false || s.tracking == nil {
+		return ZoneNotFoundError(zoneIdentifier)
 	}
-	delete(o.hostSubscriptions, host)
+	defer func() { s.climate = nil }()
+
+	if s.climate == nil {
+		delete(o.subscriptions, zoneIdentifier)
+	}
+
 	o.trackingLogger.Log(host, false, graceful)
 	if graceful == false {
 		o.postToSlack(":warning: Tracking experiment `%s` on %s ended unexpectedly.", "", host)
 	}
-	return s.Close()
+	return s.tracking.Close()
 }
 
 func (o *Olympus) route(router *mux.Router) {

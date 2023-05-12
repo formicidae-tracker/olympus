@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OlympusClient interface {
-	Zone(ctx context.Context, opts ...grpc.CallOption) (Olympus_ZoneClient, error)
+	Climate(ctx context.Context, opts ...grpc.CallOption) (Olympus_ClimateClient, error)
 	Tracking(ctx context.Context, opts ...grpc.CallOption) (Olympus_TrackingClient, error)
 }
 
@@ -34,31 +34,31 @@ func NewOlympusClient(cc grpc.ClientConnInterface) OlympusClient {
 	return &olympusClient{cc}
 }
 
-func (c *olympusClient) Zone(ctx context.Context, opts ...grpc.CallOption) (Olympus_ZoneClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Olympus_ServiceDesc.Streams[0], "/fort.olympus.Olympus/Zone", opts...)
+func (c *olympusClient) Climate(ctx context.Context, opts ...grpc.CallOption) (Olympus_ClimateClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Olympus_ServiceDesc.Streams[0], "/fort.olympus.Olympus/Climate", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &olympusZoneClient{stream}
+	x := &olympusClimateClient{stream}
 	return x, nil
 }
 
-type Olympus_ZoneClient interface {
-	Send(*ZoneUpStream) error
-	Recv() (*ZoneDownStream, error)
+type Olympus_ClimateClient interface {
+	Send(*ClimateUpStream) error
+	Recv() (*ClimateDownStream, error)
 	grpc.ClientStream
 }
 
-type olympusZoneClient struct {
+type olympusClimateClient struct {
 	grpc.ClientStream
 }
 
-func (x *olympusZoneClient) Send(m *ZoneUpStream) error {
+func (x *olympusClimateClient) Send(m *ClimateUpStream) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *olympusZoneClient) Recv() (*ZoneDownStream, error) {
-	m := new(ZoneDownStream)
+func (x *olympusClimateClient) Recv() (*ClimateDownStream, error) {
+	m := new(ClimateDownStream)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (x *olympusTrackingClient) Recv() (*TrackingDownStream, error) {
 // All implementations must embed UnimplementedOlympusServer
 // for forward compatibility
 type OlympusServer interface {
-	Zone(Olympus_ZoneServer) error
+	Climate(Olympus_ClimateServer) error
 	Tracking(Olympus_TrackingServer) error
 	mustEmbedUnimplementedOlympusServer()
 }
@@ -109,8 +109,8 @@ type OlympusServer interface {
 type UnimplementedOlympusServer struct {
 }
 
-func (UnimplementedOlympusServer) Zone(Olympus_ZoneServer) error {
-	return status.Errorf(codes.Unimplemented, "method Zone not implemented")
+func (UnimplementedOlympusServer) Climate(Olympus_ClimateServer) error {
+	return status.Errorf(codes.Unimplemented, "method Climate not implemented")
 }
 func (UnimplementedOlympusServer) Tracking(Olympus_TrackingServer) error {
 	return status.Errorf(codes.Unimplemented, "method Tracking not implemented")
@@ -128,26 +128,26 @@ func RegisterOlympusServer(s grpc.ServiceRegistrar, srv OlympusServer) {
 	s.RegisterService(&Olympus_ServiceDesc, srv)
 }
 
-func _Olympus_Zone_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(OlympusServer).Zone(&olympusZoneServer{stream})
+func _Olympus_Climate_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(OlympusServer).Climate(&olympusClimateServer{stream})
 }
 
-type Olympus_ZoneServer interface {
-	Send(*ZoneDownStream) error
-	Recv() (*ZoneUpStream, error)
+type Olympus_ClimateServer interface {
+	Send(*ClimateDownStream) error
+	Recv() (*ClimateUpStream, error)
 	grpc.ServerStream
 }
 
-type olympusZoneServer struct {
+type olympusClimateServer struct {
 	grpc.ServerStream
 }
 
-func (x *olympusZoneServer) Send(m *ZoneDownStream) error {
+func (x *olympusClimateServer) Send(m *ClimateDownStream) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *olympusZoneServer) Recv() (*ZoneUpStream, error) {
-	m := new(ZoneUpStream)
+func (x *olympusClimateServer) Recv() (*ClimateUpStream, error) {
+	m := new(ClimateUpStream)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -189,8 +189,8 @@ var Olympus_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Zone",
-			Handler:       _Olympus_Zone_Handler,
+			StreamName:    "Climate",
+			Handler:       _Olympus_Climate_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

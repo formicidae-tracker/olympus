@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/formicidae-tracker/olympus/api"
@@ -16,7 +17,8 @@ import (
 
 type OlympusSuite struct {
 	o                                      *Olympus
-	somehostBox, anotherBox, anotherTunnel ZoneLogger
+	somehostBox, anotherBox, anotherTunnel *GrpcSubscription[ClimateLogger]
+	somehostTracking, fifouTracking        *GrpcSubscription[TrackingLogger]
 }
 
 var _ = Suite(&OlympusSuite{})
@@ -25,19 +27,19 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	var err error
 	s.o, err = NewOlympus("")
 	c.Assert(err, IsNil)
-	s.somehostBox, _, err = s.o.RegisterZone(&api.ZoneDeclaration{
+	s.somehostBox, err = s.o.RegisterClimate(&api.ClimateDeclaration{
 		Host: "somehost",
 		Name: "box",
 	})
 	c.Assert(err, IsNil)
 
-	s.anotherBox, _, err = s.o.RegisterZone(&api.ZoneDeclaration{
+	s.anotherBox, err = s.o.RegisterClimate(&api.ClimateDeclaration{
 		Host: "another",
 		Name: "box",
 	})
 	c.Assert(err, IsNil)
 
-	s.anotherTunnel, _, err = s.o.RegisterZone(&api.ZoneDeclaration{
+	s.anotherTunnel, err = s.o.RegisterClimate(&api.ClimateDeclaration{
 		Host: "another",
 		Name: "tunnel",
 	})
@@ -46,14 +48,14 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	hostname, err := os.Hostname()
 	c.Assert(err, IsNil)
 
-	_, _, err = s.o.RegisterTracker(&api.TrackingDeclaration{
+	s.somehostTracking, err = s.o.RegisterTracking(&api.TrackingDeclaration{
 		Hostname:       "somehost",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
 	})
 	c.Assert(err, IsNil)
 
-	_, _, err = s.o.RegisterTracker(&api.TrackingDeclaration{
+	s.fifouTracking, err = s.o.RegisterTracking(&api.TrackingDeclaration{
 		Hostname:       "fifou",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
@@ -71,6 +73,10 @@ func (s *OlympusSuite) TearDownTest(c *C) {
 	c.Check(s.o.Close(), IsNil)
 }
 
+func (s *OlympusSuite) TestTrackingAndClimateShareAlarmLogger(c *C) {
+	c.Check(s.somehostTracking.alarmLogger, Equals, s.somehostBox.alarmLogger)
+}
+
 func (s *OlympusSuite) TestReportClimate(c *C) {
 	reports := make([]*api.ClimateReport, 300)
 	for i := 0; i < 300; i++ {
@@ -80,7 +86,7 @@ func (s *OlympusSuite) TestReportClimate(c *C) {
 			Temperatures: []float32{21},
 		}
 	}
-	s.somehostBox.PushReports(reports)
+	s.somehostBox.object.PushReports(reports)
 
 	windows := []string{"10m", "1h", "1d", "1w", "10-minutes", "10-minute", "hour", "day", "week", "will default to 10 minutes if window is not a valid one"}
 	size := []int{300, 150, 8, 2, 300, 300, 150, 8, 2, 300}
@@ -123,19 +129,10 @@ func (s *OlympusSuite) TestReportClimate(c *C) {
 	c.Check(report.Climate.Temperature, IsNil)
 }
 
-func isSorted(n int, comp func(i, j int) bool) bool {
-	for i := 1; i < n; i++ {
-		if comp(i-1, i) == false {
-			return false
-		}
-	}
-	return true
-}
-
 func (s *OlympusSuite) TestZoneSummary(c *C) {
 	summary := s.o.GetZones()
 	//we check that it is sorted
-	c.Check(isSorted(len(summary), func(i, j int) bool {
+	c.Check(sort.SliceIsSorted(summary, func(i, j int) bool {
 		if summary[i].Host == summary[j].Host {
 			return summary[i].Name < summary[j].Name
 		}
@@ -204,24 +201,27 @@ func (s *OlympusSuite) TestRoute(c *C) {
 	s.o.route(router)
 
 	for _, d := range testdata {
+		comment := Commentf("%s: '%s'", d.Method, d.URL)
 		var err error
 		req, err := http.NewRequest(d.Method, d.URL, nil)
-		c.Assert(err, IsNil, Commentf("%s %s", d.Method, d.URL))
+		c.Assert(err, IsNil, comment)
 		match := mux.RouteMatch{}
 
-		c.Assert(router.Match(req, &match), Equals, true, Commentf("%s %s", d.Method, d.URL))
+		c.Assert(router.Match(req, &match), Equals, true, comment)
 		req = mux.SetURLVars(req, match.Vars)
 		w := httptest.NewRecorder()
 		match.Handler.ServeHTTP(w, req)
 		if len(d.Error) == 0 {
 			rerr, _ := ioutil.ReadAll(w.Result().Body)
-			c.Check(w.Result().StatusCode, Equals, http.StatusOK, Commentf("%s %s returned:", d.Method, d.URL, string(rerr)))
-
+			c.Check(w.Result().StatusCode,
+				Equals,
+				http.StatusOK,
+				Commentf("%s: '%s' returned: %s", d.Method, d.URL, string(rerr)))
 		} else {
-			c.Check(w.Result().StatusCode, Equals, http.StatusInternalServerError, Commentf("%s %s", d.Method, d.URL))
+			c.Check(w.Result().StatusCode, Equals, http.StatusInternalServerError, comment)
 			res, err := ioutil.ReadAll(w.Result().Body)
-			c.Check(err, IsNil)
-			c.Check(string(res), Matches, d.Error)
+			c.Check(err, IsNil, comment)
+			c.Check(string(res), Matches, d.Error, comment)
 		}
 
 	}

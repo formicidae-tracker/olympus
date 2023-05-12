@@ -191,6 +191,6 @@ func execute() error {
 	}
 	defer f.Close()
 	return client_util_templates.Execute(f, clientUtilTemplateData{
-		Clients: []string{"Zone", "Tracking"},
+		Clients: []string{"Climate", "Tracking"},
 	})
 }

@@ -18,12 +18,13 @@ message Bounds {
 };
 
 message ZoneClimateReport {
+	reserved 5, 6;
+	reserved "active_warnings", "active_emergencies";
+
 	optional float        temperature            = 1;
 	optional float        humidity               = 2;
 	Bounds                temperature_bounds     = 3;
 	Bounds                humidity_bounds        = 4;
-	int32                 active_warnings        = 5;
-	int32                 active_emergencies     = 6;
 	optional ClimateState current                = 7;
 	optional ClimateState current_end            = 8;
 	optional ClimateState next                   = 9;
@@ -45,10 +46,12 @@ message TrackingInfo {
 }
 
 message ZoneReportSummary {
-	string                     host     = 1;
-	string                     name     = 2;
-	optional ZoneClimateReport climate  = 3;
-	optional TrackingInfo      tracking = 4;
+	string                     host               = 1;
+	string                     name               = 2;
+	optional ZoneClimateReport climate            = 3;
+	optional TrackingInfo      tracking           = 4;
+	int32                      active_warnings    = 5;
+	int32                      active_emergencies = 6;
 }
 
 message ServiceEvent {

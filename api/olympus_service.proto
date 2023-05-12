@@ -37,7 +37,7 @@ message ClimateState {
 	optional float uv_light      = 6;
 }
 
-message ZoneDeclaration {
+message ClimateDeclaration {
 	string         host            = 1;
 	string         name            = 2;
 	optional float min_temperature = 3;
@@ -54,20 +54,20 @@ message ClimateTarget {
 	optional google.protobuf.Timestamp next_time = 5;
 }
 
-message ZoneUpStream {
-	optional ZoneDeclaration declaration = 1;
+message ClimateUpStream {
+	optional ClimateDeclaration declaration = 1;
 	repeated ClimateReport   reports     = 2;
 	optional ClimateTarget   target      = 3;
 	repeated AlarmEvent      alarms      = 4;
 }
 
-message ZoneRegistrationConfirmation {
+message ClimateRegistrationConfirmation {
 	bool  send_backlogs = 1;
 	int32 page_size     = 2;
 }
 
-message ZoneDownStream {
-	ZoneRegistrationConfirmation registration_confirmation = 1;
+message ClimateDownStream {
+	ClimateRegistrationConfirmation registration_confirmation = 1;
 }
 
 message TrackingDeclaration {
@@ -76,11 +76,14 @@ message TrackingDeclaration {
 	string experiment_name = 3;
 }
 
-message TrackingUpStream { optional TrackingDeclaration declaration = 1; }
+message TrackingUpStream {
+	optional TrackingDeclaration declaration = 1;
+	repeated AlarmEvent alarms = 2;
+}
 
 message TrackingDownStream {}
 
 service Olympus {
-	rpc Zone(stream ZoneUpStream) returns (stream ZoneDownStream);
+	rpc Climate(stream ClimateUpStream) returns (stream ClimateDownStream);
 	rpc Tracking(stream TrackingUpStream) returns (stream TrackingDownStream);
 }

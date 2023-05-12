@@ -47,8 +47,6 @@ func generateData() map[string][]interface{} {
 				Humidity:          newWithValue[float32](60.0),
 				TemperatureBounds: &api.Bounds{},
 				HumidityBounds:    &api.Bounds{},
-				ActiveWarnings:    1,
-				ActiveEmergencies: 2,
 				Current:           &api.ClimateState{},
 				CurrentEnd:        &api.ClimateState{},
 				Next:              &api.ClimateState{},

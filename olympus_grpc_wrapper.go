@@ -71,9 +71,11 @@ func mapError(err error) error {
 	switch err.(type) {
 	case AlreadyExistError:
 		return status.Error(codes.AlreadyExists, err.Error())
-	case ZoneNotFoundError:
+	case NoClimateRunningError:
 		return status.Error(codes.NotFound, err.Error())
-	case HostNotFoundError:
+	case NoTrackingRunningError:
+		return status.Error(codes.NotFound, err.Error())
+	case ZoneNotFoundError:
 		return status.Error(codes.NotFound, err.Error())
 	case ClosedOlympusServerError:
 		return status.Error(codes.Internal, err.Error())
@@ -82,44 +84,46 @@ func mapError(err error) error {
 	}
 }
 
-func (o *OlympusGRPCWrapper) Zone(stream api.Olympus_ZoneServer) (err error) {
-	var z ZoneLogger = nil
+func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err error) {
+	var subscription *GrpcSubscription[ClimateLogger] = nil
 	var finish <-chan struct{} = nil
 
 	defer func() {
-		if z == nil {
+		if subscription == nil {
 			return
 		}
 		graceful := err != nil
-		(*Olympus)(o).UnregisterZone(z.ZoneIdentifier(), graceful)
+		(*Olympus)(o).UnregisterClimate(subscription.object.Host(), subscription.object.ZoneName(), graceful)
 	}()
-	ack := &api.ZoneDownStream{}
-	handleMessage := func(m *api.ZoneUpStream) (*api.ZoneDownStream, error) {
-		var confirmation *api.ZoneDownStream
-		if z == nil {
+	ack := &api.ClimateDownStream{}
+	handleMessage := func(m *api.ClimateUpStream) (*api.ClimateDownStream, error) {
+		var confirmation *api.ClimateDownStream
+		if subscription == nil {
 			if m.Declaration == nil {
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain ZoneDeclaration")
 			}
 			var err error
-			z, finish, err = (*Olympus)(o).RegisterZone(m.Declaration)
+			subscription, err = (*Olympus)(o).RegisterClimate(m.Declaration)
 			if err != nil {
 				return nil, mapError(err)
 			}
-			confirmation = &api.ZoneDownStream{
-				RegistrationConfirmation: &api.ZoneRegistrationConfirmation{
+			finish = subscription.finish
+
+			confirmation = &api.ClimateDownStream{
+				RegistrationConfirmation: &api.ClimateRegistrationConfirmation{
 					PageSize: int32(BackLogPageSize),
 				},
 			}
 		}
 
 		if m.Target != nil {
-			z.PushTarget(m.Target)
+			subscription.object.PushTarget(m.Target)
 		}
 		if len(m.Alarms) > 0 {
-			z.PushAlarms(m.Alarms)
+			subscription.alarmLogger.PushAlarms(m.Alarms)
 		}
 		if len(m.Reports) > 0 {
-			z.PushReports(m.Reports)
+			subscription.object.PushReports(m.Reports)
 		}
 
 		if confirmation != nil {
@@ -129,15 +133,15 @@ func (o *OlympusGRPCWrapper) Zone(stream api.Olympus_ZoneServer) (err error) {
 		return ack, nil
 	}
 
-	return serveLoop[api.ZoneUpStream, api.ZoneDownStream](stream, handleMessage, &finish)
+	return serveLoop[api.ClimateUpStream, api.ClimateDownStream](stream, handleMessage, &finish)
 }
 
 func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err error) {
-	var t TrackingLogger = nil
+	var subscription *GrpcSubscription[TrackingLogger] = nil
 	var finish <-chan struct{} = nil
 	hostname := ""
 	defer func() {
-		if t == nil {
+		if subscription == nil {
 			return
 		}
 		graceful := err != nil
@@ -145,17 +149,24 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 	}()
 	ack := &api.TrackingDownStream{}
 	handleMessage := func(m *api.TrackingUpStream) (*api.TrackingDownStream, error) {
-		if t == nil {
+		if subscription == nil {
 			if m.Declaration == nil {
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain TrackingDeclaration")
 			}
 			var err error
-			t, finish, err = (*Olympus)(o).RegisterTracker(m.Declaration)
-			hostname = m.Declaration.Hostname
+			subscription, err = (*Olympus)(o).RegisterTracking(m.Declaration)
 			if err != nil {
 				return nil, mapError(err)
 			}
+			hostname = m.Declaration.Hostname
+			finish = subscription.finish
+
 		}
+
+		if len(m.Alarms) > 0 {
+			subscription.alarmLogger.PushAlarms(m.Alarms)
+		}
+
 		return ack, nil
 	}
 

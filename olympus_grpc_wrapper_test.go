@@ -75,14 +75,14 @@ func (s *GRPCSuite) TestNothingHappens(c *C) {
 	defer conn.Close()
 }
 
-func connectZone(c *C) (api.Olympus_ZoneClient, func(), error) {
+func connectZone(c *C) (api.Olympus_ClimateClient, func(), error) {
 	conn, err := grpc.Dial("localhost:12345", api.DefaultDialOptions...)
 	if err != nil {
 		return nil, func() {}, err
 	}
 
 	client := api.NewOlympusClient(conn)
-	stream, err := client.Zone(context.Background(), api.DefaultCallOptions...)
+	stream, err := client.Climate(context.Background(), api.DefaultCallOptions...)
 	if err != nil {
 		return nil, func() { c.Check(conn.Close(), IsNil) }, err
 	}
@@ -156,8 +156,8 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 
 	lastReports := reports[len(reports)-1]
 
-	c.Check(stream.Send(&api.ZoneUpStream{
-		Declaration: &api.ZoneDeclaration{
+	c.Check(stream.Send(&api.ClimateUpStream{
+		Declaration: &api.ClimateDeclaration{
 			Host: "somehost",
 			Name: "box",
 		},
@@ -167,7 +167,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 	_, err = stream.Recv()
 	c.Check(err, IsNil)
 
-	c.Check(stream.Send(&api.ZoneUpStream{
+	c.Check(stream.Send(&api.ClimateUpStream{
 		Reports: reports[:4],
 	}), IsNil)
 	_, err = stream.Recv()
@@ -185,7 +185,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 				TemperatureBounds: &api.Bounds{},
 				HumidityBounds:    &api.Bounds{},
 			},
-			Alarms: []*api.AlarmReport{},
+			Alarms: nil,
 		})
 	}
 	c.Check(stream.CloseSend(), IsNil)
@@ -197,7 +197,7 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 }
 
 func (s *GRPCSuite) TestDoubleZoneRegistrationError(c *C) {
-	streams := []api.Olympus_ZoneClient{nil, nil}
+	streams := []api.Olympus_ClimateClient{nil, nil}
 
 	for i := range streams {
 		stream, cleanUp, err := connectZone(c)
@@ -205,8 +205,8 @@ func (s *GRPCSuite) TestDoubleZoneRegistrationError(c *C) {
 		c.Assert(err, IsNil)
 		streams[i] = stream
 	}
-	declaration := &api.ZoneUpStream{
-		Declaration: &api.ZoneDeclaration{Host: "somehost", Name: "box"},
+	declaration := &api.ClimateUpStream{
+		Declaration: &api.ClimateDeclaration{Host: "somehost", Name: "box"},
 	}
 	c.Check(streams[0].Send(declaration), IsNil)
 	_, err := streams[0].Recv()
@@ -223,7 +223,7 @@ func (s *GRPCSuite) TestLackOfZonRegistrationError(c *C) {
 	defer cleanUp()
 	c.Assert(err, IsNil)
 
-	c.Check(stream.Send(&api.ZoneUpStream{}), IsNil)
+	c.Check(stream.Send(&api.ClimateUpStream{}), IsNil)
 	m, err := stream.Recv()
 	c.Check(m, IsNil)
 	c.Check(err, ErrorMatches, `rpc error: code = InvalidArgument desc = first message of stream must contain ZoneDeclaration`)

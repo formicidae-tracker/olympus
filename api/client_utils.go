@@ -10,33 +10,33 @@ import (
 	grpc "google.golang.org/grpc"
 )
 
-// ZoneConnection holds a connection to an olympus Zone
+// ClimateConnection holds a connection to an olympus Climate
 // bi-directional string.
-type ZoneConnection struct {
+type ClimateConnection struct {
 	conn        *grpc.ClientConn
-	stream      Olympus_ZoneClient
-	acknowledge *ZoneDownStream
+	stream      Olympus_ClimateClient
+	acknowledge *ClimateDownStream
 }
 
 // Established returns true if connection is established.
-func (c *ZoneConnection) Established() bool {
+func (c *ClimateConnection) Established() bool {
 	return c.conn != nil && c.stream != nil
 }
 
-// Confirmation returns the ZoneDownStream acknowledgement for the
+// Confirmation returns the ClimateDownStream acknowledgement for the
 // olympus server declaration. It can be empty.
-func (c *ZoneConnection) Confirmation() *ZoneDownStream {
+func (c *ClimateConnection) Confirmation() *ClimateDownStream {
 	return c.acknowledge
 }
 
 // ClientConn returns the underlying grpc.ClientConn
-func (c *ZoneConnection) ClienConn() *grpc.ClientConn {
+func (c *ClimateConnection) ClienConn() *grpc.ClientConn {
 	return c.conn
 }
 
-// Send sends a ZoneUpStream message and gets it ZoneDownStream
+// Send sends a ClimateUpStream message and gets it ClimateDownStream
 // response (typically acknowledge).
-func (c *ZoneConnection) Send(m *ZoneUpStream) (*ZoneDownStream, error) {
+func (c *ClimateConnection) Send(m *ClimateUpStream) (*ClimateDownStream, error) {
 	if c.stream == nil {
 		return nil, nil
 	}
@@ -49,7 +49,7 @@ func (c *ZoneConnection) Send(m *ZoneUpStream) (*ZoneDownStream, error) {
 
 // CloseStream close only the bi-directional string, but keeps the tcp
 // connection alive. If logger is non-nil, will log any error to it.
-func (c *ZoneConnection) CloseStream(logger *log.Logger) {
+func (c *ClimateConnection) CloseStream(logger *log.Logger) {
 	if c.stream != nil {
 		err := c.stream.CloseSend()
 		if err != nil && logger != nil {
@@ -60,10 +60,10 @@ func (c *ZoneConnection) CloseStream(logger *log.Logger) {
 	c.acknowledge = nil
 }
 
-// CloseAll() close completely the ZoneConnection, avoiding any
+// CloseAll() close completely the ClimateConnection, avoiding any
 // leaking routine. If logger is non-nil, will use it to log any
 // error.
-func (c *ZoneConnection) CloseAll(logger *log.Logger) {
+func (c *ClimateConnection) CloseAll(logger *log.Logger) {
 	c.CloseStream(logger)
 	if c.conn != nil {
 		err := c.conn.Close()
@@ -74,15 +74,15 @@ func (c *ZoneConnection) CloseAll(logger *log.Logger) {
 	c.conn = nil
 }
 
-// ConnectZone connects a ZoneConnection, to address, potentially
+// ConnectClimate connects a ClimateConnection, to address, potentially
 // re-using conn if non-nil.
-func ConnectZone(conn *grpc.ClientConn,
+func ConnectClimate(conn *grpc.ClientConn,
 	address string,
-	declaration *ZoneDeclaration,
+	declaration *ClimateDeclaration,
 	logger *log.Logger,
-	opts ...grpc.DialOption) (res *ZoneConnection, err error) {
+	opts ...grpc.DialOption) (res *ClimateConnection, err error) {
 
-	res = &ZoneConnection{}
+	res = &ClimateConnection{}
 	defer func() {
 		if err == nil {
 			return
@@ -105,33 +105,33 @@ func ConnectZone(conn *grpc.ClientConn,
 
 	client := NewOlympusClient(res.conn)
 
-	res.stream, err = client.Zone(context.Background(), DefaultCallOptions...)
+	res.stream, err = client.Climate(context.Background(), DefaultCallOptions...)
 	if err != nil {
 		return
 	}
-	res.acknowledge, err = res.Send(&ZoneUpStream{
+	res.acknowledge, err = res.Send(&ClimateUpStream{
 		Declaration: declaration,
 	})
 	return
 }
 
-// ConnectZoneAsync connects a ZoneConnection asynchronously.
-func ConnectZoneAsync(conn *grpc.ClientConn,
+// ConnectClimateAsync connects a ClimateConnection asynchronously.
+func ConnectClimateAsync(conn *grpc.ClientConn,
 	address string,
-	declaration *ZoneDeclaration,
+	declaration *ClimateDeclaration,
 	logger *log.Logger,
-	opts ...grpc.DialOption) (<-chan *ZoneConnection, <-chan error) {
+	opts ...grpc.DialOption) (<-chan *ClimateConnection, <-chan error) {
 
 	errors := make(chan error)
-	connections := make(chan *ZoneConnection)
+	connections := make(chan *ClimateConnection)
 
-	declaration = deepcopy.MustAnything(declaration).(*ZoneDeclaration)
+	declaration = deepcopy.MustAnything(declaration).(*ClimateDeclaration)
 
 	go func() {
 		defer close(connections)
 		defer close(errors)
 
-		c, err := ConnectZone(conn, address, declaration, logger, opts...)
+		c, err := ConnectClimate(conn, address, declaration, logger, opts...)
 		if err != nil {
 			select {
 			case errors <- err:
