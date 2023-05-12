@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/formicidae-tracker/olympus/api"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func main() {
@@ -26,14 +25,11 @@ func newWithValue[T any](v T) *T {
 
 func generateData() map[string][]interface{} {
 	return map[string][]interface{}{
-		"unit-testdata/AlarmEvent.json": {
-			api.AlarmEvent{},
-			api.AlarmEvent{
-				Identification: newWithValue("climate.temperature.out-of-bound"),
-				Description:    newWithValue("Current Temperature (34.2°C) is outside [15°C,25°C]"),
-				Time:           timestamppb.New(time.Unix(0, 0)),
-				Status:         api.AlarmStatus_ON,
-				Level:          newWithValue(api.AlarmLevel_EMERGENCY),
+		"unit-testdata/AlarmTimepoint.json": {
+			api.AlarmTimepPoint{},
+			api.AlarmTimepPoint{
+				Time: time.Unix(1, 1),
+				On:   true,
 			},
 		},
 		"unit-testdata/AlarmReport.json": {
@@ -42,7 +38,7 @@ func generateData() map[string][]interface{} {
 				Identification: "climate.temperature.out-of-bound",
 				Description:    "Current Temperature (34.2°C) is outside [15°C,25°C]",
 				Level:          api.AlarmLevel_EMERGENCY,
-				Events:         []*api.AlarmEvent{},
+				Events:         []api.AlarmTimepPoint{{time.Unix(1, 1), true}},
 			},
 		},
 		"unit-testdata/Bounds.json": {
@@ -64,21 +60,21 @@ func generateData() map[string][]interface{} {
 			api.ZoneClimateReport{
 				Temperature:       newWithValue[float32](18.0),
 				Humidity:          newWithValue[float32](60.0),
-				TemperatureBounds: &api.Bounds{},
-				HumidityBounds:    &api.Bounds{},
-				Current:           &api.ClimateState{},
-				CurrentEnd:        &api.ClimateState{},
-				Next:              &api.ClimateState{},
-				NextEnd:           &api.ClimateState{},
-				NextTime:          timestamppb.New(time.Unix(0, 0)),
+				TemperatureBounds: api.Bounds{Minimum: newWithValue[float32](0.0)},
+				HumidityBounds:    api.Bounds{Maximum: newWithValue[float32](0.0)},
+				Current:           &api.ClimateState{Name: "day"},
+				CurrentEnd:        nil,
+				Next:              &api.ClimateState{Name: "day-to-night"},
+				NextEnd:           &api.ClimateState{Name: "day-to-night"},
+				NextTime:          newWithValue(time.Unix(1, 1)),
 			},
 		},
 		"unit-testdata/StreamInfo.json": {
 			api.StreamInfo{},
 			api.StreamInfo{
 				ExperimentName: "foo",
-				Stream_URL:     "/olympus/hls/somehost.m3u",
-				Thumbnail_URL:  "/olympus/somehost.png",
+				StreamURL:      "/olympus/hls/somehost.m3u",
+				ThumbnailURL:   "/olympus/somehost.png",
 			},
 		},
 		"unit-testdata/TrackingInfo.json": {
@@ -87,7 +83,7 @@ func generateData() map[string][]interface{} {
 				TotalBytes:     1000*1024 ^ 2,
 				FreeBytes:      800*1024 ^ 2,
 				BytesPerSecond: 10*1024 ^ 2,
-				Stream:         &api.StreamInfo{},
+				Stream:         &api.StreamInfo{ExperimentName: "foo"},
 			},
 		},
 		"unit-testdata/ZoneReportSummary.json": {
@@ -95,30 +91,30 @@ func generateData() map[string][]interface{} {
 			api.ZoneReportSummary{
 				Host:     "somehost",
 				Name:     "box",
-				Climate:  &api.ZoneClimateReport{},
-				Tracking: &api.TrackingInfo{},
+				Climate:  &api.ZoneClimateReport{Temperature: newWithValue[float32](18.0)},
+				Tracking: &api.TrackingInfo{TotalBytes: 1000*1024 ^ 2},
 			},
 		},
 		"unit-testdata/ServiceEvent.json": {
 			api.ServiceEvent{},
 			api.ServiceEvent{
-				Time:     timestamppb.New(time.Unix(1, 1)),
+				Time:     time.Unix(1, 1),
 				On:       false,
 				Graceful: true,
 			},
 		},
 		"unit-testdata/ServeEventLogs.json": {
-			api.ServiceEventLogs{},
-			api.ServiceEventLogs{
-				Identifier: "somehost.box",
-				Events:     []*api.ServiceEvent{},
+			api.ServiceEventList{},
+			api.ServiceEventList{
+				Zone:   "somehost.box",
+				Events: []api.ServiceEvent{{Time: time.Unix(1, 1), On: true, Graceful: false}},
 			},
 		},
 		"unit-testdata/ServiceLogs.json": {
 			api.ServicesLogs{},
 			api.ServicesLogs{
-				Climates: []*api.ServiceEventLogs{},
-				Tracking: []*api.ServiceEventLogs{},
+				Climate:  []api.ServiceEventList{{Zone: "foo"}},
+				Tracking: []api.ServiceEventList{{Zone: "foo"}},
 			},
 		},
 	}

@@ -14,8 +14,8 @@ func (s *ServiceLoggerSuite) TestKeepsLogsSorted(c *C) {
 	l.Log("zeLast", false, true)
 	logs := l.Logs()
 	c.Assert(logs, HasLen, 2)
-	c.Assert(logs[0].Identifier, Equals, "aFirst")
-	c.Assert(logs[1].Identifier, Equals, "zeLast")
+	c.Assert(logs[0].Zone, Equals, "aFirst")
+	c.Assert(logs[1].Zone, Equals, "zeLast")
 	c.Assert(logs[0].Events, HasLen, 2)
 	c.Assert(logs[1].Events, HasLen, 2)
 	for i := 0; i < 2; i++ {

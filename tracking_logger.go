@@ -20,8 +20,8 @@ func NewTrackingLogger(declaration *api.TrackingDeclaration) TrackingLogger {
 		infos: &api.TrackingInfo{
 			Stream: &api.StreamInfo{
 				ExperimentName: declaration.ExperimentName,
-				Stream_URL:     path.Join("/olympus/hls", declaration.Hostname+".m3u8"),
-				Thumbnail_URL:  path.Join("/olympus", declaration.Hostname+".png"),
+				StreamURL:      path.Join("/olympus/hls", declaration.Hostname+".m3u8"),
+				ThumbnailURL:   path.Join("/olympus", declaration.Hostname+".png"),
 			},
 		},
 	}

@@ -20,7 +20,7 @@ import (
 //go:generate go run generate_version.go
 //go:generate go run generate_client_utils.go
 //go:generate go fmt api/client_utils.go
-//go:generate protoc --experimental_allow_proto3_optional  --go_out=api --go-grpc_out=api ./api/olympus_service.proto ./api/olympus_webapi.proto
+//go:generate protoc --experimental_allow_proto3_optional  --go_out=api --go-grpc_out=api ./api/olympus_service.proto
 //go:generate go run ./api/examples/generate.go
 
 type Options struct {

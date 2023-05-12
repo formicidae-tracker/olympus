@@ -28,16 +28,16 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 
 	eventList := []*api.AlarmEvent{
 		{
-			Identification: newWithValue("foo"),
-			Level:          newWithValue(api.AlarmLevel_WARNING),
+			Identification: "foo",
+			Level:          api.AlarmLevel_WARNING,
 		},
 		{
-			Identification: newWithValue("bar"),
-			Level:          newWithValue(api.AlarmLevel_EMERGENCY),
+			Identification: "bar",
+			Level:          api.AlarmLevel_EMERGENCY,
 		},
 		{
-			Identification: newWithValue("baz"),
-			Level:          newWithValue(api.AlarmLevel_WARNING),
+			Identification: "baz",
+			Level:          api.AlarmLevel_WARNING,
 		},
 	}
 
@@ -58,11 +58,11 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 			event.Status = api.AlarmStatus_OFF
 		}
 		event.Time = timestamppb.New(t)
-		ls := lastState[*event.Identification]
+		ls := lastState[event.Identification]
 		if ls.Time.Before(t) {
 			ls.Time = t
 			ls.On = on
-			lastState[*event.Identification] = ls
+			lastState[event.Identification] = ls
 		}
 		events[i] = event
 	}
@@ -83,12 +83,12 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 			if i == 0 {
 				continue
 			}
-			c.Check(r.Events[i-1].Time.AsTime().After(e.Time.AsTime()), Equals, false)
+			c.Check(r.Events[i-1].Time.After(e.Time), Equals, false)
 		}
 	}
 
-	var expectedWarning int32 = 0
-	var expectedEmergency int32 = 0
+	var expectedWarning int = 0
+	var expectedEmergency int = 0
 	if lastState["bar"].On == true {
 		expectedEmergency = 1
 	}

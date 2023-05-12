@@ -4,36 +4,27 @@ option  go_package = ".;api";
 package fort.olympus;
 
 import 'api/olympus_service.proto';
-import 'google/protobuf/timestamp.proto';
 
-message AlarmReport {
-	reserved "reason";
 
-	string              identification = 1;
-	AlarmLevel          level          = 2;
-	repeated AlarmEvent events         = 3;
-	string              description    = 4;
-};
+// message Bounds {
+// 	optional float minimum = 1;
+// 	optional float maximum = 2;
+// };
 
-message Bounds {
-	optional float minimum = 1;
-	optional float maximum = 2;
-};
+// message ZoneClimateReport {
+// 	reserved 5, 6;
+// 	reserved "active_warnings", "active_emergencies";
 
-message ZoneClimateReport {
-	reserved 5, 6;
-	reserved "active_warnings", "active_emergencies";
-
-	optional float        temperature            = 1;
-	optional float        humidity               = 2;
-	Bounds                temperature_bounds     = 3;
-	Bounds                humidity_bounds        = 4;
-	optional ClimateState current                = 7;
-	optional ClimateState current_end            = 8;
-	optional ClimateState next                   = 9;
-	optional ClimateState next_end               = 10;
-	optional google.protobuf.Timestamp next_time = 11;
-};
+// 	optional float        temperature        = 1;
+// 	optional float        humidity           = 2;
+// 	Bounds                temperature_bounds = 3;
+// 	Bounds                humidity_bounds    = 4;
+// 	optional ClimateState current            = 7;
+// 	optional ClimateState current_end        = 8;
+// 	optional ClimateState next               = 9;
+// 	optional ClimateState next_end           = 10;
+// 	optional string       next_time          = 11;
+// };
 
 message StreamInfo {
 	string experiment_name = 1;
@@ -58,14 +49,14 @@ message ZoneReportSummary {
 }
 
 message ServiceEvent {
-	google.protobuf.Timestamp time     = 1;
-	bool                      on       = 2;
-	bool                      graceful = 3;
+	string time     = 1;
+	bool   on       = 2;
+	bool   graceful = 3;
 };
 
 message ServiceEventLogs {
-	string                identifier = 1;
-	repeated ServiceEvent events     = 2;
+	string                zone   = 1;
+	repeated ServiceEvent events = 2;
 }
 
 message ServicesLogs {

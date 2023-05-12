@@ -66,12 +66,12 @@ func NewClimateLogger(declaration *api.ClimateDeclaration) ClimateLogger {
 		name:             declaration.Name,
 		currentReport: &api.ZoneClimateReport{
 			Temperature: nil,
-			TemperatureBounds: &api.Bounds{
+			TemperatureBounds: api.Bounds{
 				Minimum: declaration.MinTemperature,
 				Maximum: declaration.MaxTemperature,
 			},
 			Humidity: nil,
-			HumidityBounds: &api.Bounds{
+			HumidityBounds: api.Bounds{
 				Minimum: declaration.MinHumidity,
 				Maximum: declaration.MaxHumidity,
 			},
@@ -159,7 +159,8 @@ func (l *climateLogger) PushTarget(target *api.ClimateTarget) {
 	l.currentReport.CurrentEnd = target.CurrentEnd
 	if target.Next != nil && target.NextTime != nil {
 		l.currentReport.Next = target.Next
-		l.currentReport.NextTime = target.NextTime
+		l.currentReport.NextTime = new(time.Time)
+		*l.currentReport.NextTime = target.NextTime.AsTime()
 		l.currentReport.NextEnd = target.NextEnd
 	} else {
 		l.currentReport.Next = nil

@@ -10,11 +10,23 @@ import (
 	"github.com/atuleu/go-lttb"
 )
 
+type AlarmTimepPoint struct {
+	Time time.Time `json:"time,omitempty"`
+	On   bool      `json:"on,omitempty"`
+}
+
+type AlarmReport struct {
+	Identification string            `json:"identification,omitempty"`
+	Level          AlarmLevel        `json:"level"`
+	Events         []AlarmTimepPoint `json:"events"`
+	Description    string            `json:"description"`
+}
+
 func (r *AlarmReport) On() bool {
 	if len(r.Events) == 0 {
 		return false
 	}
-	return r.Events[len(r.Events)-1].Status == AlarmStatus_ON
+	return r.Events[len(r.Events)-1].On
 }
 
 type Point lttb.Point[float32]
@@ -63,4 +75,67 @@ type ClimateTimeSeries struct {
 	Humidity       PointSeries   `json:"humidity,omitempty"`
 	Temperature    PointSeries   `json:"temperature,omitempty"`
 	TemperatureAux []PointSeries `json:"temperatureAux,omitempty"`
+}
+
+type Bounds struct {
+	Minimum *float32 `json:"minimum,omitempty"`
+	Maximum *float32 `json:"maximum,omitempty"`
+}
+
+type ZoneClimateReport struct {
+	Temperature       *float32      `json:"temperature,omitempty"`
+	Humidity          *float32      `json:"humidity,omitempty"`
+	TemperatureBounds Bounds        `json:"temperature_bounds,omitempty"`
+	HumidityBounds    Bounds        `json:"humidity_bounds,omitempty"`
+	Current           *ClimateState `json:"current,omitempty,omitempty"`
+	CurrentEnd        *ClimateState `json:"current_end,omitempty,omitempty"`
+	Next              *ClimateState `json:"next,omitempty"`
+	NextEnd           *ClimateState `json:"next_end,omitempty"`
+	NextTime          *time.Time    `json:"next_time,omitempty"`
+}
+
+type StreamInfo struct {
+	ExperimentName string `json:"experiment_name,omitempty"`
+	StreamURL      string `json:"stream_URL,omitempty"`
+	ThumbnailURL   string `json:"thumbnail_URL,omitempty"`
+}
+
+type TrackingInfo struct {
+	TotalBytes     int64       `json:"total_bytes,omitempty"`
+	FreeBytes      int64       `json:"free_bytes,omitempty"`
+	BytesPerSecond int64       `json:"bytes_per_second,omitempty"`
+	Stream         *StreamInfo `json:"stream,omitempty"`
+}
+
+type ZoneReportSummary struct {
+	Host              string             `json:"host,omitempty"`
+	Name              string             `json:"name,omitempty"`
+	Climate           *ZoneClimateReport `json:"climate,omitempty"`
+	Tracking          *TrackingInfo      `json:"tracking,omitempty"`
+	ActiveWarnings    int                `json:"active_warnings,omitempty"`
+	ActiveEmergencies int                `json:"active_emergencies,omitempty"`
+}
+
+type ServiceEvent struct {
+	Time     time.Time `json:"time,omitempty"`
+	On       bool      `json:"on,omitempty"`
+	Graceful bool      `json:"graceful,omitempty"`
+}
+
+type ServiceEventList struct {
+	Zone   string         `json:"zone,omitempty"`
+	Events []ServiceEvent `json:"events,omitempty"`
+}
+
+type ServicesLogs struct {
+	Climate  []ServiceEventList `json:"climate,omitempty"`
+	Tracking []ServiceEventList `json:"tracking,omitempty"`
+}
+
+type ZoneReport struct {
+	Host     string             `json:"host,omitempty"`
+	Name     string             `json:"name,omitempty"`
+	Climate  *ZoneClimateReport `json:"climate,omitempty"`
+	Tracking *TrackingInfo      `json:"tracking,omitempty"`
+	Alarms   []AlarmReport      `json:"alarms,omitempty"`
 }

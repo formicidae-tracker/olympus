@@ -24,11 +24,11 @@ enum AlarmLevel {
 message AlarmEvent {
 	reserved "reason";
 
-	optional string           identification = 1;
-	optional AlarmLevel       level          = 2;
+	string                    identification = 1;
+	AlarmLevel                level          = 2;
 	AlarmStatus               status         = 3;
 	google.protobuf.Timestamp time           = 4;
-	optional string           description    = 5;
+	string                    description    = 5;
 }
 
 message ClimateState {

@@ -154,7 +154,7 @@ func (o *Olympus) Close() error {
 
 func (o *Olympus) GetServiceLogs() api.ServicesLogs {
 	return api.ServicesLogs{
-		Climates: o.climateLogger.Logs(),
+		Climate:  o.climateLogger.Logs(),
 		Tracking: o.trackingLogger.Logs(),
 	}
 }
@@ -169,17 +169,17 @@ func (o *Olympus) ZoneIsRegistered(host, zone string) bool {
 	return ok
 }
 
-func (o *Olympus) GetZones() []*api.ZoneReportSummary {
+func (o *Olympus) GetZones() []api.ZoneReportSummary {
 	o.mx.RLock()
 	defer o.mx.RUnlock()
 	if o.subscriptions == nil {
-		return []*api.ZoneReportSummary{}
+		return []api.ZoneReportSummary{}
 	}
 
-	res := make([]*api.ZoneReportSummary, 0, len(o.subscriptions))
+	res := make([]api.ZoneReportSummary, 0, len(o.subscriptions))
 
 	for _, s := range o.subscriptions {
-		sum := &api.ZoneReportSummary{
+		sum := api.ZoneReportSummary{
 			Host: s.host,
 			Name: s.name,
 		}
@@ -295,7 +295,7 @@ func (o *Olympus) GetZoneReport(host, zone string) (*api.ZoneReport, error) {
 	return res, nil
 }
 
-func (o *Olympus) GetAlarmReports(host, zone string) ([]*api.AlarmReport, error) {
+func (o *Olympus) GetAlarmReports(host, zone string) ([]api.AlarmReport, error) {
 	a, err := o.getAlarmLogger(host, zone)
 	if err != nil {
 		return nil, err

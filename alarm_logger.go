@@ -3,13 +3,14 @@ package main
 import (
 	"sync"
 
+	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/api"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type AlarmLogger interface {
-	ActiveAlarmsCount() (warnings int32, emergencies int32)
-	GetReports() []*api.AlarmReport
+	ActiveAlarmsCount() (warnings int, emergencies int)
+	GetReports() []api.AlarmReport
 	// PushAlarms adds a list of AlarmEvents to this logger.
 	PushAlarms([]*api.AlarmEvent)
 }
@@ -17,7 +18,7 @@ type alarmLogger struct {
 	mx      sync.RWMutex
 	reports map[string]*api.AlarmReport
 
-	warnings, emergencies int32
+	warnings, emergencies int
 }
 
 func NewAlarmLogger() AlarmLogger {
@@ -26,12 +27,20 @@ func NewAlarmLogger() AlarmLogger {
 	}
 }
 
-func (l *alarmLogger) ActiveAlarmsCount() (int32, int32) {
+func (l *alarmLogger) ActiveAlarmsCount() (int, int) {
+	l.mx.RLock()
+	defer l.mx.RUnlock()
 	return l.warnings, l.emergencies
 }
 
-func (l *alarmLogger) GetReports() []*api.AlarmReport {
-	return nil
+func (l *alarmLogger) GetReports() []api.AlarmReport {
+	l.mx.RLock()
+	defer l.mx.RUnlock()
+	res := make([]api.AlarmReport, 0, len(l.reports))
+	for _, report := range l.reports {
+		res = append(res, *deepcopy.MustAnything(report).(*api.AlarmReport))
+	}
+	return res
 }
 
 func (l *alarmLogger) PushAlarms(events []*api.AlarmEvent) {
@@ -50,34 +59,27 @@ func timestampBefore(a, b *timestamppb.Timestamp) bool {
 	return a.Seconds < b.Seconds
 }
 
-func timestampEqual(a, b *timestamppb.Timestamp) bool {
-	return a.Seconds == b.Seconds && a.Nanos == b.Nanos
-}
-
 func (l *alarmLogger) pushEventToLog(event *api.AlarmEvent) {
-	if event.Identification == nil || event.Level == nil {
-		return
-	}
-	report, ok := l.reports[*event.Identification]
+	report, ok := l.reports[event.Identification]
 	if ok == false {
 		report = &api.AlarmReport{
-			Identification: *event.Identification,
-			Level:          *event.Level,
+			Identification: event.Identification,
+			Level:          event.Level,
 		}
 		l.reports[report.Identification] = report
 	}
 	report.Events = BackInsertionSort(report.Events,
-		&api.AlarmEvent{
-			Time:   event.Time,
-			Status: event.Status,
+		api.AlarmTimepPoint{
+			Time: event.Time.AsTime(),
+			On:   event.Status == api.AlarmStatus_ON,
 		},
-		func(a, b *api.AlarmEvent) bool {
-			return timestampBefore(a.Time, b.Time)
+		func(a, b api.AlarmTimepPoint) bool {
+			return a.Time.Before(b.Time)
 		})
 
-	lastEvent := report.Events[len(report.Events)-1]
-	if timestampEqual(lastEvent.Time, event.Time) && event.Description != nil {
-		report.Description = *event.Description
+	lastTimePoint := report.Events[len(report.Events)-1]
+	if lastTimePoint.Time.Equal(event.Time.AsTime()) && len(event.Description) == 0 {
+		report.Description = event.Description
 	}
 }
 
@@ -85,8 +87,8 @@ func (l *alarmLogger) computeActives() {
 	l.emergencies = 0
 	l.warnings = 0
 	for _, report := range l.reports {
-		lastEvent := report.Events[len(report.Events)-1]
-		if lastEvent.Status != api.AlarmStatus_ON {
+		lastTimepoint := report.Events[len(report.Events)-1]
+		if lastTimepoint.On == false {
 			continue
 		}
 		switch report.Level {

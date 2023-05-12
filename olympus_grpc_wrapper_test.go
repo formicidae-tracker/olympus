@@ -182,10 +182,10 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 				Temperature:       &lastReports.Temperatures[0],
 				Humidity:          lastReports.Humidity,
 				Current:           deepcopy.MustAnything(target.Current).(*api.ClimateState),
-				TemperatureBounds: &api.Bounds{},
-				HumidityBounds:    &api.Bounds{},
+				TemperatureBounds: api.Bounds{},
+				HumidityBounds:    api.Bounds{},
 			},
-			Alarms: nil,
+			Alarms: []api.AlarmReport{},
 		})
 	}
 	c.Check(stream.CloseSend(), IsNil)
