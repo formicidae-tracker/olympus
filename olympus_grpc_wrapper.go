@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io"
 
 	"github.com/formicidae-tracker/olympus/api"
@@ -20,12 +21,18 @@ func readAll[UpStream any, DownStream any](
 	messages chan<- *UpStream,
 	errors chan<- error) {
 
-	defer close(messages)
-	defer close(errors)
+	// The channel arenever closed as receiving io.EOF error should
+	// simply close all goroutines.
+
 	for {
 		m, err := stream.Recv()
 		if err != nil {
 			errors <- err
+			if err == io.EOF {
+				// no more message to read after an EOF, listening
+				// goroutine should stop too.
+				return
+			}
 		} else {
 			messages <- m
 		}
@@ -35,7 +42,7 @@ func readAll[UpStream any, DownStream any](
 func serveLoop[UpStream any, DownStream any](
 	stream serverStream[UpStream, DownStream],
 	handleMessage func(*UpStream) (*DownStream, error),
-	finish *<-chan struct{}) error {
+	ctx context.Context) error {
 
 	messages := make(chan *UpStream)
 	errors := make(chan error)
@@ -44,10 +51,12 @@ func serveLoop[UpStream any, DownStream any](
 
 	for {
 		select {
-		case <-(*finish):
+		case <-ctx.Done():
+			// we were asked to stop the connection
 			return nil
 		case err := <-errors:
 			if err == io.EOF {
+				// we received an EOF : Simply end loop
 				return nil
 			}
 			return err
@@ -57,6 +66,7 @@ func serveLoop[UpStream any, DownStream any](
 				return err
 			}
 			if out == nil {
+				// wait for a new message
 				break
 			}
 			err = stream.Send(out)
@@ -86,13 +96,13 @@ func mapError(err error) error {
 
 func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err error) {
 	var subscription *GrpcSubscription[ClimateLogger] = nil
-	var finish <-chan struct{} = nil
+	ctx, cancel := context.WithCancel(context.Background())
 
 	defer func() {
 		if subscription == nil {
 			return
 		}
-		graceful := err != nil
+		graceful := err != nil && err != io.EOF
 		(*Olympus)(o).UnregisterClimate(subscription.object.Host(), subscription.object.ZoneName(), graceful)
 	}()
 	ack := &api.ClimateDownStream{}
@@ -103,11 +113,10 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain ZoneDeclaration")
 			}
 			var err error
-			subscription, err = (*Olympus)(o).RegisterClimate(m.Declaration)
+			subscription, err = (*Olympus)(o).RegisterClimate(m.Declaration, cancel)
 			if err != nil {
 				return nil, mapError(err)
 			}
-			finish = subscription.finish
 
 			confirmation = &api.ClimateDownStream{
 				RegistrationConfirmation: &api.ClimateRegistrationConfirmation{
@@ -133,12 +142,12 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 		return ack, nil
 	}
 
-	return serveLoop[api.ClimateUpStream, api.ClimateDownStream](stream, handleMessage, &finish)
+	return serveLoop[api.ClimateUpStream, api.ClimateDownStream](stream, handleMessage, ctx)
 }
 
 func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err error) {
 	var subscription *GrpcSubscription[TrackingLogger] = nil
-	var finish <-chan struct{} = nil
+	ctx, cancel := context.WithCancel(context.Background())
 	hostname := ""
 	defer func() {
 		if subscription == nil {
@@ -154,12 +163,11 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain TrackingDeclaration")
 			}
 			var err error
-			subscription, err = (*Olympus)(o).RegisterTracking(m.Declaration)
+			subscription, err = (*Olympus)(o).RegisterTracking(m.Declaration, cancel)
 			if err != nil {
 				return nil, mapError(err)
 			}
 			hostname = m.Declaration.Hostname
-			finish = subscription.finish
 
 		}
 
@@ -170,5 +178,5 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 		return ack, nil
 	}
 
-	return serveLoop[api.TrackingUpStream, api.TrackingDownStream](stream, handleMessage, &finish)
+	return serveLoop[api.TrackingUpStream, api.TrackingDownStream](stream, handleMessage, ctx)
 }

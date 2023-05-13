@@ -27,22 +27,23 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	var err error
 	s.o, err = NewOlympus("")
 	c.Assert(err, IsNil)
+	cancel := func() {}
 	s.somehostBox, err = s.o.RegisterClimate(&api.ClimateDeclaration{
 		Host: "somehost",
 		Name: "box",
-	})
+	}, cancel)
 	c.Assert(err, IsNil)
 
 	s.anotherBox, err = s.o.RegisterClimate(&api.ClimateDeclaration{
 		Host: "another",
 		Name: "box",
-	})
+	}, cancel)
 	c.Assert(err, IsNil)
 
 	s.anotherTunnel, err = s.o.RegisterClimate(&api.ClimateDeclaration{
 		Host: "another",
 		Name: "tunnel",
-	})
+	}, cancel)
 	c.Assert(err, IsNil)
 
 	hostname, err := os.Hostname()
@@ -52,14 +53,14 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 		Hostname:       "somehost",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
-	})
+	}, cancel)
 	c.Assert(err, IsNil)
 
 	s.fifouTracking, err = s.o.RegisterTracking(&api.TrackingDeclaration{
 		Hostname:       "fifou",
 		StreamServer:   hostname + ".local",
 		ExperimentName: "TEST-MODE",
-	})
+	}, cancel)
 	c.Assert(err, IsNil)
 }
 

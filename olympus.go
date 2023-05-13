@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -88,16 +89,11 @@ type Olympus struct {
 type GrpcSubscription[T any] struct {
 	object      T
 	alarmLogger AlarmLogger
-	finish      chan struct{}
+	cancel      context.CancelFunc
 }
 
 func (s GrpcSubscription[T]) Close() (err error) {
-	defer func() {
-		if recover() != nil {
-			err = fmt.Errorf("already closed")
-		}
-	}()
-	close(s.finish)
+	s.cancel()
 	return nil
 }
 
@@ -303,7 +299,7 @@ func (o *Olympus) GetAlarmReports(host, zone string) ([]api.AlarmReport, error) 
 	return a.GetReports(), nil
 }
 
-func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration) (*GrpcSubscription[ClimateLogger], error) {
+func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration, cancel context.CancelFunc) (*GrpcSubscription[ClimateLogger], error) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
 	if o.subscriptions == nil {
@@ -327,7 +323,7 @@ func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration) (*GrpcSub
 	}
 	sub.climate = &GrpcSubscription[ClimateLogger]{
 		object:      NewClimateLogger(declaration),
-		finish:      make(chan struct{}),
+		cancel:      cancel,
 		alarmLogger: sub.alarmLogger,
 	}
 
@@ -362,7 +358,7 @@ func (o *Olympus) UnregisterClimate(host, name string, graceful bool) error {
 	return s.climate.Close()
 }
 
-func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (*GrpcSubscription[TrackingLogger], error) {
+func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration, cancel context.CancelFunc) (*GrpcSubscription[TrackingLogger], error) {
 	if declaration.StreamServer != o.hostname+".local" {
 		return nil, fmt.Errorf("unexpected server %s (expect: %s)", declaration.StreamServer, o.hostname+".local")
 	}
@@ -392,7 +388,7 @@ func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (*GrpcS
 	}
 	sub.tracking = &GrpcSubscription[TrackingLogger]{
 		object:      NewTrackingLogger(declaration),
-		finish:      make(chan struct{}),
+		cancel:      cancel,
 		alarmLogger: sub.alarmLogger,
 	}
 
