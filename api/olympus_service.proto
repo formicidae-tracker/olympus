@@ -79,9 +79,16 @@ message TrackingDeclaration {
 	string experiment_name = 3;
 }
 
+message DiskStatus {
+	int64 total_bytes      = 1;
+	int64 free_bytes       = 2;
+	int64 bytes_per_second = 3;
+}
+
 message TrackingUpStream {
 	optional TrackingDeclaration declaration = 1;
 	repeated AlarmEvent          alarms      = 2;
+	optional DiskStatus          disk_status = 3;
 }
 
 message TrackingDownStream {}

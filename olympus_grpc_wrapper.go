@@ -175,6 +175,10 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 			subscription.alarmLogger.PushAlarms(m.Alarms)
 		}
 
+		if m.DiskStatus != nil {
+			subscription.object.PushDiskStatus(m.DiskStatus)
+		}
+
 		return ack, nil
 	}
 

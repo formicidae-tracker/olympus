@@ -218,7 +218,7 @@ func (s *GRPCSuite) TestDoubleZoneRegistrationError(c *C) {
 	c.Check(err, ErrorMatches, `rpc error: code = AlreadyExists desc = zone 'somehost.box' is already registered`)
 }
 
-func (s *GRPCSuite) TestLackOfZonRegistrationError(c *C) {
+func (s *GRPCSuite) TestLackOfClimateDeclarationError(c *C) {
 	stream, cleanUp, err := connectZone(c)
 	defer cleanUp()
 	c.Assert(err, IsNil)

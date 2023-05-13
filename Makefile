@@ -11,7 +11,7 @@ olympus: *.go api/*.go api/*.proto
 	go build
 
 check:
-	go test
+	go test -coverprofile=cover.out
 	go vet
 	make -C api check
 
