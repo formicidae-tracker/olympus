@@ -1,4 +1,4 @@
-import { Point, ClimateTimeSeries } from './climate-time-series';
+import { ClimateTimeSeries } from './climate-time-series';
 import testData from './unit-testdata/ClimateTimeSeries.json';
 
 describe('ClimateTimeSeries', () => {
@@ -12,16 +12,8 @@ describe('ClimateTimeSeries', () => {
       expect(e).toBeTruthy();
       expect(e.units).toEqual(plain.units || '');
       expect(e.reference).toEqual(new Date(plain.reference) || new Date(0));
-      expect(e.humidity).toEqual(
-        (plain.humidity || []).map(
-          (v: any) => new Point(v.x || 0.0, v.y || 0.0)
-        )
-      );
-      expect(e.temperature).toEqual(
-        (plain.temperature || []).map(
-          (v: any) => new Point(v.x || 0.0, v.y || 0.0)
-        )
-      );
+      expect(e.humidity).toEqual(plain.humidity);
+      expect(e.temperature).toEqual(plain.temperature);
     }
   });
 });

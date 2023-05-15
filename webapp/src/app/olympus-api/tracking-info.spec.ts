@@ -1,4 +1,3 @@
-import { plainToClass } from 'class-transformer';
 import { StreamInfo } from './stream-info';
 import { TrackingInfo } from './tracking-info';
 import testData from './unit-testdata/TrackingInfo.json';
@@ -12,12 +11,13 @@ describe('TrackingInfo', () => {
     for (const plain of testData) {
       let e = TrackingInfo.fromPlain(plain);
       expect(e).toBeTruthy();
+      if (e == undefined) {
+        continue;
+      }
       expect(e.total_bytes).toEqual(plain.total_bytes || 0);
       expect(e.free_bytes).toEqual(plain.free_bytes || 0);
       expect(e.bytes_per_second).toEqual(plain.bytes_per_second || 0);
-      expect(e.stream).toEqual(
-        plainToClass(StreamInfo, plain.stream) || undefined
-      );
+      expect(e.stream).toEqual(StreamInfo.fromPlain(plain.stream));
     }
   });
 });

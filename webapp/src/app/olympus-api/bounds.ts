@@ -1,12 +1,11 @@
-import { Expose, plainToClass } from 'class-transformer';
-
 export class Bounds {
-  @Expose() public minimum?: number;
-  @Expose() public maximum?: number;
+  public minimum?: number;
+  public maximum?: number;
 
-  static fromPlain(plain: any): Bounds {
-    return plainToClass(Bounds, plain, {
-      exposeDefaultValues: true,
-    });
+  static fromPlain(plain: Partial<Bounds>): Bounds {
+    let res = new Bounds();
+    res.minimum = plain.minimum;
+    res.maximum = plain.maximum;
+    return res;
   }
 }

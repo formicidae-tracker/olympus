@@ -1,4 +1,3 @@
-import { classToPlain, plainToClass } from 'class-transformer';
 import { ServiceEvent, ServiceEventList, ServicesLogs } from './service-event';
 import eventTestData from './unit-testdata/ServiceEvent.json';
 import listTestData from './unit-testdata/ServiceEventList.json';
@@ -31,7 +30,7 @@ describe('ServiceEventList', () => {
       expect(e).toBeTruthy();
       expect(e.zone).toEqual(plain.zone || '');
       expect(e.events).toEqual(
-        (plain.events || []).map((v: any) => plainToClass(ServiceEvent, v))
+        (plain.events || []).map((v: any) => ServiceEvent.fromPlain(v))
       );
     }
   });
@@ -47,12 +46,10 @@ describe('ServicesLogs', () => {
       let e = ServicesLogs.fromPlain(plain);
       expect(e).toBeTruthy();
       expect(e.climate).toEqual(
-        (plain.climate || []).map((v: any) => plainToClass(ServiceEventList, v))
+        (plain.climate || []).map((v: any) => ServiceEventList.fromPlain(v))
       );
       expect(e.tracking).toEqual(
-        (plain.tracking || []).map((v: any) =>
-          plainToClass(ServiceEventList, v)
-        )
+        (plain.tracking || []).map((v: any) => ServiceEventList.fromPlain(v))
       );
     }
   });

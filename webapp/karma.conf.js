@@ -35,13 +35,6 @@ module.exports = function (config) {
     reporters: ['progress', 'kjhtml'],
     browsers: ['Chrome'],
     restartOnFileChange: true,
-    files: [
-      {
-        pattern: 'src/app/olympus-api/examples/*.json',
-        included: false,
-        watched: true,
-        served: true,
-      }
-   ]
+    files: [ ]
   });
 };

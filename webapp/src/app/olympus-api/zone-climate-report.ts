@@ -1,31 +1,52 @@
 import { ClimateState } from './climate-state';
 import { Bounds } from './bounds';
-import { Type, plainToClass } from 'class-transformer';
 
 export class ZoneClimateReport {
   temperature?: number;
   humidity?: number;
 
-  @Type(() => Bounds)
   temperature_bounds?: Bounds;
-  @Type(() => Bounds)
   humidity_bounds?: Bounds;
 
-  @Type(() => ClimateState)
   current?: ClimateState;
-  @Type(() => ClimateState)
   current_end?: ClimateState;
 
-  @Type(() => ClimateState)
   next?: ClimateState;
-  @Type(() => ClimateState)
   next_end?: ClimateState;
-  @Type(() => Date)
   next_time?: Date;
 
-  static fromPlain(plain: any): ZoneClimateReport {
-    return plainToClass(ZoneClimateReport, plain, {
-      exposeDefaultValues: true,
-    });
+  static fromPlain(plain: any): ZoneClimateReport | undefined {
+    if (plain == undefined) {
+      return undefined;
+    }
+    let ret = new ZoneClimateReport();
+    ret.temperature = plain.temperature;
+    ret.humidity = plain.humidity;
+
+    if (plain.temperature_bounds != undefined) {
+      ret.temperature_bounds = Bounds.fromPlain(plain.temperature_bounds);
+    }
+    if (plain.humidity_bounds != undefined) {
+      ret.humidity_bounds = Bounds.fromPlain(plain.humidity_bounds);
+    }
+
+    if (plain.current != undefined) {
+      ret.current = ClimateState.fromPlain(plain.current);
+    }
+    if (plain.current_end != undefined) {
+      ret.current_end = ClimateState.fromPlain(plain.current_end);
+    }
+
+    if (plain.next != undefined) {
+      ret.next = ClimateState.fromPlain(plain.next);
+    }
+    if (plain.next_end != undefined) {
+      ret.next_end = ClimateState.fromPlain(plain.next_end);
+    }
+    if (plain.next_time != undefined) {
+      ret.next_time = new Date(plain.next_time);
+    }
+
+    return ret;
   }
 }

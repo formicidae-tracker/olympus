@@ -1,39 +1,43 @@
-import { Type, plainToClass } from 'class-transformer';
-
 export class ServiceEvent {
-  @Type(() => Date)
   public time: Date = new Date(0);
   public on: boolean = false;
   public graceful: boolean = false;
 
   static fromPlain(plain: any): ServiceEvent {
-    return plainToClass(ServiceEvent, plain, {
-      exposeDefaultValues: true,
-    });
+    let res = new ServiceEvent();
+    res.time = new Date(plain.time || 0);
+    res.on = plain.on || false;
+    res.graceful = plain.graceful || false;
+    return res;
   }
 }
 
 export class ServiceEventList {
   public zone: string = '';
-  @Type(() => ServiceEvent)
   public events: ServiceEvent[] = [];
 
   static fromPlain(plain: any): ServiceEventList {
-    return plainToClass(ServiceEventList, plain, {
-      exposeDefaultValues: true,
-    });
+    let res = new ServiceEventList();
+    res.zone = plain.zone || '';
+    for (const e of plain.events || []) {
+      res.events.push(ServiceEvent.fromPlain(e));
+    }
+    return res;
   }
 }
 
 export class ServicesLogs {
-  @Type(() => ServiceEventList)
   public climate: ServiceEventList[] = [];
-  @Type(() => ServiceEventList)
   public tracking: ServiceEventList[] = [];
 
   static fromPlain(plain: any): ServicesLogs {
-    return plainToClass(ServicesLogs, plain, {
-      exposeDefaultValues: true,
-    });
+    let res = new ServicesLogs();
+    for (const l of plain.climate || []) {
+      res.climate.push(ServiceEventList.fromPlain(l));
+    }
+    for (const l of plain.tracking || []) {
+      res.tracking.push(ServiceEventList.fromPlain(l));
+    }
+    return res;
   }
 }

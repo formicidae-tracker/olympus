@@ -1,4 +1,3 @@
-import { Type, plainToClass } from 'class-transformer';
 import { ZoneClimateReport } from './zone-climate-report';
 import { TrackingInfo } from './tracking-info';
 
@@ -6,17 +5,24 @@ export class ZoneReportSummary {
   public host: string = '';
   public name: string = '';
 
-  @Type(() => ZoneClimateReport)
   climate?: ZoneClimateReport;
-  @Type(() => TrackingInfo)
   tracking?: TrackingInfo;
 
   active_warnings: number = 0;
   active_emergencies: number = 0;
 
   static fromPlain(plain: any): ZoneReportSummary {
-    return plainToClass(ZoneReportSummary, plain, {
-      exposeDefaultValues: true,
-    });
+    let ret = new ZoneReportSummary();
+    ret.host = plain.host || '';
+    ret.name = plain.name || '';
+    if (plain.climate != undefined) {
+      ret.climate = ZoneClimateReport.fromPlain(plain.climate);
+    }
+    if (plain.tracking != undefined) {
+      ret.tracking = TrackingInfo.fromPlain(plain.tracking);
+    }
+    ret.active_emergencies = plain.active_emergencies || 0;
+    ret.active_warnings = plain.active_warnings || 0;
+    return ret;
   }
 }

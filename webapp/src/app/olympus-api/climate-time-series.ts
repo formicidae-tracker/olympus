@@ -1,23 +1,17 @@
-import { Type, plainToClass } from 'class-transformer';
-
-export class Point {
-  constructor(public x: number = 0.0, public y: number = 0.0) {}
-}
-
 export class ClimateTimeSeries {
   units: string = '';
-  @Type(() => Date)
   reference: Date = new Date(0);
-  @Type(() => Point)
-  humidity: Point[] = [];
-  @Type(() => Point)
-  temperature: Point[] = [];
-  @Type(() => Point)
-  temperatureAux: Point[][] = [];
+  humidity: any;
+  temperature: any;
+  temperatureAux: any;
 
   static fromPlain(plain: any): ClimateTimeSeries {
-    return plainToClass(ClimateTimeSeries, plain, {
-      exposeDefaultValues: true,
-    });
+    let res = new ClimateTimeSeries();
+    res.units = plain.units || '';
+    res.reference = new Date(plain.reference || 0);
+    res.humidity = plain.humidity;
+    res.temperature = plain.temperature;
+    res.temperatureAux = plain.temperatureAux;
+    return res;
   }
 }

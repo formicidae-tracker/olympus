@@ -1,4 +1,3 @@
-import { Type, plainToClass } from 'class-transformer';
 import { AlarmTimePoint } from './alarm-time-point';
 
 export class AlarmReport {
@@ -6,12 +5,16 @@ export class AlarmReport {
   public level: number = 0;
   public description: string = '';
 
-  @Type(() => AlarmTimePoint)
   public events: AlarmTimePoint[] = [];
 
   static fromPlain(plain: any): AlarmReport {
-    return plainToClass(AlarmReport, plain, {
-      exposeDefaultValues: true,
-    });
+    let res = new AlarmReport();
+    res.identification = plain.identification || '';
+    res.level = plain.level || 0;
+    res.description = plain.description || '';
+    for (const e of plain.events || []) {
+      res.events.push(AlarmTimePoint.fromPlain(e));
+    }
+    return res;
   }
 }

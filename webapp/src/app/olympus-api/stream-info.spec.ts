@@ -10,9 +10,11 @@ describe('StreamInfo', () => {
     for (const plain of testData) {
       let e = StreamInfo.fromPlain(plain);
       expect(e).toBeTruthy();
-      expect(e.experiment_name).toEqual(plain.experiment_name || '');
-      expect(e.stream_URL).toEqual(plain.stream_URL || '');
-      expect(e.thumbnail_URL).toEqual(plain.thumbnail_URL || '');
+      if (e != undefined) {
+        expect(e.experiment_name).toEqual(plain.experiment_name || '');
+        expect(e.stream_URL).toEqual(plain.stream_URL || '');
+        expect(e.thumbnail_URL).toEqual(plain.thumbnail_URL || '');
+      }
     }
   });
 });
