@@ -1,1 +1,1 @@
-[{"temperature_bounds":{},"humidity_bounds":{}},{"temperature":18,"humidity":60,"temperature_bounds":{"minimum":0},"humidity_bounds":{"maximum":0},"current":{"name":"day"},"next":{"name":"day-to-night"},"next_end":{"name":"day-to-night"},"next_time":"1970-01-01T01:00:01.000000001+01:00"}]
+[{"temperature_bounds":{},"humidity_bounds":{}},{"temperature":18,"humidity":60,"temperature_bounds":{"minimum":1},"humidity_bounds":{"maximum":1},"current":{"name":"day"},"next":{"name":"day-to-night"},"next_end":{"name":"day-to-night"},"next_time":"1970-01-01T01:00:01.000000001+01:00"}]

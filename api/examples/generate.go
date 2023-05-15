@@ -25,7 +25,7 @@ func newWithValue[T any](v T) *T {
 
 func generateData() map[string][]interface{} {
 	return map[string][]interface{}{
-		"unit-testdata/AlarmTimepoint.json": {
+		"unit-testdata/AlarmTimePoint.json": {
 			api.AlarmTimepPoint{},
 			api.AlarmTimepPoint{
 				Time: time.Unix(1, 1),
@@ -38,9 +38,19 @@ func generateData() map[string][]interface{} {
 				Identification: "climate.temperature.out-of-bound",
 				Description:    "Current Temperature (34.2°C) is outside [15°C,25°C]",
 				Level:          api.AlarmLevel_EMERGENCY,
-				Events:         []api.AlarmTimepPoint{{time.Unix(1, 1), true}},
+				Events:         []api.AlarmTimepPoint{{Time: time.Unix(1, 1), On: true}},
 			},
 		},
+		"unit-testdata/ClimateTimeSeries.json": {
+			api.ClimateTimeSeries{},
+			api.ClimateTimeSeries{
+				Units:       "s",
+				Reference:   time.Unix(3, 0),
+				Humidity:    api.PointSeries{{X: 0.0, Y: 50.0}},
+				Temperature: api.PointSeries{{X: 0.0, Y: 15.0}},
+			},
+		},
+
 		"unit-testdata/Bounds.json": {
 			api.Bounds{},
 			api.Bounds{Minimum: newWithValue[float32](1.0), Maximum: newWithValue[float32](2.0)},
@@ -60,8 +70,8 @@ func generateData() map[string][]interface{} {
 			api.ZoneClimateReport{
 				Temperature:       newWithValue[float32](18.0),
 				Humidity:          newWithValue[float32](60.0),
-				TemperatureBounds: api.Bounds{Minimum: newWithValue[float32](0.0)},
-				HumidityBounds:    api.Bounds{Maximum: newWithValue[float32](0.0)},
+				TemperatureBounds: api.Bounds{Minimum: newWithValue[float32](1.0)},
+				HumidityBounds:    api.Bounds{Maximum: newWithValue[float32](1.0)},
 				Current:           &api.ClimateState{Name: "day"},
 				CurrentEnd:        nil,
 				Next:              &api.ClimateState{Name: "day-to-night"},
@@ -89,32 +99,48 @@ func generateData() map[string][]interface{} {
 		"unit-testdata/ZoneReportSummary.json": {
 			api.ZoneReportSummary{},
 			api.ZoneReportSummary{
-				Host:     "somehost",
-				Name:     "box",
-				Climate:  &api.ZoneClimateReport{Temperature: newWithValue[float32](18.0)},
-				Tracking: &api.TrackingInfo{TotalBytes: 1000*1024 ^ 2},
+				Host:              "somehost",
+				Name:              "box",
+				Climate:           &api.ZoneClimateReport{Temperature: newWithValue[float32](18.0)},
+				Tracking:          &api.TrackingInfo{TotalBytes: 1000*1024 ^ 2},
+				ActiveWarnings:    1,
+				ActiveEmergencies: 2,
 			},
 		},
 		"unit-testdata/ServiceEvent.json": {
 			api.ServiceEvent{},
 			api.ServiceEvent{
 				Time:     time.Unix(1, 1),
-				On:       false,
+				On:       true,
 				Graceful: true,
 			},
 		},
-		"unit-testdata/ServeEventLogs.json": {
+		"unit-testdata/ServiceEventList.json": {
 			api.ServiceEventList{},
 			api.ServiceEventList{
 				Zone:   "somehost.box",
 				Events: []api.ServiceEvent{{Time: time.Unix(1, 1), On: true, Graceful: false}},
 			},
 		},
-		"unit-testdata/ServiceLogs.json": {
+		"unit-testdata/ServicesLogs.json": {
 			api.ServicesLogs{},
 			api.ServicesLogs{
 				Climate:  []api.ServiceEventList{{Zone: "foo"}},
 				Tracking: []api.ServiceEventList{{Zone: "foo"}},
+			},
+		},
+		"unit-testdata/ZoneReport.json": {
+			api.ZoneReport{},
+			api.ZoneReport{
+				Host: "foo",
+				Name: "bar",
+				Climate: &api.ZoneClimateReport{
+					Temperature: newWithValue[float32](18.0),
+				},
+				Tracking: &api.TrackingInfo{
+					TotalBytes: 2000,
+				},
+				Alarms: []api.AlarmReport{{Identification: "error"}},
 			},
 		},
 	}
