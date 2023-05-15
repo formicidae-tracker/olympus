@@ -8,6 +8,7 @@ import { CoreModule } from './core/core.module';
 import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
 import { NodeIndexComponent } from './node-index/node-index.component';
 import { NodeCardComponent } from './node-index/node-card/node-card.component';
+import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
   declarations: [
@@ -20,6 +21,7 @@ import { NodeCardComponent } from './node-index/node-card/node-card.component';
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
+    HttpClientModule,
     CoreModule,
   ],
   providers: [],
