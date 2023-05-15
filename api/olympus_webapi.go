@@ -10,16 +10,16 @@ import (
 	"github.com/atuleu/go-lttb"
 )
 
-type AlarmTimepPoint struct {
+type AlarmTimePoint struct {
 	Time time.Time `json:"time,omitempty"`
 	On   bool      `json:"on,omitempty"`
 }
 
 type AlarmReport struct {
-	Identification string            `json:"identification,omitempty"`
-	Level          AlarmLevel        `json:"level"`
-	Events         []AlarmTimepPoint `json:"events"`
-	Description    string            `json:"description"`
+	Identification string           `json:"identification,omitempty"`
+	Level          AlarmLevel       `json:"level"`
+	Events         []AlarmTimePoint `json:"events"`
+	Description    string           `json:"description"`
 }
 
 func (r *AlarmReport) On() bool {

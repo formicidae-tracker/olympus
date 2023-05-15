@@ -69,11 +69,11 @@ func (l *alarmLogger) pushEventToLog(event *api.AlarmEvent) {
 		l.reports[report.Identification] = report
 	}
 	report.Events = BackInsertionSort(report.Events,
-		api.AlarmTimepPoint{
+		api.AlarmTimePoint{
 			Time: event.Time.AsTime(),
 			On:   event.Status == api.AlarmStatus_ON,
 		},
-		func(a, b api.AlarmTimepPoint) bool {
+		func(a, b api.AlarmTimePoint) bool {
 			return a.Time.Before(b.Time)
 		})
 

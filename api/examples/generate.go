@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/formicidae-tracker/olympus/api"
@@ -23,11 +25,11 @@ func newWithValue[T any](v T) *T {
 	return res
 }
 
-func generateData() map[string][]interface{} {
+func generateUnitTestData() map[string][]interface{} {
 	return map[string][]interface{}{
 		"unit-testdata/AlarmTimePoint.json": {
-			api.AlarmTimepPoint{},
-			api.AlarmTimepPoint{
+			api.AlarmTimePoint{},
+			api.AlarmTimePoint{
 				Time: time.Unix(1, 1),
 				On:   true,
 			},
@@ -38,7 +40,7 @@ func generateData() map[string][]interface{} {
 				Identification: "climate.temperature.out-of-bound",
 				Description:    "Current Temperature (34.2°C) is outside [15°C,25°C]",
 				Level:          api.AlarmLevel_EMERGENCY,
-				Events:         []api.AlarmTimepPoint{{Time: time.Unix(1, 1), On: true}},
+				Events:         []api.AlarmTimePoint{{Time: time.Unix(1, 1), On: true}},
 			},
 		},
 		"unit-testdata/ClimateTimeSeries.json": {
@@ -146,9 +148,165 @@ func generateData() map[string][]interface{} {
 	}
 }
 
+func timeMustParse(value string) time.Time {
+	res, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		panic(err)
+	}
+	return res
+}
+
+func generateMockData() (map[string]interface{}, map[string]string) {
+	minervaClimate := &api.ZoneClimateReport{
+		Temperature:       newWithValue[float32](19.8743205432),
+		Humidity:          newWithValue[float32](53.465679028734),
+		TemperatureBounds: api.Bounds{Minimum: newWithValue[float32](17.0), Maximum: newWithValue[float32](22.0)},
+		HumidityBounds:    api.Bounds{Minimum: newWithValue[float32](40.0), Maximum: newWithValue[float32](70.0)},
+		Current: &api.ClimateState{
+			Name:         "night-to-day",
+			Temperature:  newWithValue[float32](19.87645),
+			Humidity:     newWithValue[float32](60.0),
+			Wind:         newWithValue[float32](100),
+			VisibleLight: newWithValue[float32](23.47892348),
+			UvLight:      newWithValue[float32](0.348978907),
+		},
+		CurrentEnd: &api.ClimateState{
+			Name:         "night-to-day",
+			Temperature:  newWithValue[float32](23.0),
+			VisibleLight: newWithValue[float32](100.0),
+			UvLight:      newWithValue[float32](5.0),
+		},
+		Next: &api.ClimateState{
+			Name:         "day",
+			Temperature:  newWithValue[float32](23.0),
+			Humidity:     newWithValue[float32](60.0),
+			Wind:         newWithValue[float32](100),
+			VisibleLight: newWithValue[float32](100.0),
+			UvLight:      newWithValue[float32](5.0),
+		},
+		NextTime: newWithValue(timeMustParse("2023-04-01T06:30:00.000Z")),
+	}
+
+	minervaTracking := &api.TrackingInfo{
+		TotalBytes:     int64(2.0 * math.Pow(2, 40)),
+		FreeBytes:      int64(0.45123980 * math.Pow(2, 40)),
+		BytesPerSecond: int64(2.567879 * math.Pow(2, 20)),
+		Stream: &api.StreamInfo{
+			ExperimentName: "tackling-universe",
+			StreamURL:      "https://www.youtube.com/live/21X5lGlDOfg",
+			ThumbnailURL:   "https://picsum.photos/776/1024",
+		},
+	}
+
+	minervaAlarms := []api.AlarmReport{}
+
+	jupyterClimate := &api.ZoneClimateReport{
+		Temperature:       newWithValue[float32](28.8743205432),
+		Humidity:          newWithValue[float32](53.465679028734),
+		TemperatureBounds: api.Bounds{Minimum: newWithValue[float32](17.0), Maximum: newWithValue[float32](22.0)},
+		HumidityBounds:    api.Bounds{Minimum: newWithValue[float32](40.0), Maximum: newWithValue[float32](70.0)},
+		Current: &api.ClimateState{
+			Name:         "onlyone",
+			Temperature:  newWithValue[float32](20.0),
+			Humidity:     newWithValue[float32](60.0),
+			Wind:         newWithValue[float32](100),
+			VisibleLight: newWithValue[float32](100.0),
+			UvLight:      newWithValue[float32](0.0),
+		},
+	}
+
+	jupyterAlarms := []api.AlarmReport{
+		{
+			Identification: "climate.temperature_out_of_bound",
+			Level:          api.AlarmLevel_EMERGENCY,
+			Events: []api.AlarmTimePoint{{
+				Time: timeMustParse("2023-03-31T23:25:34.000Z"),
+				On:   true,
+			}},
+			Description: "Temperature (28.9°C) is out of allowed range (17.0°C - 22.0°C)",
+		},
+	}
+
+	junoTracking := &api.TrackingInfo{
+		TotalBytes:     int64(2.0 * math.Pow(2, 40)),
+		FreeBytes:      int64(45.231 * math.Pow(2, 20)),
+		BytesPerSecond: int64(3.89691 * math.Pow(2, 20)),
+		Stream: &api.StreamInfo{
+			ExperimentName: "about to fail",
+			StreamURL:      "https://www.youtube.com/live/21X5lGlDOfg",
+			ThumbnailURL:   "https://picsum.photos/776/1024",
+		},
+	}
+
+	junoAlarms := []api.AlarmReport{
+		{
+			Identification: "tracking.criticaly_disk_space",
+			Level:          api.AlarmLevel_EMERGENCY,
+			Events: []api.AlarmTimePoint{{
+				Time: timeMustParse("2023-04-01T06:03:23.456Z"),
+				On:   true,
+			}},
+			Description: "Available space on disk is critically low. Tracking will soon stop.",
+		},
+	}
+
+	data := map[string]interface{}{
+		"_api_zones": []api.ZoneReportSummary{
+			{
+				Host:              "jupyter",
+				Name:              "desert",
+				Climate:           jupyterClimate,
+				ActiveWarnings:    0,
+				ActiveEmergencies: 1,
+			},
+			{
+				Host:           "juno",
+				Name:           "box",
+				Tracking:       junoTracking,
+				ActiveWarnings: 1,
+			},
+			{
+				Host:     "minerva",
+				Name:     "box",
+				Climate:  minervaClimate,
+				Tracking: minervaTracking,
+			},
+		},
+		"_api_host_jupyter_zone_desert": &api.ZoneReport{
+			Host:    "jupyter",
+			Name:    "desert",
+			Climate: jupyterClimate,
+			Alarms:  jupyterAlarms,
+		},
+		"_api_host_juno_zone_box": &api.ZoneReport{
+			Host:     "juno",
+			Name:     "box",
+			Tracking: junoTracking,
+			Alarms:   junoAlarms,
+		},
+		"_api_host_minerva_zone_box": &api.ZoneReport{
+			Host:     "minerva",
+			Name:     "box",
+			Climate:  minervaClimate,
+			Tracking: minervaTracking,
+			Alarms:   minervaAlarms,
+		},
+		"_api_host_jupyter_zone_desert_alarms": jupyterAlarms,
+		"_api_host_juno_zone_box_alarms":       junoAlarms,
+		"_api_host_minerva_zone_box_alarms":    minervaAlarms,
+	}
+
+	routes := map[string]string{}
+	for source := range data {
+		target := strings.Replace(source, "_", "/", -1)
+		routes[target] = "/" + source
+	}
+	return data, routes
+}
+
 var BASEDIR string = "./webapp/src/app/olympus-api/"
 
-func writeFileAsJSON(filename string, data []interface{}) error {
+func writeFileAsJSON(filename string, data interface{}) error {
 
 	filepath := path.Join(BASEDIR, filename)
 
@@ -173,10 +331,15 @@ func writeExamples(dataPerFilename map[string][]interface{}) error {
 			return err
 		}
 	}
-	return nil
+	mockData, routes := generateMockData()
+
+	if err := writeFileAsJSON("fake-backend/db.json", mockData); err != nil {
+		return err
+	}
+	return writeFileAsJSON("fake-backend/routes.json", routes)
 }
 
 func execute() error {
-	data := generateData()
+	data := generateUnitTestData()
 	return writeExamples(data)
 }
