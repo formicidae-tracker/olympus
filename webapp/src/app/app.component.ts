@@ -8,11 +8,9 @@ import { ThemeService } from './core/services/theme.service';
 })
 export class AppComponent implements OnInit {
   public darkTheme: boolean = false;
-  title = 'FORmicidae Tracker: Olympus';
-
-  constructor(private themeService: ThemeService) {}
+  constructor(private theme: ThemeService) {}
 
   ngOnInit(): void {
-    this.themeService.isDarkTheme.subscribe((dark) => (this.darkTheme = dark));
+    this.theme.isDarkTheme.subscribe((dark) => (this.darkTheme = dark));
   }
 }
