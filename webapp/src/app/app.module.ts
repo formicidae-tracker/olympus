@@ -4,11 +4,13 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { HttpClientModule } from '@angular/common/http';
+
 import { CoreModule } from './core/core.module';
+
 import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
 import { NodeIndexComponent } from './node-index/node-index.component';
 import { NodeCardComponent } from './node-index/node-card/node-card.component';
-import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
   declarations: [

@@ -194,7 +194,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		Stream: &api.StreamInfo{
 			ExperimentName: "tackling-universe",
 			StreamURL:      "https://www.youtube.com/live/21X5lGlDOfg",
-			ThumbnailURL:   "https://picsum.photos/776/1024",
+			ThumbnailURL:   "https://fastly.picsum.photos/id/639/1024/776.jpg?hmac=CBEcQXtS29CEMjTE_aJadZDvTe3PDpi6MLhq55BBWzU",
 		},
 	}
 
@@ -229,12 +229,12 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 
 	junoTracking := &api.TrackingInfo{
 		TotalBytes:     int64(2.0 * math.Pow(2, 40)),
-		FreeBytes:      int64(45.231 * math.Pow(2, 20)),
+		FreeBytes:      int64(80.231 * math.Pow(2, 30)),
 		BytesPerSecond: int64(3.89691 * math.Pow(2, 20)),
 		Stream: &api.StreamInfo{
 			ExperimentName: "about to fail",
 			StreamURL:      "https://www.youtube.com/live/21X5lGlDOfg",
-			ThumbnailURL:   "https://picsum.photos/776/1024",
+			ThumbnailURL:   "https://fastly.picsum.photos/id/255/1024/776.jpg?hmac=pF-KtMJ3HQIPimNMw0WO4JqNI89QKTfmRUWwyuyufSI",
 		},
 	}
 

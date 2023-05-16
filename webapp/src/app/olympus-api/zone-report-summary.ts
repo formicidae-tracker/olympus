@@ -11,6 +11,17 @@ export class ZoneReportSummary {
   active_warnings: number = 0;
   active_emergencies: number = 0;
 
+  public identifier(): string {
+    return this.host + '.' + this.name;
+  }
+
+  public streamThumbnailURL(): string | undefined {
+    if (this.tracking == undefined || this.tracking.stream == undefined) {
+      return undefined;
+    }
+    return this.tracking.stream.thumbnail_URL;
+  }
+
   static fromPlain(plain: any): ZoneReportSummary {
     let ret = new ZoneReportSummary();
     ret.host = plain.host || '';

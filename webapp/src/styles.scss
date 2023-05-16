@@ -284,8 +284,8 @@ $olympus-light-theme : theme-update-fg-bg-palettes($olympus-light-theme,
 ////////////////////////////////////////////////////////////////////////////////
 
 $olympus-dark-primary: mat.define-palette($teal-lc-palette, 700, 200, 800);
-$olympus-dark-accent: mat.define-palette($beige-lc-palette, 700, 200, 800);
-$olympus-dark-warn: mat.define-palette($red-lc-palette, 300, 800, 200);
+$olympus-dark-accent: mat.define-palette($beige-lc-palette, 400, 200, 800);
+$olympus-dark-warn: mat.define-palette($red-lc-palette, 500, 200, 800);
 
 
 $olympus-dark-theme: mat.define-dark-theme((

@@ -5,9 +5,7 @@ module.exports = [
   {
     context: ["/api/**"],
     target:
-      BACKEND_PORT.length == 0
-        ? defaultTarget
-        : "http://localhost:" + BACKEND_PORT,
+    BACKEND_PORT ?  "http://localhost:" + BACKEND_PORT: defaultTarget,
     secure: true,
     changeOrigin: true,
   },

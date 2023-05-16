@@ -1,2 +1,30 @@
 mat-card {
+  height: 100%;
+}
+
+mat-card > img {
+  width: 100%;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.missing-stream {
+  height: 100%;
+  padding-top: 30px;
+  padding-bottom: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.missing-stream mat-icon {
+  width: 60px;
+  height: 60px;
+  font-size: 60px;
+}
+
+
+.status {
+  display: flex;
+  justify-content: space-between;
 }
