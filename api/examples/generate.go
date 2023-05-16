@@ -271,6 +271,25 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 				Climate:  minervaClimate,
 				Tracking: minervaTracking,
 			},
+			{
+				Host:              "jupyter",
+				Name:              "desert",
+				Climate:           jupyterClimate,
+				ActiveWarnings:    0,
+				ActiveEmergencies: 1,
+			},
+			{
+				Host:           "juno",
+				Name:           "box",
+				Tracking:       junoTracking,
+				ActiveWarnings: 1,
+			},
+			{
+				Host:     "minerva",
+				Name:     "box",
+				Climate:  minervaClimate,
+				Tracking: minervaTracking,
+			},
 		},
 		"_api_host_jupyter_zone_desert": &api.ZoneReport{
 			Host:    "jupyter",

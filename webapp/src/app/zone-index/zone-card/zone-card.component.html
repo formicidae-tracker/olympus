@@ -2,7 +2,7 @@
     <mat-card-header>
       <mat-card-title>{{zone.identifier()}}</mat-card-title>
       <span></span>
-      <button mat-icon-button *ngIf="zone.activeAlarms()>0" [matBadge]="zone.activeAlarms()" [matBadgeColor]="this.zone.active_emergencies > 0 ? 'warn' : 'accent'" matBadgeSize="small">
+      <button mat-icon-button class="mat-icon-sm-button" *ngIf="zone.activeAlarms()>0" [color]="this.zone.active_emergencies > 0 ? 'warn' : 'accent'" >
         <mat-icon>warning</mat-icon>
       </button>
       <button mat-icon-button>
@@ -19,10 +19,6 @@
       </a>
     </ng-template>
 
-    <mat-card-actions align="end">
-    </mat-card-actions>
-
-
     <ng-template [ngIf]="zone.tracking">
       <mat-card-content class="status">
         <span>Disk Usage:</span>
@@ -32,7 +28,6 @@
         <app-bounded-progress-bar [value]="zone.tracking.total_bytes - zone.tracking.free_bytes" [maximum]="zone.tracking.total_bytes"/>
       </mat-card-footer>
     </ng-template>
-
 
     <ng-template [ngIf]="zone.climate && zone.climate.temperature">
       <mat-card-content  class="status">

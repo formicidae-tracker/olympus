@@ -1,11 +1,14 @@
 mat-card {
   height: 100%;
+  max-width: 350px;
+}
+
+mat-card-header button{
+  margin-top: -8px;
 }
 
 mat-card a img {
   width: 100%;
-  margin-top: 8px;
-  margin-bottom: 16px;
 }
 
 mat-card-header span {
@@ -13,7 +16,7 @@ mat-card-header span {
 }
 
 mat-card-header button {
-  margin-left: 16px;
+    margin-left: 8px;
 }
 
 .missing-stream {
@@ -21,6 +24,7 @@ mat-card-header button {
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-bottom: 30px;
 }
 
 
