@@ -1,20 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { NodeIndexComponent } from './node-index.component';
-import { NodeCardComponent } from './node-card/node-card.component';
+import { ZoneIndexComponent } from './zone-index.component';
+import { ZoneCardComponent } from './zone-card/zone-card.component';
 import { MatCardModule } from '@angular/material/card';
 import { HttpClientModule } from '@angular/common/http';
 
-describe('NodeIndexComponent', () => {
-  let component: NodeIndexComponent;
-  let fixture: ComponentFixture<NodeIndexComponent>;
+describe('ZoneIndexComponent', () => {
+  let component: ZoneIndexComponent;
+  let fixture: ComponentFixture<ZoneIndexComponent>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [NodeIndexComponent, NodeCardComponent],
+      declarations: [ZoneIndexComponent, ZoneCardComponent],
       imports: [MatCardModule, HttpClientModule],
     });
-    fixture = TestBed.createComponent(NodeIndexComponent);
+    fixture = TestBed.createComponent(ZoneIndexComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

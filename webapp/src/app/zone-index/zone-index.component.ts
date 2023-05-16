@@ -3,11 +3,11 @@ import { ZoneReportSummary } from '../olympus-api/zone-report-summary';
 import { OlympusService } from '../olympus-api/services/olympus.service';
 
 @Component({
-  selector: 'app-index',
-  templateUrl: './node-index.component.html',
-  styleUrls: ['./node-index.component.scss'],
+  selector: 'app-zone-index',
+  templateUrl: './zone-index.component.html',
+  styleUrls: ['./zone-index.component.scss'],
 })
-export class NodeIndexComponent implements OnInit {
+export class ZoneIndexComponent implements OnInit {
   public zones: ZoneReportSummary[] = [];
 
   constructor(private olympus: OlympusService) {}

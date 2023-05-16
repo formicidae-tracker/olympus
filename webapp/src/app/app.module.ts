@@ -9,15 +9,15 @@ import { HttpClientModule } from '@angular/common/http';
 import { CoreModule } from './core/core.module';
 
 import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
-import { NodeIndexComponent } from './node-index/node-index.component';
-import { NodeCardComponent } from './node-index/node-card/node-card.component';
+import { ZoneIndexComponent } from './zone-index/zone-index.component';
+import { ZoneCardComponent } from './zone-index/zone-card/zone-card.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     NavToolbarComponent,
-    NodeIndexComponent,
-    NodeCardComponent,
+    ZoneIndexComponent,
+    ZoneCardComponent,
   ],
   imports: [
     BrowserModule,

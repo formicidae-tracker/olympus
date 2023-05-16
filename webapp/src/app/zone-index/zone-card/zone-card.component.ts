@@ -3,11 +3,11 @@ import { humanize_bytes } from 'src/app/core/humanize';
 import { ZoneReportSummary } from 'src/app/olympus-api/zone-report-summary';
 
 @Component({
-  selector: 'app-node-card',
-  templateUrl: './node-card.component.html',
-  styleUrls: ['./node-card.component.scss'],
+  selector: 'app-zone-card',
+  templateUrl: './zone-card.component.html',
+  styleUrls: ['./zone-card.component.scss'],
 })
-export class NodeCardComponent {
+export class ZoneCardComponent {
   @Input() public zone: ZoneReportSummary = new ZoneReportSummary();
 
   public fill_rate(): string {
