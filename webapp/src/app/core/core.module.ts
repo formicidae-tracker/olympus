@@ -6,6 +6,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { BoundedProgressBarComponent } from './bounded-progress-bar/bounded-progress-bar.component';
+import { MatBadgeModule } from '@angular/material/badge';
 
 let UiComponents = [
   MatToolbarModule,
@@ -14,6 +15,7 @@ let UiComponents = [
   MatCardModule,
   MatDividerModule,
   MatProgressBarModule,
+  MatBadgeModule,
 ];
 
 @NgModule({

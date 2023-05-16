@@ -2,19 +2,31 @@ mat-card {
   height: 100%;
 }
 
-mat-card > img {
+mat-card a img {
   width: 100%;
   margin-top: 8px;
   margin-bottom: 16px;
 }
 
+mat-card-header span {
+  flex: 1 1 auto;
+}
+
+mat-card-header button {
+  margin-left: 16px;
+}
+
 .missing-stream {
   height: 100%;
-  padding-top: 30px;
-  padding-bottom: 30px;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+
+a.missing-stream {
+  color: inherit;
+  text-decoration: none;
 }
 
 .missing-stream mat-icon {

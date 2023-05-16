@@ -22,6 +22,10 @@ export class ZoneReportSummary {
     return this.tracking.stream.thumbnail_URL;
   }
 
+  public activeAlarms(): number {
+    return this.active_emergencies + this.active_warnings;
+  }
+
   static fromPlain(plain: any): ZoneReportSummary {
     let ret = new ZoneReportSummary();
     ret.host = plain.host || '';
