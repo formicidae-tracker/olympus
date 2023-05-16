@@ -11,6 +11,7 @@ import { CoreModule } from './core/core.module';
 import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
 import { ZoneIndexComponent } from './zone-index/zone-index.component';
 import { ZoneCardComponent } from './zone-index/zone-card/zone-card.component';
+import { UserSettingsComponent } from './user-settings/user-settings.component';
 
 @NgModule({
   declarations: [
@@ -18,6 +19,7 @@ import { ZoneCardComponent } from './zone-index/zone-card/zone-card.component';
     NavToolbarComponent,
     ZoneIndexComponent,
     ZoneCardComponent,
+    UserSettingsComponent,
   ],
   imports: [
     BrowserModule,

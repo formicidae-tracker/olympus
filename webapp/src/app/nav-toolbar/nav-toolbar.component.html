@@ -1,8 +1,10 @@
 <mat-toolbar color="primary">
-  <img class="logo" src="/assets/fort.svg"/>
+  <a [routerLink]="['']" class="hidden-a">
+    <img class="logo" src="/assets/fort.svg"/>
+  </a>
   <span>{{title}}</span>
   <span class="spacer"></span>
-  <button mat-icon-button>
+  <button mat-icon-button [routerLink]="['settings']">
     <mat-icon>settings</mat-icon>
   </button>
   <button mat-icon-button *ngIf="darkTheme; else lightBlock" (click)="setDarkTheme(false)">
