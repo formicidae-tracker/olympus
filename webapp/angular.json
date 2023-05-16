@@ -66,10 +66,10 @@
           "configurations": {
             "production": {
               "browserTarget": "olympus:build:production"
-              "proxyConfig": "proxy.conf.js",
             },
             "development": {
-              "browserTarget": "olympus:build:development"
+              "browserTarget": "olympus:build:development",
+              "proxyConfig": "proxy.conf.js"
             }
           },
           "defaultConfiguration": "development"

@@ -1,5 +1,16 @@
 .container {
-  display: flex;
-  flex-flow: row wrap;
-  justify-content: space-evenly;
+  display: grid;
+  grid-template-columns: 1fr ;
+  @media(min-width: 480px) {
+    grid-template-columns: repeat(2,2fr);
+  }
+  @media(min-width: 760px) {
+      grid-template-columns: repeat(3,3fr);
+  }
+
+  @media(min-width: 1200px) {
+      grid-template-columns: repeat(4,4fr);
+  }
+
+  gap: 10px;
 }
