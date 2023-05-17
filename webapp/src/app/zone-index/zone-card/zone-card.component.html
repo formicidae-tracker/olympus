@@ -1,31 +1,40 @@
-<mat-card appearance="outlined">
-
-  <a href="/" *ngIf="zone.streamThumbnailURL(); else noStreamBlock">
-    <img mat-card-image [src]="zone.streamThumbnailURL()" alt="Preview of tracking on {{zone.identifier()}}"/>
-  </a>
-  <ng-template #noStreamBlock>
-    <a class="missing-stream" href="/">
-      <span><mat-icon>link_off</mat-icon></span>
+<div class="content">
+  <div class="overlay">
+    <button mat-icon-button>
+      <mat-icon>notifications</mat-icon>
+    </button>
+  </div>
+  <mat-card appearance="outlined">
+    <a href="/" *ngIf="zone.streamThumbnailURL(); else noStreamBlock">
+      <img mat-card-image [src]="zone.streamThumbnailURL()" alt="Preview of tracking on {{zone.identifier()}}"/>
     </a>
-  </ng-template>
+    <ng-template #noStreamBlock>
+      <a class="missing-stream" href="/">
+        <span><mat-icon>link_off</mat-icon></span>
+      </a>
+    </ng-template>
 
-  <mat-card-title>{{zone.identifier()}}</mat-card-title>
+    <mat-card-title>{{zone.identifier()}}</mat-card-title>
 
-  <mat-card-content class="status">
-    <span [hidden]="!zone.tracking">Disk Usage:</span>
-    <span *ngIf="zone.tracking">{{used_space()}} / {{total_space()}}</span>
-  </mat-card-content>
-  <mat-card-footer>
-    <app-bounded-progress-bar *ngIf="zone.tracking"
-                              [value]="zone.tracking.total_bytes - zone.tracking.free_bytes"
-                              [maximum]="zone.tracking.total_bytes"/>
+    <mat-card-content class="status">
+      <ng-template [ngIf]="zone.tracking">
+        <span>Disk Usage:</span>
+        <span>{{used_space()}} / {{total_space()}}</span>
+      </ng-template>
+    </mat-card-content>
+    <mat-card-footer>
+      <app-bounded-progress-bar *ngIf="zone.tracking"
+                                [value]="zone.tracking.total_bytes - zone.tracking.free_bytes"
+                                [maximum]="zone.tracking.total_bytes"/>
 
-  </mat-card-footer>
+    </mat-card-footer>
 
 
     <mat-card-content  class="status">
-      <span>Temperature:</span>
-      <span *ngIf="zone.climate ">{{zone.climate.temperature | number: '1.1-2'}}°C</span>
+      <ng-template [ngIf]="zone.climate ">
+        <span>Temperature:</span>
+        <span>{{zone.climate.temperature | number: '1.1-1'}}°C</span>
+      </ng-template>
     </mat-card-content>
     <mat-card-footer>
       <app-bounded-progress-bar *ngIf="zone.climate && zone.climate.temperature_bounds"
@@ -35,8 +44,10 @@
     </mat-card-footer>
 
     <mat-card-content class="status">
-      <span>Humidity:</span>
-      <span *ngIf="zone.climate">{{zone.climate.humidity | number: '1.1-2'}} % R.H.</span>
+      <ng-template [ngIf]="zone.climate ">
+        <span>Humidity:</span>
+        <span>{{zone.climate.humidity | number: '1.1-1'}} % R.H.</span>
+      </ng-template>
     </mat-card-content>
     <mat-card-footer>
       <app-bounded-progress-bar *ngIf="zone.climate && zone.climate.humidity_bounds"
@@ -44,4 +55,5 @@
                                 [minimum]="zone.climate.humidity_bounds.minimum"
                                 [maximum]="zone.climate.humidity_bounds.maximum"/>
     </mat-card-footer>
-</mat-card>
+  </mat-card>
+</div>

@@ -8,6 +8,8 @@ import { ZoneReportSummary } from 'src/app/olympus-api/zone-report-summary';
   styleUrls: ['./zone-card.component.scss'],
 })
 export class ZoneCardComponent {
+  public darkTheme: boolean = false;
+
   @Input() public zone: ZoneReportSummary = new ZoneReportSummary();
 
   public fill_rate(): string {

@@ -194,7 +194,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		Stream: &api.StreamInfo{
 			ExperimentName: "tackling-universe",
 			StreamURL:      "https://www.youtube.com/live/21X5lGlDOfg",
-			ThumbnailURL:   "https://fastly.picsum.photos/id/639/1024/776.jpg?hmac=CBEcQXtS29CEMjTE_aJadZDvTe3PDpi6MLhq55BBWzU",
+			ThumbnailURL:   "https://picsum.photos/id/42/1024/776?grayscale",
 		},
 	}
 
@@ -234,7 +234,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		Stream: &api.StreamInfo{
 			ExperimentName: "about to fail",
 			StreamURL:      "https://www.youtube.com/live/21X5lGlDOfg",
-			ThumbnailURL:   "https://fastly.picsum.photos/id/255/1024/776.jpg?hmac=pF-KtMJ3HQIPimNMw0WO4JqNI89QKTfmRUWwyuyufSI",
+			ThumbnailURL:   "https://picsum.photos/id/43/1024/776?grayscale",
 		},
 	}
 

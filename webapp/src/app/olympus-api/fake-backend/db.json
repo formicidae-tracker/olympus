@@ -9,7 +9,7 @@
       "stream": {
         "experiment_name": "about to fail",
         "stream_URL": "https://www.youtube.com/live/21X5lGlDOfg",
-        "thumbnail_URL": "https://fastly.picsum.photos/id/255/1024/776.jpg?hmac=pF-KtMJ3HQIPimNMw0WO4JqNI89QKTfmRUWwyuyufSI"
+        "thumbnail_URL": "https://picsum.photos/id/43/1024/776?grayscale"
       }
     },
     "alarms": [
@@ -134,7 +134,7 @@
       "stream": {
         "experiment_name": "tackling-universe",
         "stream_URL": "https://www.youtube.com/live/21X5lGlDOfg",
-        "thumbnail_URL": "https://fastly.picsum.photos/id/639/1024/776.jpg?hmac=CBEcQXtS29CEMjTE_aJadZDvTe3PDpi6MLhq55BBWzU"
+        "thumbnail_URL": "https://picsum.photos/id/42/1024/776?grayscale"
       }
     }
   },
@@ -175,7 +175,7 @@
         "stream": {
           "experiment_name": "about to fail",
           "stream_URL": "https://www.youtube.com/live/21X5lGlDOfg",
-          "thumbnail_URL": "https://fastly.picsum.photos/id/255/1024/776.jpg?hmac=pF-KtMJ3HQIPimNMw0WO4JqNI89QKTfmRUWwyuyufSI"
+          "thumbnail_URL": "https://picsum.photos/id/43/1024/776?grayscale"
         }
       },
       "active_warnings": 1
@@ -225,7 +225,7 @@
         "stream": {
           "experiment_name": "tackling-universe",
           "stream_URL": "https://www.youtube.com/live/21X5lGlDOfg",
-          "thumbnail_URL": "https://fastly.picsum.photos/id/639/1024/776.jpg?hmac=CBEcQXtS29CEMjTE_aJadZDvTe3PDpi6MLhq55BBWzU"
+          "thumbnail_URL": "https://picsum.photos/id/42/1024/776?grayscale"
         }
       }
     },
@@ -264,7 +264,7 @@
         "stream": {
           "experiment_name": "about to fail",
           "stream_URL": "https://www.youtube.com/live/21X5lGlDOfg",
-          "thumbnail_URL": "https://fastly.picsum.photos/id/255/1024/776.jpg?hmac=pF-KtMJ3HQIPimNMw0WO4JqNI89QKTfmRUWwyuyufSI"
+          "thumbnail_URL": "https://picsum.photos/id/43/1024/776?grayscale"
         }
       },
       "active_warnings": 1
@@ -314,7 +314,7 @@
         "stream": {
           "experiment_name": "tackling-universe",
           "stream_URL": "https://www.youtube.com/live/21X5lGlDOfg",
-          "thumbnail_URL": "https://fastly.picsum.photos/id/639/1024/776.jpg?hmac=CBEcQXtS29CEMjTE_aJadZDvTe3PDpi6MLhq55BBWzU"
+          "thumbnail_URL": "https://picsum.photos/id/42/1024/776?grayscale"
         }
       }
     }
