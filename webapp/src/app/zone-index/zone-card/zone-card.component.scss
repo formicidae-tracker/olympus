@@ -1,6 +1,5 @@
 mat-card {
-  height: 100%;
-  max-width: 350px;
+  grid-column-end: span 4;
 }
 
 mat-card-header button{

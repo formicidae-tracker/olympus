@@ -1,5 +1,5 @@
 <mat-card appearance="outlined">
-    <mat-card-header>
+<!--    <mat-card-header>
       <mat-card-title>{{zone.identifier()}}</mat-card-title>
       <span></span>
       <button mat-icon-button class="mat-icon-sm-button" *ngIf="zone.activeAlarms()>0" [color]="this.zone.active_emergencies > 0 ? 'warn' : 'accent'" >
@@ -9,7 +9,7 @@
         <mat-icon>notifications</mat-icon>
       </button>
     </mat-card-header>
-
+-->
     <a href="/" *ngIf="zone.streamThumbnailURL(); else noStreamBlock">
       <img mat-card-image [src]="zone.streamThumbnailURL()" alt="Preview of tracking on {{zone.identifier()}}"/>
     </a>
