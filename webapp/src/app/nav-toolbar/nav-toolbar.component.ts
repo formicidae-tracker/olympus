@@ -21,8 +21,11 @@ export class NavToolbarComponent implements OnInit {
   ngOnInit(): void {
     this.themeService.isDarkTheme.subscribe((dark) => (this.darkTheme = dark));
     this.titleService.title.subscribe((title) => {
-      this.pageTitle.setTitle(title);
       this.title = title;
+      if (title.startsWith('Olympus') == false) {
+        title = 'Olympus: ' + title;
+      }
+      this.pageTitle.setTitle(title);
     });
   }
 

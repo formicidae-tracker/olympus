@@ -12,6 +12,7 @@ import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
 import { ZoneIndexComponent } from './zone-index/zone-index.component';
 import { ZoneCardComponent } from './zone-index/zone-card/zone-card.component';
 import { UserSettingsComponent } from './user-settings/user-settings.component';
+import { ZoneViewComponent } from './zone-view/zone-view.component';
 
 @NgModule({
   declarations: [
@@ -20,6 +21,7 @@ import { UserSettingsComponent } from './user-settings/user-settings.component';
     ZoneIndexComponent,
     ZoneCardComponent,
     UserSettingsComponent,
+    ZoneViewComponent,
   ],
   imports: [
     BrowserModule,

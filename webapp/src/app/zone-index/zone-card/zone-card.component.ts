@@ -1,5 +1,6 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { humanize_bytes } from 'src/app/core/humanize';
+import { ThemeService } from 'src/app/core/services/theme.service';
 import { ZoneReportSummary } from 'src/app/olympus-api/zone-report-summary';
 
 @Component({
@@ -7,10 +8,18 @@ import { ZoneReportSummary } from 'src/app/olympus-api/zone-report-summary';
   templateUrl: './zone-card.component.html',
   styleUrls: ['./zone-card.component.scss'],
 })
-export class ZoneCardComponent {
+export class ZoneCardComponent implements OnInit {
   public darkTheme: boolean = false;
 
   @Input() public zone: ZoneReportSummary = new ZoneReportSummary();
+
+  constructor(private theme: ThemeService) {}
+
+  ngOnInit(): void {
+    this.theme.isDarkTheme.subscribe((dark) => {
+      this.darkTheme = dark;
+    });
+  }
 
   public fill_rate(): string {
     return humanize_bytes(

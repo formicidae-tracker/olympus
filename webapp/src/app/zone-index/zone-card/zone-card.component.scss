@@ -12,14 +12,13 @@
   z-index: 100;
 }
 
-
 .overlay button {
   margin-left: 8px;
   background: rgba(#ffffff,0.7);
 
 }
 
-.dark-theme,.overlay button {
+.dark-theme button {
   background: rgba(#2e3132,0.7);
 }
 
@@ -30,7 +29,6 @@ mat-card {
 
 $img-height: 144px;
 
-
 mat-card-title {
   padding-left: 16px;
   padding-bottom: 16px;
@@ -39,7 +37,7 @@ mat-card-title {
 }
 
 
-mat-card a img {
+img {
   height: $img-height;
 
   width: 100%;
@@ -47,19 +45,16 @@ mat-card a img {
 }
 
 .missing-stream {
+  width: 100%;
   height: $img-height;
 
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-bottom: 5px;
 }
 
-.missing-stream div {
- }
 
-a.missing-stream {
-
+a {
   color: inherit;
   text-decoration: none;
 }
