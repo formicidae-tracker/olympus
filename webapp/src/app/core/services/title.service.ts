@@ -12,7 +12,7 @@ export class TitleService {
     if (title.length == 0) {
       title = 'Olympus';
     } else {
-      title = 'Olympus: ' + title;
+      title = title;
     }
     this._title.next(title);
   }

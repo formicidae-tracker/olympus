@@ -10,6 +10,6 @@ export class UserSettingsComponent implements OnInit {
   constructor(private title: TitleService) {}
 
   ngOnInit() {
-    this.title.setTitle('User Settings');
+    this.title.setTitle('Settings');
   }
 }
