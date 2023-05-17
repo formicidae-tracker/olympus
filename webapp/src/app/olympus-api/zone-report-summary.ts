@@ -1,5 +1,6 @@
 import { ZoneClimateReport } from './zone-climate-report';
 import { TrackingInfo } from './tracking-info';
+import { Bounds } from './bounds';
 
 export class ZoneReportSummary {
   public host: string = '';

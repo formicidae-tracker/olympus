@@ -1,13 +1,19 @@
 mat-card {
-  grid-column-end: span 4;
+  height: 100%;
 }
 
-mat-card-header button{
-  margin-top: -8px;
+mat-card-title {
+  padding-left: 16px;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
+
+$img-height: 144px;
 
 mat-card a img {
   width: 100%;
+  height: $img-height;
+  object-fit: cover;
 }
 
 mat-card-header span {
@@ -19,13 +25,13 @@ mat-card-header button {
 }
 
 .missing-stream {
-  height: 100%;
+  height: $img-height;
   display: flex;
   justify-content: center;
   align-items: center;
   margin-bottom: 30px;
+  margin-bottom: 4px;
 }
-
 
 a.missing-stream {
   color: inherit;
@@ -38,8 +44,15 @@ a.missing-stream {
   font-size: 60px;
 }
 
-
 .status {
   display: flex;
   justify-content: space-between;
+}
+
+mat-card-footer {
+  min-height: 4px;
+}
+
+.hidden {
+  hidden: true;
 }

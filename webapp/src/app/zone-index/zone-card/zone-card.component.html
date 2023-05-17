@@ -1,52 +1,47 @@
 <mat-card appearance="outlined">
-<!--    <mat-card-header>
-      <mat-card-title>{{zone.identifier()}}</mat-card-title>
-      <span></span>
-      <button mat-icon-button class="mat-icon-sm-button" *ngIf="zone.activeAlarms()>0" [color]="this.zone.active_emergencies > 0 ? 'warn' : 'accent'" >
-        <mat-icon>warning</mat-icon>
-      </button>
-      <button mat-icon-button>
-        <mat-icon>notifications</mat-icon>
-      </button>
-    </mat-card-header>
--->
-    <a href="/" *ngIf="zone.streamThumbnailURL(); else noStreamBlock">
-      <img mat-card-image [src]="zone.streamThumbnailURL()" alt="Preview of tracking on {{zone.identifier()}}"/>
+
+  <a href="/" *ngIf="zone.streamThumbnailURL(); else noStreamBlock">
+    <img mat-card-image [src]="zone.streamThumbnailURL()" alt="Preview of tracking on {{zone.identifier()}}"/>
+  </a>
+  <ng-template #noStreamBlock>
+    <a class="missing-stream" href="/">
+      <span><mat-icon>link_off</mat-icon></span>
     </a>
-    <ng-template #noStreamBlock>
-      <a class="missing-stream" href="/">
-        <span><mat-icon>link_off</mat-icon></span>
-      </a>
-    </ng-template>
+  </ng-template>
 
-    <ng-template [ngIf]="zone.tracking">
-      <mat-card-content class="status">
-        <span>Disk Usage:</span>
-        <span>{{used_space()}} / {{total_space()}}</span>
-      </mat-card-content>
-      <mat-card-footer>
-        <app-bounded-progress-bar [value]="zone.tracking.total_bytes - zone.tracking.free_bytes" [maximum]="zone.tracking.total_bytes"/>
-      </mat-card-footer>
-    </ng-template>
+  <mat-card-title>{{zone.identifier()}}</mat-card-title>
 
-    <ng-template [ngIf]="zone.climate && zone.climate.temperature">
-      <mat-card-content  class="status">
-        <span>Temperature:</span>
-        <span>{{zone.climate.temperature.toFixed(1)}}°C</span>
-      </mat-card-content>
-      <mat-card-footer *ngIf="zone.climate && zone.climate.temperature_bounds">
-        <app-bounded-progress-bar [value]="zone.climate.temperature" [minimum]="zone.climate.temperature_bounds.minimum" [maximum]="zone.climate.temperature_bounds.maximum"/>
-      </mat-card-footer>
-    </ng-template>
+  <mat-card-content class="status">
+    <span [hidden]="!zone.tracking">Disk Usage:</span>
+    <span *ngIf="zone.tracking">{{used_space()}} / {{total_space()}}</span>
+  </mat-card-content>
+  <mat-card-footer>
+    <app-bounded-progress-bar *ngIf="zone.tracking"
+                              [value]="zone.tracking.total_bytes - zone.tracking.free_bytes"
+                              [maximum]="zone.tracking.total_bytes"/>
 
-    <ng-template [ngIf]="zone.climate && zone.climate.humidity">
-      <mat-card-content class="status">
-        <span>Humidity:</span>
-        <span>{{zone.climate.humidity.toFixed(1)}} % R.H.</span>
-      </mat-card-content>
-      <mat-card-footer *ngIf="zone.climate && zone.climate.humidity_bounds">
-        <app-bounded-progress-bar [value]="zone.climate.humidity" [minimum]="zone.climate.humidity_bounds.minimum" [maximum]="zone.climate.humidity_bounds.maximum"/>
-      </mat-card-footer>
-    </ng-template>
+  </mat-card-footer>
 
+
+    <mat-card-content  class="status">
+      <span>Temperature:</span>
+      <span *ngIf="zone.climate ">{{zone.climate.temperature | number: '1.1-2'}}°C</span>
+    </mat-card-content>
+    <mat-card-footer>
+      <app-bounded-progress-bar *ngIf="zone.climate && zone.climate.temperature_bounds"
+                                [value]="zone.climate.temperature"
+                                [minimum]="zone.climate.temperature_bounds.minimum"
+                                [maximum]="zone.climate.temperature_bounds.maximum"/>
+    </mat-card-footer>
+
+    <mat-card-content class="status">
+      <span>Humidity:</span>
+      <span *ngIf="zone.climate">{{zone.climate.humidity | number: '1.1-2'}} % R.H.</span>
+    </mat-card-content>
+    <mat-card-footer>
+      <app-bounded-progress-bar *ngIf="zone.climate && zone.climate.humidity_bounds"
+                                [value]="zone.climate.humidity"
+                                [minimum]="zone.climate.humidity_bounds.minimum"
+                                [maximum]="zone.climate.humidity_bounds.maximum"/>
+    </mat-card-footer>
 </mat-card>
