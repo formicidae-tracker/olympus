@@ -321,10 +321,7 @@ body {
 
 .flex {
   display: flex;
-}
-
-.flex spacer {
-  flex: 1 1 auto;
+  justify-content: center;
 }
 
 .grid {
@@ -355,15 +352,17 @@ body {
   @media (min-width: 1240px) {
     grid-template-columns: repeat(12,1fr);
 
-    padding: 16px 200px;
+    width: 100%;
+
+    padding: 32px 96px;
     gap: 32px;
   }
 
   @media (min-width:1440px) {
     grid-template-columns: repeat(12,1fr);
 
-    padding: 16px 0px;
-    width: 1040px;
+    padding: 32px 0px;
+    width: 1240px;
     gap: 32px;
   }
 }
