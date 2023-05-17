@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ZoneReportSummary } from '../olympus-api/zone-report-summary';
 import { OlympusService } from '../olympus-api/services/olympus.service';
-import { TitleService } from '../core/services/title.service';
 
 @Component({
   selector: 'app-zone-index',
@@ -11,12 +10,11 @@ import { TitleService } from '../core/services/title.service';
 export class ZoneIndexComponent implements OnInit {
   public zones: ZoneReportSummary[] = [];
 
-  constructor(private olympus: OlympusService, private title: TitleService) {}
+  constructor(private olympus: OlympusService) {}
 
   ngOnInit(): void {
     this.olympus
       .getZoneReportSummaries()
       .subscribe((zones) => (this.zones = zones));
-    this.title.setTitle('');
   }
 }

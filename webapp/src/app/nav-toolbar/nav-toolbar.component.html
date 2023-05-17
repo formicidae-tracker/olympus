@@ -1,7 +1,13 @@
 <mat-toolbar color="primary">
-  <a [routerLink]="['']" class="hidden-a">
+  <a *ngIf="isRoot(); else backButton" routerLink="/" class="hidden-a">
     <img class="logo" src="/assets/fort.svg"/>
   </a>
+  <ng-template #backButton>
+    <button routerLink="/" mat-icon-button class="logo">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+  </ng-template>
+
   <span>{{title}}</span>
   <span class="spacer"></span>
   <button mat-icon-button [routerLink]="['settings']">

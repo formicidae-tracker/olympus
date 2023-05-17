@@ -11,9 +11,6 @@ mat-toolbar {
 .logo {
   margin-right: 8px;
   height: 48px;
-  @media (max-width:600px) {
-    height: 40px;
-  }
   display:block;
 }
 
