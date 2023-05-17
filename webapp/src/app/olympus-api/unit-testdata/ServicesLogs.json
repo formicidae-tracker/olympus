@@ -1,1 +1,15 @@
-[{},{"climate":[{"zone":"foo"}],"tracking":[{"zone":"foo"}]}]
+[
+  {},
+  {
+    "climate": [
+      {
+        "zone": "foo"
+      }
+    ],
+    "tracking": [
+      {
+        "zone": "foo"
+      }
+    ]
+  }
+]

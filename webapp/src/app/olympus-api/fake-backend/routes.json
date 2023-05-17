@@ -1,1 +1,9 @@
-{"/api/host/juno/zone/box":"/_api_host_juno_zone_box","/api/host/juno/zone/box/alarms":"/_api_host_juno_zone_box_alarms","/api/host/jupyter/zone/desert":"/_api_host_jupyter_zone_desert","/api/host/jupyter/zone/desert/alarms":"/_api_host_jupyter_zone_desert_alarms","/api/host/minerva/zone/box":"/_api_host_minerva_zone_box","/api/host/minerva/zone/box/alarms":"/_api_host_minerva_zone_box_alarms","/api/zones":"/_api_zones"}
+{
+  "/api/host/juno/zone/box": "/_api_host_juno_zone_box",
+  "/api/host/juno/zone/box/alarms": "/_api_host_juno_zone_box_alarms",
+  "/api/host/jupyter/zone/desert": "/_api_host_jupyter_zone_desert",
+  "/api/host/jupyter/zone/desert/alarms": "/_api_host_jupyter_zone_desert_alarms",
+  "/api/host/minerva/zone/box": "/_api_host_minerva_zone_box",
+  "/api/host/minerva/zone/box/alarms": "/_api_host_minerva_zone_box_alarms",
+  "/api/zones": "/_api_zones"
+}

@@ -1,1 +1,23 @@
-[{},{"host":"foo","name":"bar","climate":{"temperature":18,"temperature_bounds":{},"humidity_bounds":{}},"tracking":{"total_bytes":2000},"alarms":[{"identification":"error","level":0,"events":null,"description":""}]}]
+[
+  {},
+  {
+    "host": "foo",
+    "name": "bar",
+    "climate": {
+      "temperature": 18,
+      "temperature_bounds": {},
+      "humidity_bounds": {}
+    },
+    "tracking": {
+      "total_bytes": 2000
+    },
+    "alarms": [
+      {
+        "identification": "error",
+        "level": 0,
+        "events": null,
+        "description": ""
+      }
+    ]
+  }
+]

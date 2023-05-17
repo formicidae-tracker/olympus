@@ -1,1 +1,11 @@
-[{},{"total_bytes":1024002,"free_bytes":819202,"bytes_per_second":10242,"stream":{"experiment_name":"foo"}}]
+[
+  {},
+  {
+    "total_bytes": 1024002,
+    "free_bytes": 819202,
+    "bytes_per_second": 10242,
+    "stream": {
+      "experiment_name": "foo"
+    }
+  }
+]
