@@ -28,7 +28,7 @@ describe('OlympusService', () => {
   describe('getZoneReportSummaries', () => {
     it('should call the right endpoint', () => {
       service.getZoneReportSummaries().subscribe((reports) => {
-        expect(reports.length).toBe(3);
+        expect(reports.length).toBe(fakeDB._api_zones.length);
       });
       const req = httpMock.expectOne('/api/zones');
       expect(req.request.method).toBe('GET');

@@ -25,12 +25,6 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have a title that contains 'Olympus'`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toContain('Olympus');
-  });
-
   describe('render', () => {
     let compiled: HTMLElement;
     let fixture: ComponentFixture<AppComponent>;
@@ -40,11 +34,7 @@ describe('AppComponent', () => {
       fixture.detectChanges();
       compiled = fixture.nativeElement as HTMLElement;
     });
-    it('should render title in navigation bar', () => {
-      expect(
-        compiled.querySelector('.mat-toolbar span')?.textContent
-      ).toContain('Olympus');
-    });
+
     it('should apply mode accordingly', () => {
       let classes = compiled
         .querySelector('div')

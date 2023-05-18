@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ZoneViewComponent } from './zone-view.component.ts~';
+import { ZoneViewComponent } from './zone-view.component';
+import { RouterModule } from '@angular/router';
 
 describe('ZoneViewComponent', () => {
   let component: ZoneViewComponent;
@@ -8,6 +9,7 @@ describe('ZoneViewComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [RouterModule.forRoot([])],
       declarations: [ZoneViewComponent],
     });
     fixture = TestBed.createComponent(ZoneViewComponent);
