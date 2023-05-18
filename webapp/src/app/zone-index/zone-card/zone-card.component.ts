@@ -55,4 +55,12 @@ export class ZoneCardComponent implements OnInit {
       this.zone.tracking ? this.zone.tracking.total_bytes : 0
     );
   }
+
+  public showWarnings(): boolean {
+    return this.zone.active_warnings > 0;
+  }
+
+  public showEmergencies(): boolean {
+    return this.zone.active_emergencies > 0;
+  }
 }

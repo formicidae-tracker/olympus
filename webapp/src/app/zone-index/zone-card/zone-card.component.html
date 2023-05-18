@@ -1,6 +1,13 @@
 <div class="content">
   <div class="overlay" [class.dark-theme]="darkTheme">
     <button mat-icon-button
+            [routerLink]="['host',zone.host,'zone',zone.name]"
+            fragment="alarms"
+            *ngIf="showEmergencies() || showWarnings()"
+            [color]="showEmergencies() ? 'warn': 'accent'">
+      <mat-icon>{{showEmergencies() ? 'error' : 'warning'}}</mat-icon>
+    </button>
+    <button mat-icon-button
             (click)="setAlarmSubscription(!subscribed)"
             [color]="subscribed ? 'accent': ''">
       <mat-icon>{{subscribed ? 'notifications_on': 'notifications'}}</mat-icon>
@@ -17,44 +24,40 @@
 
       <mat-card-title>{{zone.identifier()}}</mat-card-title>
 
-      <mat-card-content class="status">
-        <ng-template [ngIf]="zone.tracking">
-          <span>Disk Usage:</span>
-          <span>{{used_space()}} / {{total_space()}}</span>
-        </ng-template>
-      </mat-card-content>
+
       <mat-card-footer>
-        <app-bounded-progress-bar *ngIf="zone.tracking"
-                                  [value]="zone.tracking.total_bytes - zone.tracking.free_bytes"
-                                  [maximum]="zone.tracking.total_bytes"/>
+        <div class="status-container">
+          <div class="status" *ngIf="zone.tracking">
+            <span>Disk Usage:</span>
+            <span>{{used_space()}} / {{total_space()}}</span>
+          </div>
+          <app-bounded-progress-bar *ngIf="zone.tracking"
+                                    [value]="zone.tracking.total_bytes - zone.tracking.free_bytes"
+                                    [maximum]="zone.tracking.total_bytes"/>
+        </div>
 
-      </mat-card-footer>
+        <div class="status-container">
+          <div class="status" *ngIf="zone.climate">
+            <span>Temperature:</span>
+            <span>{{zone.climate.temperature | number: '1.1-1'}}°C</span>
+          </div>
+          <app-bounded-progress-bar *ngIf="zone.climate && zone.climate.temperature_bounds"
+                                    [value]="zone.climate.temperature"
+                                    [minimum]="zone.climate.temperature_bounds.minimum"
+                                    [maximum]="zone.climate.temperature_bounds.maximum"/>
+        </div>
 
+        <div class="status-container">
+          <div class="status" *ngIf="zone.climate">
+            <span>Humidity:</span>
+            <span>{{zone.climate.humidity | number: '1.1-1'}} % R.H.</span>
+          </div>
+          <app-bounded-progress-bar *ngIf="zone.climate && zone.climate.humidity_bounds"
+                                    [value]="zone.climate.humidity"
+                                    [minimum]="zone.climate.humidity_bounds.minimum"
+                                    [maximum]="zone.climate.humidity_bounds.maximum"/>
+        </div>
 
-      <mat-card-content  class="status">
-        <ng-template [ngIf]="zone.climate ">
-          <span>Temperature:</span>
-          <span>{{zone.climate.temperature | number: '1.1-1'}}°C</span>
-        </ng-template>
-      </mat-card-content>
-      <mat-card-footer>
-        <app-bounded-progress-bar *ngIf="zone.climate && zone.climate.temperature_bounds"
-                                  [value]="zone.climate.temperature"
-                                  [minimum]="zone.climate.temperature_bounds.minimum"
-                                  [maximum]="zone.climate.temperature_bounds.maximum"/>
-      </mat-card-footer>
-
-      <mat-card-content class="status">
-        <ng-template [ngIf]="zone.climate ">
-          <span>Humidity:</span>
-          <span>{{zone.climate.humidity | number: '1.1-1'}} % R.H.</span>
-        </ng-template>
-      </mat-card-content>
-      <mat-card-footer>
-        <app-bounded-progress-bar *ngIf="zone.climate && zone.climate.humidity_bounds"
-                                  [value]="zone.climate.humidity"
-                                  [minimum]="zone.climate.humidity_bounds.minimum"
-                                  [maximum]="zone.climate.humidity_bounds.maximum"/>
       </mat-card-footer>
     </mat-card>
   </a>

@@ -14,16 +14,17 @@
 
 .overlay button {
   margin-left: 8px;
-  background: rgba(#ffffff,0.7);
+  background: #ffffff;
 
 }
 
 .dark-theme button {
-  background: rgba(#2e3132,0.7);
+  background: #2e3132;
 }
 
 
 mat-card {
+  min-width: 240px;
   height: 100%;
 }
 
@@ -35,7 +36,6 @@ mat-card-title {
   text-overflow: ellipsis;
   overflow: hidden;
 }
-
 
 img {
   height: $img-height;
@@ -65,14 +65,15 @@ a {
   font-size: 60px;
 }
 
-.status {
-  display: flex;
-  justify-content: space-between;
-  min-height: 20px;
+.status-container {
+  height: 24px;
 }
 
-mat-card-footer {
-  min-height: 4px;
+.status {
+  padding: 0px 16px;
+
+  display: flex;
+  justify-content: space-between;
 }
 
 .hidden {
