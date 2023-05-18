@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ThemeService } from './core/services/theme.service';
+import { UserSettingsService } from './core/user-settings.service';
 
 @Component({
   selector: 'app-root',
@@ -8,9 +8,9 @@ import { ThemeService } from './core/services/theme.service';
 })
 export class AppComponent implements OnInit {
   public darkTheme: boolean = false;
-  constructor(private theme: ThemeService) {}
+  constructor(private settings: UserSettingsService) {}
 
   ngOnInit(): void {
-    this.theme.isDarkTheme.subscribe((dark) => (this.darkTheme = dark));
+    this.settings.isDarkTheme().subscribe((dark) => (this.darkTheme = dark));
   }
 }

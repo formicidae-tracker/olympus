@@ -1,8 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { ThemeService } from '../core/services/theme.service';
-import { Title } from '@angular/platform-browser';
 import { ActivationEnd, ResolveEnd, Router } from '@angular/router';
 import { map, filter } from 'rxjs';
+import { UserSettingsService } from '../core/user-settings.service';
 
 @Component({
   selector: 'app-nav-toolbar',
@@ -14,10 +13,15 @@ export class NavToolbarComponent implements OnInit {
   public title: string = 'Olympus';
   private _currentURL: string = '';
 
-  constructor(private themeService: ThemeService, private router: Router) {}
+  constructor(
+    private settingService: UserSettingsService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    this.themeService.isDarkTheme.subscribe((dark) => (this.darkTheme = dark));
+    this.settingService
+      .isDarkTheme()
+      .subscribe((dark) => (this.darkTheme = dark));
     this.router.events
       .pipe(
         filter((e) => e instanceof ActivationEnd),
@@ -41,7 +45,7 @@ export class NavToolbarComponent implements OnInit {
   }
 
   public setDarkTheme(dark: boolean): void {
-    this.themeService.setDarkTheme(dark);
+    this.settingService.setDarkTheme(dark);
   }
 
   public isRoot(): boolean {

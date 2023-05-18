@@ -1,6 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { humanize_bytes } from 'src/app/core/humanize';
-import { ThemeService } from 'src/app/core/services/theme.service';
+import { UserSettingsService } from 'src/app/core/user-settings.service';
 import { ZoneReportSummary } from 'src/app/olympus-api/zone-report-summary';
 
 @Component({
@@ -12,13 +12,27 @@ export class ZoneCardComponent implements OnInit {
   public darkTheme: boolean = false;
 
   @Input() public zone: ZoneReportSummary = new ZoneReportSummary();
+  public subscribed: boolean = false;
 
-  constructor(private theme: ThemeService) {}
+  constructor(private settingsService: UserSettingsService) {}
 
   ngOnInit(): void {
-    this.theme.isDarkTheme.subscribe((dark) => {
+    this.settingsService.isDarkTheme().subscribe((dark) => {
       this.darkTheme = dark;
     });
+    this.settingsService
+      .isSubscribedToAlarmFrom(this.zone.identifier())
+      .subscribe((subscribed) => {
+        this.subscribed = subscribed;
+      });
+  }
+
+  public setAlarmSubscription(subscribed: boolean): void {
+    if (subscribed) {
+      this.settingsService.subscribeToAlarmFrom(this.zone.identifier());
+    } else {
+      this.settingsService.unsubscribeFromAlarmFrom(this.zone.identifier());
+    }
   }
 
   public fill_rate(): string {
