@@ -13,6 +13,10 @@ import { ZoneIndexComponent } from './zone-index/zone-index.component';
 import { ZoneCardComponent } from './zone-index/zone-card/zone-card.component';
 import { UserSettingsComponent } from './user-settings/user-settings.component';
 import { ZoneViewComponent } from './zone-view/zone-view.component';
+import { ClimateChartComponent } from './zone-view/climate-chart/climate-chart.component';
+import { ZoneStatusComponent } from './zone-view/zone-status/zone-status.component';
+import { TrackingPlayerComponent } from './zone-view/tracking-player/tracking-player.component';
+import { AlarmsReportsComponent } from './zone-view/alarms-reports/alarms-reports.component';
 
 @NgModule({
   declarations: [
@@ -22,6 +26,10 @@ import { ZoneViewComponent } from './zone-view/zone-view.component';
     ZoneCardComponent,
     UserSettingsComponent,
     ZoneViewComponent,
+    ClimateChartComponent,
+    ZoneStatusComponent,
+    TrackingPlayerComponent,
+    AlarmsReportsComponent,
   ],
   imports: [
     BrowserModule,
