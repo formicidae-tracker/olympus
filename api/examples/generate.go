@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"path"
 	"strings"
@@ -156,6 +157,24 @@ func timeMustParse(value string) time.Time {
 	return res
 }
 
+func generateAlarmReport(identifier, description string, level api.AlarmLevel, number int) api.AlarmReport {
+	on := number%2 == 1
+	t := timeMustParse("2023-03-31T23:25:34.000Z")
+	points := make([]api.AlarmTimePoint, 0, number)
+	for i := 0; i < number; i++ {
+		t = t.Add(-1 * time.Duration(rand.Intn(120)) * time.Minute)
+		points = append([]api.AlarmTimePoint{{Time: t, On: on}}, points...)
+		on = !on
+	}
+
+	return api.AlarmReport{
+		Identification: identifier,
+		Level:          level,
+		Description:    description,
+		Events:         points,
+	}
+}
+
 func generateMockData() (map[string]interface{}, map[string]string) {
 	minervaClimate := &api.ZoneClimateReport{
 		Temperature:       newWithValue[float32](19.8743205432),
@@ -198,7 +217,32 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		},
 	}
 
-	minervaAlarms := []api.AlarmReport{}
+	minervaAlarms := []api.AlarmReport{
+		generateAlarmReport("climate.temperature_out_of_bound",
+			"Temperature (22.1°C) is out of allowed range (17.0°C - 22.0°C)",
+			api.AlarmLevel_EMERGENCY,
+			36),
+		generateAlarmReport("climate.humidity_is_unrerachable",
+			"Target humidity cannot be reached",
+			api.AlarmLevel_WARNING,
+			2),
+		generateAlarmReport("climate.cannot_read_sensor",
+			"Cannot read sensor",
+			api.AlarmLevel_EMERGENCY,
+			44),
+		generateAlarmReport("climate.device_missing(slcan0.Zeus.1)",
+			"Device slcan0.Zeus.1 cannot be reached. Climate may not be controlled",
+			api.AlarmLevel_EMERGENCY,
+			44),
+		generateAlarmReport("climate.device_internal_error(slcan0.Zeus.1,0x0021)",
+			"Device slcan0.Zeus.1 experienced internal error 0x0021",
+			api.AlarmLevel_WARNING,
+			56),
+		generateAlarmReport("climate.right_fan_is_aging",
+			"Right Extraction Fan is not operating as expected.",
+			api.AlarmLevel_WARNING,
+			16),
+	}
 
 	jupyterClimate := &api.ZoneClimateReport{
 		Temperature:       newWithValue[float32](28.8743205432),
@@ -216,15 +260,22 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 	}
 
 	jupyterAlarms := []api.AlarmReport{
-		{
-			Identification: "climate.temperature_out_of_bound",
-			Level:          api.AlarmLevel_EMERGENCY,
-			Events: []api.AlarmTimePoint{{
-				Time: timeMustParse("2023-03-31T23:25:34.000Z"),
-				On:   true,
-			}},
-			Description: "Temperature (28.9°C) is out of allowed range (17.0°C - 22.0°C)",
-		},
+		generateAlarmReport("climate.temperature_out_of_bound",
+			"Temperature (28.9°C) is out of allowed range (17.0°C - 22.0°C)",
+			api.AlarmLevel_EMERGENCY,
+			25),
+		generateAlarmReport("climate.cannot_read_sensor",
+			"Cannot read sensor",
+			api.AlarmLevel_EMERGENCY,
+			22),
+		generateAlarmReport("climate.device_missing(slcan0.Zeus.1)",
+			"Device slcan0.Zeus.1 cannot be reached. Climate may not be controlled",
+			api.AlarmLevel_EMERGENCY,
+			22),
+		generateAlarmReport("climate.device_internal_error(slcan0.Zeus.1,0x0021)",
+			"Device slcan0.Zeus.1 experienced internal error 0x0021",
+			api.AlarmLevel_WARNING,
+			28),
 	}
 
 	junoTracking := &api.TrackingInfo{
@@ -239,15 +290,10 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 	}
 
 	junoAlarms := []api.AlarmReport{
-		{
-			Identification: "tracking.criticaly_disk_space",
-			Level:          api.AlarmLevel_EMERGENCY,
-			Events: []api.AlarmTimePoint{{
-				Time: timeMustParse("2023-04-01T06:03:23.456Z"),
-				On:   true,
-			}},
-			Description: "Available space on disk is critically low. Tracking will soon stop.",
-		},
+		generateAlarmReport("tracking.criticaly_low_disk_space",
+			"Available space on disk is critically low. Tracking will soon stop.",
+			api.AlarmLevel_EMERGENCY,
+			1),
 	}
 
 	data := map[string]interface{}{
