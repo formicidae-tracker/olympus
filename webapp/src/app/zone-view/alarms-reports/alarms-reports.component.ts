@@ -11,7 +11,9 @@ export class AlarmsReportsComponent implements OnInit, OnDestroy {
   @Input() alarms: AlarmReport[] = [];
 
   public now: Date = new Date();
-  public subscription?: Subscription;
+  private subscription?: Subscription;
+
+  public columnsToDisplay = ['time', 'on'];
 
   ngOnInit(): void {
     this.subscription = timer(0, 1000).subscribe(() => {
