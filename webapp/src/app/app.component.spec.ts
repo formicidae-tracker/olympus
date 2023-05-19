@@ -3,10 +3,10 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 import { CoreModule } from './core/core.module';
 import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
-import { ThemeService } from './core/services/theme.service';
+import { UserSettingsService } from './core/user-settings.service';
 
 describe('AppComponent', () => {
-  let service: ThemeService;
+  let service: UserSettingsService;
 
   beforeEach(() => {
     localStorage.clear();
@@ -16,7 +16,7 @@ describe('AppComponent', () => {
       declarations: [AppComponent, NavToolbarComponent],
     });
 
-    service = TestBed.inject(ThemeService);
+    service = TestBed.inject(UserSettingsService);
   });
 
   it('should create the app', () => {

@@ -1,3 +1,26 @@
+.vertical-center {
+  padding-top: 120px;
+  align-items: center;
+  flex-flow: column wrap;
+  text-align: center;
+}
+
+.vertical-center mat-spinner{
+  margin-top: 48px;
+}
+
+.big-icon {
+  witdh: 100%;
+  padding-bottom:32px;
+}
+
+.big-icon mat-icon {
+  height:96px;
+  width:96px;
+  font-size: 96px;
+}
+
+
 app-zone-status {
 }
 
@@ -5,7 +28,7 @@ app-alarms-reports {
 }
 
 app-tracking-player {
-  max-width: 400px;
+  width: 400px;
 }
 
 app-climate-chart {
