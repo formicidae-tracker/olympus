@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subscription, timer } from 'rxjs';
 import { ZoneReport } from '../olympus-api/zone-report';
 import { OlympusService } from '../olympus-api/services/olympus.service';
+import { AlarmReport } from '../olympus-api/alarm-report';
 
 type ViewState = 'loading' | 'success' | 'error';
 
@@ -22,13 +23,11 @@ export class ZoneViewComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.state = 'loading';
-    console.log('On init: ' + this.state);
     this.route.paramMap.subscribe((params) => {
       let host = String(params.get('host'));
       let zone = String(params.get('zone'));
       this._identifier = [host, zone];
       this._update = timer(0, 5000).subscribe(() => this.updateZone());
-      console.log('On param: ' + this.state);
     });
   }
 
@@ -46,6 +45,7 @@ export class ZoneViewComponent implements OnInit, OnDestroy {
         (report) => {
           this.state = 'success';
           this.zone = report;
+          this.zone.alarms.sort(AlarmReport.compareFunction);
         },
         () => {
           this.zone = new ZoneReport();

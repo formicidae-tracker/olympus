@@ -1,8 +1,24 @@
-.container {
-  background: rgba(lime,0.2);
+mat-expansion-panel {
+  height: min-content;
+}
+
+mat-expansion-panel-header {
+  padding-top: 4px;
+  padding-bottom: 4px;
+
+  height: min-content;
+}
+
+mat-expansion-panel-header span {
+  margin-left: 16px;
+  margin-right: 24px;
+}
+
+mat-panel-title{
+  min-height: 48px;
+  height: min-content;
+  max-width: max-content;
 
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
+  justify-content: space-between;
 }

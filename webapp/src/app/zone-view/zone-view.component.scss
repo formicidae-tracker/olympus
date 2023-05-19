@@ -1,7 +1,10 @@
+.flex {
+    flex-flow: column wrap;
+}
+
 .vertical-center {
   padding-top: 120px;
   align-items: center;
-  flex-flow: column wrap;
   text-align: center;
 }
 

@@ -16,6 +16,6 @@
   <app-tracking-player *ngIf="zone.tracking && zone.tracking.stream"
                        [src]="zone.tracking.stream.stream_URL"
                        [thumbnail]="zone.tracking.stream.thumbnail_URL" />
-  <app-alarms-reports/>
+  <app-alarms-reports [alarms]="zone.alarms"/>
   <app-climate-chart/>
 </div>

@@ -1,3 +1,17 @@
-<div class="container">
-  <h1>Alarms Reports</h1>
-</div>
+<mat-accordion>
+  <mat-expansion-panel *ngFor="let a of alarms; trackBy identifyReport">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <mat-icon [color]="colorForReport(a)"
+                  [matBadge]="a.count()" class="disabled-animations">
+          {{iconForReport(a)}}
+        </mat-icon>
+        <span>since {{a.since(now)}}</span>
+      </mat-panel-title>
+      <mat-panel-description>
+        {{a.description}}
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+    <p> Coucou</p>
+  </mat-expansion-panel>
+</mat-accordion>
