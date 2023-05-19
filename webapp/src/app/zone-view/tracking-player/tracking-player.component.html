@@ -1,3 +1,20 @@
-<div class="container">
-  <h1>Tracking Player</h1>
-</div>
+<vg-player>
+  <vg-overlay-play></vg-overlay-play>
+  <vg-buffering></vg-buffering>
+
+  <vg-controls [vgAutohide]="true">
+    <vg-play-pause></vg-play-pause>
+    <div class="mat-typography">
+      Live
+    </div>
+    <vg-scrub-bar style="pointer-events: none;"></vg-scrub-bar>
+    <vg-fullscreen></vg-fullscreen>
+  </vg-controls>
+
+  <video #media
+         #vgHls="vgHls"
+         [vgHls]="src"
+         [vgMedia]="$any(media)"
+         id="singleVideo" crossorigin>
+  </video>
+</vg-player>

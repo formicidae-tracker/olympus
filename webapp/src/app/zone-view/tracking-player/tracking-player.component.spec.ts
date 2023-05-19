@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { TrackingPlayerComponent } from './tracking-player.component';
+import { CoreModule } from 'src/app/core/core.module';
 
 describe('TrackingPlayerComponent', () => {
   let component: TrackingPlayerComponent;
@@ -8,7 +9,8 @@ describe('TrackingPlayerComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [TrackingPlayerComponent]
+      declarations: [TrackingPlayerComponent],
+      imports: [CoreModule],
     });
     fixture = TestBed.createComponent(TrackingPlayerComponent);
     component = fixture.componentInstance;

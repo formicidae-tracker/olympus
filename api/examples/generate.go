@@ -193,7 +193,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		BytesPerSecond: int64(2.567879 * math.Pow(2, 20)),
 		Stream: &api.StreamInfo{
 			ExperimentName: "tackling-universe",
-			StreamURL:      "https://www.youtube.com/live/21X5lGlDOfg",
+			StreamURL:      "https://moctobpltc-i.akamaihd.net/hls/live/571329/eight/playlist.m3u8",
 			ThumbnailURL:   "https://picsum.photos/id/42/1024/776?grayscale",
 		},
 	}
@@ -233,7 +233,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		BytesPerSecond: int64(3.89691 * math.Pow(2, 20)),
 		Stream: &api.StreamInfo{
 			ExperimentName: "about to fail",
-			StreamURL:      "https://www.youtube.com/live/21X5lGlDOfg",
+			StreamURL:      "https://moctobpltc-i.akamaihd.net/hls/live/571329/eight/playlist.m3u8",
 			ThumbnailURL:   "https://picsum.photos/id/43/1024/776?grayscale",
 		},
 	}

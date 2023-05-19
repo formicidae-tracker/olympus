@@ -1,8 +1,17 @@
-.container {
-  background: rgba(magenta,0.2);
+$control-height: 48px;
 
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
+vg-controls {
+  height: $control-height;
+}
+
+vg-play-pause, vg-fullscreen {
+  height: $control-height;
+  width: $control-height;
+}
+
+
+vg-controls mat-icon,div {
+  padding-left: 16px;
+  user-select: none;
+  align-self: center;
 }
