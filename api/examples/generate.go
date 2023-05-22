@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atuleu/go-lttb"
 	"github.com/formicidae-tracker/olympus/api"
 )
 
@@ -173,6 +174,47 @@ func generateAlarmReport(identifier, description string, level api.AlarmLevel, n
 		Description:    description,
 		Events:         points,
 	}
+}
+
+type climateDataSettings struct {
+	Window  time.Duration
+	Unit    time.Duration
+	UnitStr string
+}
+
+var climateDataSettingsByWindow = map[string]climateDataSettings{
+	"10m": {Window: 10 * time.Minute, Unit: time.Minute, UnitStr: "m"},
+	"1h":  {Window: 60 * time.Minute, Unit: time.Minute, UnitStr: "m"},
+	"1d":  {Window: 24 * 60 * time.Minute, Unit: time.Hour, UnitStr: "h"},
+	"1w":  {Window: 7 * 24 * 60 * time.Minute, Unit: time.Hour, UnitStr: "h"},
+}
+
+func (s climateDataSettings) generate(reference time.Time) api.ClimateTimeSeries {
+	points := 500
+	temperatureSeries := make(api.PointSeries, 0, 500)
+	humiditySeries := make(api.PointSeries, 0, 500)
+
+	for i := 0; i < points; i++ {
+		t := -1.0 * float64(points-1-i) / float64(points-1) * s.Window.Seconds()
+
+		temperature := float32(math.Cos(2*math.Pi/3600.0*t)*4.0 + 20.0)
+		humidity := float32(math.Sin(2*math.Pi/3600.0*t)*5.0 + 55.0)
+		x := float32(t / s.Unit.Seconds())
+		temperatureSeries = append(temperatureSeries, lttb.Point[float32]{X: x, Y: temperature})
+		humiditySeries = append(humiditySeries, lttb.Point[float32]{X: x, Y: humidity})
+
+	}
+
+	return api.ClimateTimeSeries{
+		Units:       s.UnitStr,
+		Reference:   reference,
+		Humidity:    humiditySeries,
+		Temperature: temperatureSeries,
+	}
+}
+
+func generateClimateData(window string, current time.Time) api.ClimateTimeSeries {
+	return climateDataSettingsByWindow[window].generate(current)
 }
 
 func generateMockData() (map[string]interface{}, map[string]string) {
@@ -365,6 +407,19 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 	for source := range data {
 		target := strings.Replace(source, "_", "/", -1)
 		routes[target] = "/" + source
+	}
+	t := timeMustParse("2023-04-01T08:01:02.000Z")
+	data["_api_climate_10m"] = generateClimateData("10m", t)
+	data["_api_climate_1h"] = generateClimateData("1h", t)
+	data["_api_climate_1d"] = generateClimateData("1d", t)
+	data["_api_climate_1w"] = generateClimateData("1w", t)
+	climateZones := []struct{ Host, Zone string }{
+		{Host: "minerva", Zone: "box"},
+		{Host: "jupyter", Zone: "desert"},
+	}
+	for _, zone := range climateZones {
+		target := path.Join("/api/host", zone.Host, "zone", zone.Zone, "climate?window=:window")
+		routes[target] = "/_api_climate_:window"
 	}
 	return data, routes
 }
