@@ -6,31 +6,12 @@
                   [matBadge]="a.count()" class="disabled-animations">
           {{iconForReport(a)}}
         </mat-icon>
-        <span>since {{a.since(now)}}</span>
+        <span>since {{since(a)}}</span>
       </mat-panel-title>
       <mat-panel-description>
         {{a.description}}
       </mat-panel-description>
     </mat-expansion-panel-header>
-    <table mat-table [dataSource]="a.events">
-      <ng-container matColumnDef="on">
-        <th mat-header-cell *matHeaderCellDef> On </th>
-        <td mat-cell *matCellDef="let element">
-          <mat-icon>{{element.on ? 'check_circle' : 'cancel'}}</mat-icon>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="time">
-        <th mat-header-cell *matHeaderCellDef> Time </th>
-        <td mat-cell *matCellDef="let element">
-          {{element.time | date: 'dd/MM/yyyy, hh:mm:ss'}}
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-      <tr mat-row *matRowDef="let row; columns: columnsToDisplay;"></tr>
-
-    </table>
-
+    <app-report-logs [events]="a.events.slice().reverse()"/>
   </mat-expansion-panel>
 </mat-accordion>

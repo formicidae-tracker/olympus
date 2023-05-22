@@ -22,6 +22,7 @@
     "@angular/router": "^16.0.0",
     "@videogular/ngx-videogular": "^8.0.0",
     "hls.js": "^1.4.3",
+    "humanize-duration-ts": "^2.1.1",
     "jasmine-parameterized": "^1.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

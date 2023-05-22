@@ -1,5 +1,6 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { Subscription, timer } from 'rxjs';
+import { HumanizeDurationService } from 'src/app/core/humanize-duration.service';
 import { AlarmReport } from 'src/app/olympus-api/alarm-report';
 
 @Component({
@@ -13,7 +14,7 @@ export class AlarmsReportsComponent implements OnInit, OnDestroy {
   public now: Date = new Date();
   private subscription?: Subscription;
 
-  public columnsToDisplay = ['time', 'on'];
+  constructor(private humanizer: HumanizeDurationService) {}
 
   ngOnInit(): void {
     this.subscription = timer(0, 1000).subscribe(() => {
@@ -43,5 +44,9 @@ export class AlarmsReportsComponent implements OnInit, OnDestroy {
 
   public identifyReport(index: number, item: AlarmReport): string {
     return item.identification;
+  }
+
+  public since(r: AlarmReport): string {
+    return this.humanizer.humanize(this.now.getTime() - r.time().getTime());
   }
 }

@@ -1,5 +1,3 @@
-import { AlarmTimePoint } from './alarm-time-point';
-
 function compareTimeDescending(a: Date, b: Date): number {
   if (a == b) {
     return 0;
@@ -21,21 +19,62 @@ function compareOnDescending(a: boolean, b: boolean): number {
   return a ? -1 : 1;
 }
 
+export class AlarmEvent {
+  constructor(public start: Date, public end: Date | undefined) {}
+
+  public time(): Date {
+    return this.end == undefined ? this.start : this.end;
+  }
+
+  public on(): boolean {
+    return this.end == undefined;
+  }
+
+  public duration(): number | undefined {
+    if (this.end == undefined) {
+      return undefined;
+    }
+    return this.end.getTime() - this.start.getTime();
+  }
+
+  static fromTimepoints(timepoints: any[]): AlarmEvent[] {
+    let res: AlarmEvent[] = [];
+    let lastOn: Date | undefined;
+    for (const tp of timepoints) {
+      if (lastOn != undefined) {
+        if (tp.on == true) {
+          continue;
+        }
+        res.push(new AlarmEvent(lastOn, new Date(tp.time)));
+        lastOn = undefined;
+      } else {
+        if (tp.on == undefined || tp.on == false) {
+          continue;
+        }
+        lastOn = new Date(tp.time);
+      }
+    }
+    if (lastOn != undefined) {
+      res.push(new AlarmEvent(lastOn, undefined));
+    }
+
+    return res;
+  }
+}
+
 export class AlarmReport {
   public identification: string = '';
   public level: number = 0;
   public description: string = '';
 
-  public events: AlarmTimePoint[] = [];
+  public events: AlarmEvent[] = [];
 
   static fromPlain(plain: any): AlarmReport {
     let res = new AlarmReport();
     res.identification = plain.identification || '';
     res.level = plain.level || 0;
     res.description = plain.description || '';
-    for (const e of plain.events || []) {
-      res.events.push(AlarmTimePoint.fromPlain(e));
-    }
+    res.events = AlarmEvent.fromTimepoints(plain.events || []);
     return res;
   }
 
@@ -43,67 +82,38 @@ export class AlarmReport {
     if (this.events.length == 0) {
       return false;
     }
-    return this.events[this.events.length - 1].on;
+    return this.events[this.events.length - 1].on();
   }
 
   public time(): Date {
     if (this.events.length == 0) {
       return new Date(0);
     }
-    return this.events[this.events.length - 1].time;
-  }
 
-  public since(t: Date): string {
-    let ellapsed: number = t.getTime() - this.time().getTime();
-    if (ellapsed <= 10000) {
-      return 'now';
-    }
-
-    for (const t of thresholds) {
-      ellapsed = Math.round(ellapsed / t.divider);
-      if (t.threshold == undefined || ellapsed < t.threshold) {
-        return ellapsed + t.units;
-      }
-    }
-
-    return 'never';
+    return this.events[this.events.length - 1].time();
   }
 
   public count(): number {
-    let res: number = 0;
-    for (const p of this.events) {
-      if (p.on) {
-        res += 1;
-      }
-    }
-    return res;
+    return this.events.length;
   }
 
   static compareFunction(a: AlarmReport, b: AlarmReport): number {
+    const res = AlarmReport._compareFunction(a, b);
+    //console.log(a, b, res);
+    return res;
+  }
+
+  static _compareFunction(a: AlarmReport, b: AlarmReport): number {
     let compareOn = compareOnDescending(a.on(), b.on());
     if (compareOn != 0) {
       return compareOn;
     }
+
     let compareLevel = compareLevelDescending(a.level, b.level);
     if (compareLevel != 0) {
       return compareLevel;
     }
+
     return compareTimeDescending(a.time(), b.time());
   }
 }
-
-class Threshold {
-  constructor(
-    public units: string,
-    public divider: number,
-    public threshold?: number
-  ) {}
-}
-
-const thresholds: Threshold[] = [
-  new Threshold('s', 1000, 60),
-  new Threshold('m', 60, 60),
-  new Threshold('h', 60, 24),
-  new Threshold('d', 24, 7),
-  new Threshold('w', 7, undefined),
-];

@@ -17,6 +17,7 @@ import { ClimateChartComponent } from './zone-view/climate-chart/climate-chart.c
 import { ZoneStatusComponent } from './zone-view/zone-status/zone-status.component';
 import { TrackingPlayerComponent } from './zone-view/tracking-player/tracking-player.component';
 import { AlarmsReportsComponent } from './zone-view/alarms-reports/alarms-reports.component';
+import { ReportLogsComponent } from './zone-view/alarms-reports/report-logs/report-logs.component';
 
 @NgModule({
   declarations: [
@@ -30,6 +31,7 @@ import { AlarmsReportsComponent } from './zone-view/alarms-reports/alarms-report
     ZoneStatusComponent,
     TrackingPlayerComponent,
     AlarmsReportsComponent,
+    ReportLogsComponent,
   ],
   imports: [
     BrowserModule,
