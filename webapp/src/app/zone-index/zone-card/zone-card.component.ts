@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { humanize_bytes } from 'src/app/core/humanize';
+import { HumanizeService } from 'src/app/core/humanize.service';
 import { UserSettingsService } from 'src/app/core/user-settings.service';
 import { ZoneReportSummary } from 'src/app/olympus-api/zone-report-summary';
 
@@ -14,13 +14,16 @@ export class ZoneCardComponent implements OnInit {
   @Input() public zone: ZoneReportSummary = new ZoneReportSummary();
   public subscribed: boolean = false;
 
-  constructor(private settingsService: UserSettingsService) {}
+  constructor(
+    private settings: UserSettingsService,
+    private humanizer: HumanizeService
+  ) {}
 
   ngOnInit(): void {
-    this.settingsService.isDarkTheme().subscribe((dark) => {
+    this.settings.isDarkTheme().subscribe((dark) => {
       this.darkTheme = dark;
     });
-    this.settingsService
+    this.settings
       .isSubscribedToAlarmFrom(this.zone.identifier())
       .subscribe((subscribed) => {
         this.subscribed = subscribed;
@@ -29,30 +32,16 @@ export class ZoneCardComponent implements OnInit {
 
   public setAlarmSubscription(subscribed: boolean): void {
     if (subscribed) {
-      this.settingsService.subscribeToAlarmFrom(this.zone.identifier());
+      this.settings.subscribeToAlarmFrom(this.zone.identifier());
     } else {
-      this.settingsService.unsubscribeFromAlarmFrom(this.zone.identifier());
+      this.settings.unsubscribeFromAlarmFrom(this.zone.identifier());
     }
   }
 
-  public fill_rate(): string {
-    return humanize_bytes(
-      this.zone.tracking ? this.zone.tracking.bytes_per_second : 0,
-      'B/s'
-    );
-  }
-
-  public used_space(): string {
-    return humanize_bytes(
-      this.zone.tracking
-        ? this.zone.tracking.total_bytes - this.zone.tracking.free_bytes
-        : 0
-    );
-  }
-
-  public total_space(): string {
-    return humanize_bytes(
-      this.zone.tracking ? this.zone.tracking.total_bytes : 0
+  public usedFraction(): string {
+    return this.humanizer.humanizeByteFraction(
+      this.zone.tracking?.used_bytes || 0,
+      this.zone.tracking?.total_bytes || 0
     );
   }
 

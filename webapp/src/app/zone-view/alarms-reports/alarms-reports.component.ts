@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { HumanizeDurationService } from 'src/app/core/humanize-duration.service';
+import { HumanizeService } from 'src/app/core/humanize.service';
 import { AlarmReport } from 'src/app/olympus-api/alarm-report';
 
 @Component({
@@ -12,7 +12,7 @@ export class AlarmsReportsComponent {
 
   @Input() now: Date = new Date();
 
-  constructor(private humanizer: HumanizeDurationService) {}
+  constructor(private humanizer: HumanizeService) {}
 
   public colorForReport(a: AlarmReport): string {
     if (a.on() == false) {
@@ -33,6 +33,8 @@ export class AlarmsReportsComponent {
   }
 
   public since(r: AlarmReport): string {
-    return this.humanizer.humanize(this.now.getTime() - r.time().getTime());
+    return this.humanizer.humanizeDuration(
+      this.now.getTime() - r.time().getTime()
+    );
   }
 }

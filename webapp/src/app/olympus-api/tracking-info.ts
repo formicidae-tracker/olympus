@@ -6,6 +6,20 @@ export class TrackingInfo {
   public bytes_per_second: number = 0;
   public stream?: StreamInfo;
 
+  public get used_bytes(): number {
+    return Math.max(0, this.total_bytes - this.free_bytes);
+  }
+
+  public filledUpEta(): number {
+    if (this.free_bytes <= 0) {
+      return 0;
+    }
+    if (this.bytes_per_second <= 0) {
+      return Infinity;
+    }
+    return (this.free_bytes / this.bytes_per_second) * 1000;
+  }
+
   static fromPlain(plain: any): TrackingInfo | undefined {
     if (plain == undefined) {
       return undefined;

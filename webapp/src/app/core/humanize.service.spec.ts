@@ -1,7 +1,21 @@
 import { cases } from 'jasmine-parameterized';
-import { humanize_bytes } from './humanize';
 
-describe('humanize_bytes', () => {
+import { TestBed } from '@angular/core/testing';
+
+import { HumanizeService } from './humanize.service';
+
+describe('HumanizeDurationService', () => {
+  let service: HumanizeService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(HumanizeService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+
   cases([
     [103, '103.0 B'],
     [Math.round(1.029898 * 1024), '1.0 kiB'],
@@ -10,11 +24,6 @@ describe('humanize_bytes', () => {
     [Math.round(2.89 * 1024 * 1024 * 1024 * 1024), '2.9 TiB'],
     [Math.round(1024 * 1024 * 1024 * 1024 * 1024), '1.0 PiB'],
   ]).it('should humanize accordingly', ([value, expected]) => {
-    expect(humanize_bytes(value)).toEqual(expected);
-  });
-
-  it('should use the prefix if given', () => {
-    expect(humanize_bytes(1024)).toEqual('1.0 kiB');
-    expect(humanize_bytes(1024, 'B/s')).toEqual('1.0 kiB/s');
+    expect(service.humanizeBytes(value)).toEqual(expected);
   });
 });

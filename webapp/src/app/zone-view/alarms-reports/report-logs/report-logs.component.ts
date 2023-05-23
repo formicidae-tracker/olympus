@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
-import { HumanizeDurationService } from 'src/app/core/humanize-duration.service';
+import { HumanizeService } from 'src/app/core/humanize.service';
 import { AlarmEvent } from 'src/app/olympus-api/alarm-report';
 
 @Component({
@@ -15,7 +15,7 @@ export class ReportLogsComponent implements OnInit {
 
   @ViewChild(MatPaginator, { static: true }) paginator!: MatPaginator;
 
-  constructor(private humanizer: HumanizeDurationService) {}
+  constructor(private humanizer: HumanizeService) {}
 
   public columnsToDisplay = ['start', 'end', 'duration'];
 
@@ -33,6 +33,6 @@ export class ReportLogsComponent implements OnInit {
     if (d == undefined) {
       return '';
     }
-    return this.humanizer.humanize(d);
+    return this.humanizer.humanizeDuration(d);
   }
 }

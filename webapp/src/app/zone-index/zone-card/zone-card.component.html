@@ -24,12 +24,11 @@
 
       <mat-card-title>{{zone.identifier()}}</mat-card-title>
 
-
       <mat-card-footer>
         <div class="status-container">
           <div class="status" *ngIf="zone.tracking">
             <span>Disk Usage:</span>
-            <span>{{used_space()}} / {{total_space()}}</span>
+            <span>{{usedFraction()}}</span>
           </div>
           <app-bounded-progress-bar *ngIf="zone.tracking"
                                     [value]="zone.tracking.total_bytes - zone.tracking.free_bytes"
