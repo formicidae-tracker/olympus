@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { HumanizeDurationService } from './humanize-duration.service.ts~';
+import { HumanizeDurationService } from './humanize-duration.service';
 
 describe('HumanizeDurationService', () => {
   let service: HumanizeDurationService;
