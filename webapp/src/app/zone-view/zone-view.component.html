@@ -17,5 +17,5 @@
                        [src]="zone.tracking.stream.stream_URL"
                        [thumbnail]="zone.tracking.stream.thumbnail_URL" />
   <app-alarms-reports [alarms]="zone.alarms"/>
-  <app-climate-chart/>
+  <app-climate-chart  *ngIf="zone.climate" [host]="zone.host" [zone]="zone.name"/>
 </div>

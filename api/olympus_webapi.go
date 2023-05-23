@@ -48,25 +48,24 @@ func (p Point) MarshalJSON() ([]byte, error) {
 type PointSeries []lttb.Point[float32]
 
 func (series PointSeries) MarshalJSON() ([]byte, error) {
-	resX := []byte{'['}
-	resY := []byte{'['}
+	res := []byte{'['}
 	for i, p := range series {
-		if i != 0 {
-			resX = append(resX, `,`...)
-			resY = append(resY, `,`...)
+		if i == 0 {
+			res = append(res, `[`...)
+		} else {
+			res = append(res, `,[`...)
 		}
 		X := float64(p.X)
 		Y := float64(p.Y)
 		if math.IsNaN(X) || math.IsNaN(Y) {
 			return nil, errors.New("json: unsupported value: NaN")
 		}
-		resX = strconv.AppendFloat(resX, X, 'g', 5, 32)
-		resY = strconv.AppendFloat(resY, Y, 'g', 5, 32)
+		res = strconv.AppendFloat(res, X, 'g', 5, 32)
+		res = append(res, `,`...)
+		res = strconv.AppendFloat(res, Y, 'g', 5, 32)
+		res = append(res, `]`...)
 	}
-	res := append([]byte{'['}, resX...)
-	res = append(res, `],`...)
-	res = append(res, resY...)
-	res = append(res, `]]`...)
+	res = append(res, `]`...)
 	return res, nil
 }
 

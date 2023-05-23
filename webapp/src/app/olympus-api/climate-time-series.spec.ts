@@ -12,8 +12,8 @@ describe('ClimateTimeSeries', () => {
       expect(e).toBeTruthy();
       expect(e.units).toEqual(plain.units || '');
       expect(e.reference).toEqual(new Date(plain.reference) || new Date(0));
-      expect(e.humidity).toEqual(plain.humidity || [[], []]);
-      expect(e.temperature).toEqual(plain.temperature || [[], []]);
+      expect(e.humidity).toEqual(plain.humidity || []);
+      expect(e.temperature).toEqual(plain.temperature || []);
     }
   });
 });

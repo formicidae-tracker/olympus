@@ -19,6 +19,8 @@ import { TrackingPlayerComponent } from './zone-view/tracking-player/tracking-pl
 import { AlarmsReportsComponent } from './zone-view/alarms-reports/alarms-reports.component';
 import { ReportLogsComponent } from './zone-view/alarms-reports/report-logs/report-logs.component';
 
+import { NgxEchartsModule } from 'ngx-echarts';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -39,6 +41,9 @@ import { ReportLogsComponent } from './zone-view/alarms-reports/report-logs/repo
     BrowserAnimationsModule,
     HttpClientModule,
     CoreModule,
+    NgxEchartsModule.forRoot({
+      echarts: () => import('echarts'),
+    }),
   ],
   providers: [],
   bootstrap: [AppComponent],

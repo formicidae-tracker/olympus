@@ -54,8 +54,8 @@ func (s *WebAPISuite) TestPointSeriesJSONEncoding(c *C) {
 		Expected string
 		Error    string
 	}{
-		{PointSeries{}, `[[],[]]`, ""},
-		{PointSeries{{X: 1.2, Y: 1.4}, {X: 1.3, Y: 1.5}}, `[[1.2,1.3],[1.4,1.5]]`, ""},
+		{PointSeries{}, `[]`, ""},
+		{PointSeries{{X: 1.2, Y: 1.4}, {X: 1.3, Y: 1.5}}, `[[1.2,1.4],[1.3,1.5]]`, ""},
 		{PointSeries{{X: float32(math.NaN())}}, ``, ".*json: unsupported value: NaN"},
 		{PointSeries{{Y: float32(math.NaN())}}, ``, ".*json: unsupported value: NaN"},
 	}
