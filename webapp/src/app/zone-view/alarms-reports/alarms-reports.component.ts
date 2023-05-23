@@ -1,5 +1,4 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { Subscription, timer } from 'rxjs';
+import { Component, Input } from '@angular/core';
 import { HumanizeDurationService } from 'src/app/core/humanize-duration.service';
 import { AlarmReport } from 'src/app/olympus-api/alarm-report';
 
@@ -8,25 +7,12 @@ import { AlarmReport } from 'src/app/olympus-api/alarm-report';
   templateUrl: './alarms-reports.component.html',
   styleUrls: ['./alarms-reports.component.scss'],
 })
-export class AlarmsReportsComponent implements OnInit, OnDestroy {
+export class AlarmsReportsComponent {
   @Input() alarms: AlarmReport[] = [];
 
-  public now: Date = new Date();
-  private subscription?: Subscription;
+  @Input() now: Date = new Date();
 
   constructor(private humanizer: HumanizeDurationService) {}
-
-  ngOnInit(): void {
-    this.subscription = timer(0, 1000).subscribe(() => {
-      this.now = new Date();
-    });
-  }
-
-  ngOnDestroy(): void {
-    if (this.subscription != undefined) {
-      this.subscription.unsubscribe();
-    }
-  }
 
   public colorForReport(a: AlarmReport): string {
     if (a.on() == false) {

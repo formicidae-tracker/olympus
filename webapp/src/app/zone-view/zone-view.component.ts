@@ -1,4 +1,10 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import {
+  ApplicationRef,
+  Component,
+  NgZone,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, timer } from 'rxjs';
 import { ZoneReport } from '../olympus-api/zone-report';
@@ -13,13 +19,19 @@ type ViewState = 'loading' | 'success' | 'error';
   styleUrls: ['./zone-view.component.scss'],
 })
 export class ZoneViewComponent implements OnInit, OnDestroy {
-  constructor(private route: ActivatedRoute, private olympus: OlympusService) {}
-
   public zone: ZoneReport = new ZoneReport();
   public state: ViewState = 'loading';
 
   private _identifier: [string, string] = ['', ''];
-  private _update?: Subscription;
+  private _subscription?: Subscription;
+
+  public now: Date = new Date(0);
+
+  constructor(
+    private route: ActivatedRoute,
+    private olympus: OlympusService,
+    private ngZone: NgZone
+  ) {}
 
   ngOnInit(): void {
     this.state = 'loading';
@@ -27,15 +39,19 @@ export class ZoneViewComponent implements OnInit, OnDestroy {
       let host = String(params.get('host'));
       let zone = String(params.get('zone'));
       this._identifier = [host, zone];
-      this._update = timer(0, 5000).subscribe(() => this.updateZone());
+      this.ngZone.runOutsideAngular(() => {
+        this._subscription = timer(0, 10000).subscribe(() => {
+          this.ngZone.run(() => this.updateZone());
+        });
+      });
     });
   }
 
   ngOnDestroy(): void {
-    if (!this._update) {
+    if (!this._subscription) {
       return;
     }
-    this._update.unsubscribe();
+    this._subscription.unsubscribe();
   }
 
   private updateZone() {
@@ -44,11 +60,13 @@ export class ZoneViewComponent implements OnInit, OnDestroy {
       .subscribe(
         (report) => {
           this.state = 'success';
+          this.now = new Date();
           this.zone = report;
           this.zone.alarms.sort(AlarmReport.compareFunction);
         },
         () => {
           this.zone = new ZoneReport();
+          this.now = new Date();
           this.state = 'error';
         }
       );

@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { first } from 'rxjs';
 
 @Component({
   selector: 'app-tracking-player',
@@ -8,4 +9,6 @@ import { Component, Input } from '@angular/core';
 export class TrackingPlayerComponent {
   @Input() src: string = '';
   @Input() thumbnail: string = '';
+
+  constructor() {}
 }

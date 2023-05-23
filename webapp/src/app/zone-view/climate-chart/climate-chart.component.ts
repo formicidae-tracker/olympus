@@ -1,14 +1,14 @@
 import {
   AfterViewInit,
-  ApplicationRef,
   Component,
   Input,
+  NgZone,
   OnDestroy,
   OnInit,
   ViewChild,
 } from '@angular/core';
 import { MatButtonToggleGroup } from '@angular/material/button-toggle';
-import { Subscription, first, timer } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 
 import { EChartsOption } from 'echarts';
 import { ClimateTimeSeries } from 'src/app/olympus-api/climate-time-series';
@@ -29,8 +29,9 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
   public timeSeries?: ClimateTimeSeries;
 
   private _subscription?: Subscription = undefined;
-
   private _window: string = '1h';
+
+  private _dark: boolean = false;
 
   options: EChartsOption = {};
   updateOptions: EChartsOption = {};
@@ -45,9 +46,9 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
     this._setInterval();
   }
   constructor(
-    private appRef: ApplicationRef,
     private olympus: OlympusService,
-    private settings: UserSettingsService
+    private settings: UserSettingsService,
+    private ngZone: NgZone
   ) {}
 
   ngAfterViewInit(): void {
@@ -57,9 +58,9 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private _setInterval(): void {
-    this.appRef.isStable.pipe(first()).subscribe(() => {
+    this.ngZone.runOutsideAngular(() => {
       this._subscription = timer(0, 10000).subscribe(() => {
-        this._updateData();
+        this.ngZone.run(() => this._updateData());
       });
     });
   }
@@ -68,7 +69,8 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
     this._setInterval();
     this._setUpChartOptions();
     this.settings.isDarkTheme().subscribe((dark) => {
-      this._setUpChartColors(dark);
+      this._dark = dark;
+      this._updateChart();
     });
   }
 
@@ -89,19 +91,7 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
       .getClimateTimeSeries(this.host, this.zone, this._window)
       .subscribe((series) => {
         this.timeSeries = series;
-        this.updateOptions = {
-          xAxis: {
-            axisLabel: { formatter: '{value} ' + series.units },
-          },
-          series: [
-            {
-              data: series.humidity,
-            },
-            {
-              data: series.temperature,
-            },
-          ],
-        };
+        this._updateChart();
       });
   }
 
@@ -171,12 +161,25 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
     };
   }
 
-  private _setUpChartColors(dark: boolean): void {
-    let normal: string = dark ? '#acaeae' : '#37393a';
-    let light: string = dark ? '#2e3132' : '#e1e3e3';
+  private _updateChart(): void {
+    let normal: string = this._dark ? '#acaeae' : '#37393a';
+    let light: string = this._dark ? '#2e3132' : '#e1e3e3';
+
+    let units: string = '';
+    let humidity: number[][] = [];
+    let temperature: number[][] = [];
+    if (this.timeSeries != undefined) {
+      units = this.timeSeries.units;
+      humidity = this.timeSeries.humidity;
+      temperature = this.timeSeries.temperature;
+    }
+
     this.updateOptions = {
       legend: { textStyle: { color: normal }, inactiveColor: light },
-      xAxis: { axisLine: { lineStyle: { color: normal } } },
+      xAxis: {
+        axisLine: { lineStyle: { color: normal } },
+        axisLabel: { formatter: '{value} ' + units },
+      },
       yAxis: [
         {
           axisLine: { lineStyle: { color: normal } },
@@ -187,6 +190,7 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
           splitLine: { lineStyle: { color: light } },
         },
       ],
+      series: [{ data: humidity }, { data: temperature }],
     };
   }
 }
