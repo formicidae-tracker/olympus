@@ -32,7 +32,6 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
   private _window: string = '1h';
 
   private _dark: boolean = false;
-
   options: EChartsOption = {};
   updateOptions: EChartsOption = {};
 
@@ -118,8 +117,10 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
         name: 'Time',
         nameLocation: 'middle',
         nameGap: 24,
+        min: 'minData',
+        max: 0,
         axisLine: { show: true },
-        axisLabel: { formatter: '{value} s' },
+        axisLabel: { formatter: '{value}s' },
         splitLine: { show: false },
       },
       yAxis: [
@@ -129,17 +130,21 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
           position: 'right',
           min: (mm) => mm.min - 2,
           max: (mm) => mm.max + 2,
+          alignTicks: true,
           axisLine: { show: true },
-          axisLabel: { formatter: '{value} °C' },
+          axisLabel: { formatter: (value: number) => value.toFixed(1) + '°C' },
         },
         {
           type: 'value',
-          name: 'Humidity',
+          name: 'Relative Humidity',
           position: 'left',
-          min: (mm) => mm.min - 10,
-          max: (mm) => mm.max + 10,
+          alignTicks: true,
+          min: (mm) => mm.min - 5,
+          max: (mm) => mm.max + 5,
           axisLine: { show: true },
-          axisLabel: { formatter: '{value} % RH' },
+          axisLabel: {
+            formatter: (value: number) => value.toFixed(1) + '%',
+          },
         },
       ],
       series: [
@@ -165,6 +170,9 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
     let normal: string = this._dark ? '#acaeae' : '#37393a';
     let light: string = this._dark ? '#2e3132' : '#e1e3e3';
 
+    let primary: string = this._dark ? '#006874' : '#009fb1';
+    let accent: string = this._dark ? '#c4aa31' : '#e2c54b';
+
     let units: string = '';
     let humidity: number[][] = [];
     let temperature: number[][] = [];
@@ -178,7 +186,7 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
       legend: { textStyle: { color: normal }, inactiveColor: light },
       xAxis: {
         axisLine: { lineStyle: { color: normal } },
-        axisLabel: { formatter: '{value} ' + units },
+        axisLabel: { formatter: '{value}' + units },
       },
       yAxis: [
         {
@@ -190,7 +198,18 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
           splitLine: { lineStyle: { color: light } },
         },
       ],
-      series: [{ data: humidity }, { data: temperature }],
+      series: [
+        {
+          data: humidity,
+          lineStyle: { color: primary, width: 4 },
+          itemStyle: { color: primary },
+        },
+        {
+          data: temperature,
+          lineStyle: { color: accent, width: 4 },
+          itemStyle: { color: accent },
+        },
+      ],
     };
   }
 }
