@@ -12,18 +12,32 @@
 </div>
 
 <div *ngIf="state == 'success'" class="flex">
-  <app-zone-notification-button [target]="zone.identifier"
-                                buttonType="flat"/>
+  <div class="grid">
+    <section class="tracking" *ngIf="zone.tracking">
+      <div class="mat-headline-6">Tracking<span class="mat-subtitle-1"> • started {{formatSince(zone.tracking)}} ago</span></div>
+      <app-tracking-player *ngIf="zone.tracking.stream"
+                           [src]="zone.tracking.stream.stream_URL"
+                           [thumbnail]="zone.tracking.stream.thumbnail_URL" />
+      <app-tracking-status [tracking]="zone.tracking"
+                           [now]="now"/>
 
-  <div id="tracking" *ngIf="zone.tracking">
-    <app-tracking-player *ngIf="zone.tracking.stream"
-                         [src]="zone.tracking.stream.stream_URL"
-                         [thumbnail]="zone.tracking.stream.thumbnail_URL" />
-    <app-tracking-status/>
-  </div>
-  <app-alarms-reports [alarms]="zone.alarms" [now]="now"/>
-  <div #climate *ngIf="zone.climate">
-    <app-climate-status/>
-<!--    <app-climate-chart  [host]="zone.host" [zone]="zone.name"/>-->
+    </section>
+
+
+    <section class="climate" *ngIf="zone.climate">
+      <div class="mat-headline-6">Climate <span class="mat-subtitle-1"> • started {{formatSince(zone.climate)}} ago</span></div>
+      <app-climate-status class="status" [climate]="zone.climate" [now]="now"/>
+      <app-climate-chart  [host]="zone.host" [zone]="zone.name"/>
+    </section>
+
+    <section class="alarms">
+      <div class="alarms-actions">
+        <div class="mat-headline-6">Alarms</div>
+        <app-zone-notification-button [target]="zone.identifier"
+                                      buttonType="flat"/>
+      </div>
+      <app-alarms-reports [alarms]="zone.alarms" [now]="now"/>
+    </section>
+
   </div>
 </div>

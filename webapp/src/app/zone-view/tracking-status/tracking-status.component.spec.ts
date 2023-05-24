@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { TrackingStatusComponent } from './tracking-status.component';
+import { CoreModule } from 'src/app/core/core.module';
 
 describe('TrackingStatusComponent', () => {
   let component: TrackingStatusComponent;
@@ -8,7 +9,8 @@ describe('TrackingStatusComponent', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [TrackingStatusComponent]
+      declarations: [TrackingStatusComponent],
+      imports: [CoreModule],
     });
     fixture = TestBed.createComponent(TrackingStatusComponent);
     component = fixture.componentInstance;

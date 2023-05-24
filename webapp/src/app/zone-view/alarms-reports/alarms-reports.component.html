@@ -12,6 +12,8 @@
         {{a.description}}
       </mat-panel-description>
     </mat-expansion-panel-header>
-    <app-report-logs [events]="a.events.slice().reverse()"/>
+    <ng-template matExpansionPanelContent>
+      <app-report-logs [events]="a.events.slice().reverse()"/>
+    </ng-template>
   </mat-expansion-panel>
 </mat-accordion>

@@ -10,8 +10,13 @@ import { Subscription, timer } from 'rxjs';
 import { ZoneReport } from '../olympus-api/zone-report';
 import { OlympusService } from '../olympus-api/services/olympus.service';
 import { AlarmReport } from '../olympus-api/alarm-report';
+import { HumanizeService } from '../core/humanize.service';
 
 type ViewState = 'loading' | 'success' | 'error';
+
+interface HasSince {
+  since: Date;
+}
 
 @Component({
   selector: 'app-zone-view',
@@ -30,6 +35,7 @@ export class ZoneViewComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private olympus: OlympusService,
+    private humanizer: HumanizeService,
     private ngZone: NgZone
   ) {}
 
@@ -77,5 +83,12 @@ export class ZoneViewComponent implements OnInit, OnDestroy {
       return '<unknown_zone>';
     }
     return this._identifier[0] + '.' + this._identifier[1];
+  }
+
+  public formatSince(s: HasSince | undefined): string {
+    return this.humanizer.humanizeDuration(
+      this.now.getTime() - (s?.since.getTime() || Infinity),
+      1
+    );
   }
 }

@@ -1,3 +1,12 @@
+:host {
+  width: 100%;
+}
+
+.window {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .climate-chart {
   width: 100%;
 }

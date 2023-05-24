@@ -1,10 +1,11 @@
-<mat-button-toggle-group [value]="window">
-  <mat-button-toggle disabled ><mat-icon>history</mat-icon></mat-button-toggle>
-  <mat-button-toggle value="1w">Week</mat-button-toggle>
-  <mat-button-toggle value="1d">Day</mat-button-toggle>
-  <mat-button-toggle value="1h">Hour</mat-button-toggle>
-  <mat-button-toggle value="10m">10m</mat-button-toggle>
-</mat-button-toggle-group>
+<div class="window">
+  <mat-button-toggle-group [value]="window">
+    <mat-button-toggle value="1w">Week</mat-button-toggle>
+    <mat-button-toggle value="1d">Day</mat-button-toggle>
+    <mat-button-toggle value="1h">Hour</mat-button-toggle>
+    <mat-button-toggle value="10m">10m</mat-button-toggle>
+  </mat-button-toggle-group>
+</div>
 <div echarts
      [options]="options"
      [merge]="updateOptions"

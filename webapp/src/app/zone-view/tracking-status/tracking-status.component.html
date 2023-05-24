@@ -1,1 +1,7 @@
-<p>tracking-status works!</p>
+<mat-list>
+  <mat-list-item><span class="thin">Since {{duration()}}</span> • {{formatDiskSpace()}}
+    <app-bounded-progress-bar [value]="tracking.used_bytes"
+                              [maximum]="tracking.total_bytes"/>
+  </mat-list-item>
+  <mat-list-item><span class="thin">Fill Rate: {{formatFillRate()}}</span> • {{formatFillETA()}} remaining</mat-list-item>
+</mat-list>

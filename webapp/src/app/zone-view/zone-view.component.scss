@@ -1,5 +1,9 @@
+:host {
+  height: 100%;
+}
+
 .flex {
-    flex-flow: column wrap;
+  height: 100%;
 }
 
 .vertical-center {
@@ -23,16 +27,68 @@
   font-size: 96px;
 }
 
-
-app-zone-status {
+.alarms-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 8px;
 }
 
-app-alarms-reports {
+
+.alarms {
+  grid-column-end: span 4;
+
+  @media(min-width: 600px) {
+    grid-column-end: span 8;
+  }
+
+  @media(min-width: 905px) {
+    grid-column-end: span 5;
+    grid-column-start: 8;
+    grid-row-start: 1;
+    grid-row-end: span 2;
+  }
+
+  @media(min-width: 1240px) {
+    grid-column-end: span 4;
+    grid-column-start: 9;
+  }
+
 }
 
-#tracking {
+
+.climate {
+  grid-column-end: span 4;
+  display: flex;
+  flex-flow: column wrap;
+  gap: 16px;
+
+  @media(min-width: 600px) {
+    grid-column-end: span 8;
+  }
+
+  @media(min-width: 905px) {
+    grid-column-end: span 7;
+  }
+
+  @media(min-width: 1240px) {
+    grid-column-end: span 8;
+  }
 }
 
-app-climate-chart {
 
+.tracking {
+  grid-column-end: span 4;
+
+  @media(min-width: 600px) {
+    grid-column-end: span 8
+  }
+
+  @media(min-width: 905px) {
+    grid-column-end: span 7
+  }
+
+  @media(min-width: 1240px) {
+    grid-column-end: span 8;
+  }
 }

@@ -10,7 +10,7 @@ import { UserSettingsService } from '../user-settings.service';
 export class ZoneNotificationButtonComponent implements OnInit, OnDestroy {
   @Input('solid') isSolid: boolean | string | undefined;
 
-  @Input() buttonType: 'icon' | 'flat' = 'icon';
+  @Input() buttonType: 'icon' | 'flat' | 'fab' = 'icon';
 
   @Input()
   set target(value: string) {
