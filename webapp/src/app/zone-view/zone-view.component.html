@@ -12,6 +12,9 @@
 </div>
 
 <div *ngIf="state == 'success'" class="flex">
+  <app-zone-notification-button [target]="zone.identifier"
+                                buttonType="flat"
+                                />
   <app-zone-status/>
   <app-tracking-player *ngIf="zone.tracking && zone.tracking.stream"
                        [src]="zone.tracking.stream.stream_URL"

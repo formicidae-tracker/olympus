@@ -9,19 +9,19 @@
     </button>
     <app-zone-notification-button
       buttonType="icon"
-      [target]="zone.identifier()"
+      [target]="zone.identifier"
       solid />
   </div>
   <a [routerLink]="['host',zone.host,'zone',zone.name]">
     <mat-card appearance="outlined">
-      <img *ngIf="zone.streamThumbnailURL();else noStreamBlock" mat-card-image [src]="zone.streamThumbnailURL()" alt="Preview of tracking on {{zone.identifier()}}"/>
+      <img *ngIf="zone.streamThumbnailURL();else noStreamBlock" mat-card-image [src]="zone.streamThumbnailURL()" alt="Preview of tracking on {{zone.identifier}}"/>
       <ng-template #noStreamBlock>
         <div class="missing-stream" href="/">
           <span><mat-icon>link_off</mat-icon></span>
         </div>
       </ng-template>
 
-      <mat-card-title>{{zone.identifier()}}</mat-card-title>
+      <mat-card-title>{{zone.identifier}}</mat-card-title>
 
       <mat-card-footer>
         <div class="status-container">

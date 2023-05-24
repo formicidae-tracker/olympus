@@ -24,4 +24,8 @@ export class ZoneReport {
     }
     return res;
   }
+
+  public get identifier(): string {
+    return this.host + '.' + this.name;
+  }
 }

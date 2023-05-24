@@ -12,7 +12,7 @@ export class ZoneReportSummary {
   active_warnings: number = 0;
   active_emergencies: number = 0;
 
-  public identifier(): string {
+  public get identifier(): string {
     return this.host + '.' + this.name;
   }
 
