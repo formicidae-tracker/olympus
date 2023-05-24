@@ -7,11 +7,10 @@
             [color]="showEmergencies() ? 'warn': 'accent'">
       <mat-icon>{{showEmergencies() ? 'error' : 'warning'}}</mat-icon>
     </button>
-    <button mat-icon-button
-            (click)="setAlarmSubscription(!subscribed)"
-            [color]="subscribed ? 'accent': ''">
-      <mat-icon>{{subscribed ? 'notifications_on': 'notifications'}}</mat-icon>
-    </button>
+    <app-zone-notification-button
+      buttonType="icon"
+      [target]="zone.identifier()"
+      solid />
   </div>
   <a [routerLink]="['host',zone.host,'zone',zone.name]">
     <mat-card appearance="outlined">

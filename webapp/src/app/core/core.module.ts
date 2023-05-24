@@ -1,4 +1,5 @@
 import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,6 +19,7 @@ import { VgBufferingModule } from '@videogular/ngx-videogular/buffering';
 import { VgStreamingModule } from '@videogular/ngx-videogular/streaming';
 
 import { BoundedProgressBarComponent } from './bounded-progress-bar/bounded-progress-bar.component';
+import { ZoneNotificationButtonComponent } from './zone-notification-button/zone-notification-button.component';
 
 let UiComponents = [
   MatToolbarModule,
@@ -42,8 +44,13 @@ let VideoComponents = [
 ];
 
 @NgModule({
-  declarations: [BoundedProgressBarComponent],
-  imports: [UiComponents, VideoComponents],
-  exports: [UiComponents, VideoComponents, BoundedProgressBarComponent],
+  declarations: [BoundedProgressBarComponent, ZoneNotificationButtonComponent],
+  imports: [CommonModule, UiComponents, VideoComponents],
+  exports: [
+    UiComponents,
+    VideoComponents,
+    BoundedProgressBarComponent,
+    ZoneNotificationButtonComponent,
+  ],
 })
 export class CoreModule {}
