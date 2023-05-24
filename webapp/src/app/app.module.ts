@@ -14,10 +14,11 @@ import { ZoneCardComponent } from './zone-index/zone-card/zone-card.component';
 import { UserSettingsComponent } from './user-settings/user-settings.component';
 import { ZoneViewComponent } from './zone-view/zone-view.component';
 import { ClimateChartComponent } from './zone-view/climate-chart/climate-chart.component';
-import { ZoneStatusComponent } from './zone-view/zone-status/zone-status.component';
+import { ClimateStatusComponent } from './zone-view/climate-status/climate-status.component';
 import { TrackingPlayerComponent } from './zone-view/tracking-player/tracking-player.component';
 import { AlarmsReportsComponent } from './zone-view/alarms-reports/alarms-reports.component';
 import { ReportLogsComponent } from './zone-view/alarms-reports/report-logs/report-logs.component';
+import { TrackingStatusComponent } from './zone-view/tracking-status/tracking-status.component';
 
 import { NgxEchartsModule } from 'ngx-echarts';
 
@@ -30,10 +31,11 @@ import { NgxEchartsModule } from 'ngx-echarts';
     UserSettingsComponent,
     ZoneViewComponent,
     ClimateChartComponent,
-    ZoneStatusComponent,
+    ClimateStatusComponent,
     TrackingPlayerComponent,
     AlarmsReportsComponent,
     ReportLogsComponent,
+    TrackingStatusComponent,
   ],
   imports: [
     BrowserModule,

@@ -13,12 +13,17 @@
 
 <div *ngIf="state == 'success'" class="flex">
   <app-zone-notification-button [target]="zone.identifier"
-                                buttonType="flat"
-                                />
-  <app-zone-status/>
-  <app-tracking-player *ngIf="zone.tracking && zone.tracking.stream"
-                       [src]="zone.tracking.stream.stream_URL"
-                       [thumbnail]="zone.tracking.stream.thumbnail_URL" />
+                                buttonType="flat"/>
+
+  <div id="tracking" *ngIf="zone.tracking">
+    <app-tracking-player *ngIf="zone.tracking.stream"
+                         [src]="zone.tracking.stream.stream_URL"
+                         [thumbnail]="zone.tracking.stream.thumbnail_URL" />
+    <app-tracking-status/>
+  </div>
   <app-alarms-reports [alarms]="zone.alarms" [now]="now"/>
-  <app-climate-chart  *ngIf="zone.climate" [host]="zone.host" [zone]="zone.name"/>
+  <div #climate *ngIf="zone.climate">
+    <app-climate-status/>
+    <app-climate-chart  [host]="zone.host" [zone]="zone.name"/>
+  </div>
 </div>
