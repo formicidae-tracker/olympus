@@ -45,7 +45,7 @@ export class NavToolbarComponent implements OnInit {
   }
 
   public setDarkTheme(dark: boolean): void {
-    this.settingService.setDarkTheme(dark);
+    this.settingService.darkTheme = dark;
   }
 
   public isRoot(): boolean {

@@ -1,1 +1,45 @@
-<p>user-settings works!</p>
+<div class="flex">
+  <div class="grid">
+    <mat-list>
+      <mat-list-item>
+        Dark Mode
+        <mat-slide-toggle matListItemMeta [(ngModel)]="darkTheme"/>
+      </mat-list-item>
+      <mat-divider />
+      <mat-list-item>
+        Notify on Warnings
+        <mat-slide-toggle matListItemMeta [(ngModel)]="notifyOnWarnings" />
+      </mat-list-item>
+      <mat-list-item>
+        Notify for any Zone
+        <mat-slide-toggle matListItemMeta [(ngModel)]="subscribeToAll" />
+      </mat-list-item>
+    </mat-list>
+    <mat-form-field class="subscriptions" appearance="outline">
+      <mat-label>Subscribed zones</mat-label>
+      <mat-icon matSuffix>notifications_on</mat-icon>
+      <mat-chip-grid #chipGrid aria-label="Subscribed Zone"
+                     [disabled]="settings.subscribeToAll">
+        <mat-chip-row *ngFor="let subscription of settings.subscriptions"
+                      (removed)="unsubscribeFrom(subscription)">
+          {{subscription}}
+          <button matChipRemove [attr.aria-label]="'remove ' + subscription">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </mat-chip-row>
+      </mat-chip-grid>
+      <input [disabled]="settings.subscribeToAll"
+             placeholder="Add Zone..."
+             #zoneInput [matChipInputFor]="chipGrid"
+             [matAutocomplete]="auto"
+             (matChipInputTokenEnd)="subscribeTo($event)" />
+      <mat-autocomplete #auto="matAutocomplete"
+                        (optionSelected)="selected($event)">
+        <mat-option *ngFor="let z of zones() | async"
+                    [value]="z">
+          {{z}}
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+  </div>
+</div>

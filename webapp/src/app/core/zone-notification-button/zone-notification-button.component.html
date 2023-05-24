@@ -1,14 +1,16 @@
 <button *ngIf="buttonType == 'flat'"
         mat-flat-button
         (click)="toggleSubscription()"
-        [color]="subscribed ? '' : 'accent'">
+        [color]="subscribed ? '' : 'accent'"
+        [disabled]="disabled">
   <mat-icon>{{subscribed? 'notifications_on' : 'notifications'}}</mat-icon>
   <span>{{(subscribed ? 'Unsubscribe' : 'Subscribe') | uppercase}}</span>
 </button>
 <button *ngIf="buttonType == 'fab'"
         mat-fab extended
         (click)="toggleSubscription()"
-        [color]="subscribed ? '' : 'accent'">
+        [color]="subscribed ? '' : 'accent'"
+        [disabled]="disabled">
   <mat-icon>{{subscribed? 'notifications_on' : 'notifications'}}</mat-icon>
   {{(subscribed ? 'Unsubscribe' : 'Subscribe') | uppercase}}
 </button>
@@ -17,6 +19,7 @@
         mat-icon-button
         (click)="toggleSubscription()"
         [class.background-light]="isSolid && !dark"
-        [class.background-dark]="isSolid && dark" >
+        [class.background-dark]="isSolid && dark"
+        [disabled]="disabled">
   <mat-icon>{{subscribed ? 'notifications_on' : 'notifications'}}</mat-icon>
 </button>

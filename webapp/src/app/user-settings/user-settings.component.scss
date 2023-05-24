@@ -1,0 +1,26 @@
+.flex {
+  flex-flow: row wrap;
+  @media(min-width: 600px) {
+    padding-top: 64px;
+  }
+}
+
+
+mat-list {
+  grid-column-end: span 4;
+  width: 100%;
+}
+
+mat-list-item {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.subscriptions {
+  grid-column-end: span 4;
+  width: 100%;
+  height: 100%;
+  @media(min-width: 905px) {
+      grid-column-end: span 8;
+  }
+}

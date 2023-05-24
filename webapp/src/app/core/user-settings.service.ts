@@ -8,76 +8,111 @@ export const userSettingsKey = 'userSettings';
   providedIn: 'root',
 })
 export class UserSettingsService {
-  private userSettings: UserSettings;
-  private darkTheme: BehaviorSubject<boolean>;
-  private alarmSubscription: Map<string, BehaviorSubject<boolean>>;
+  private settings: UserSettings;
+  private dark$: BehaviorSubject<boolean>;
+  private alarms$: Map<string, BehaviorSubject<boolean>>;
+  // Note we use a Required interface to forbid the access to
+  // UserSettings method, they should go through the service. The
+  // observable is only useful to get updated data in a component that
+  // require everything, i.e. UserSettingsComponent
+  private settings$: BehaviorSubject<Required<UserSettings>>;
 
   constructor() {
-    this.userSettings = UserSettings.deserialize(
+    this.settings = UserSettings.deserialize(
       localStorage.getItem(userSettingsKey) || '{}'
     );
-    this.darkTheme = new BehaviorSubject<boolean>(this.userSettings.darkMode);
-    this.alarmSubscription = new Map<string, BehaviorSubject<boolean>>();
-    for (const z of this.userSettings.alarmSubscriptions) {
-      this.alarmSubscription.set(z, new BehaviorSubject<boolean>(true));
+    this.dark$ = new BehaviorSubject<boolean>(this.settings.darkMode);
+    this.alarms$ = new Map<string, BehaviorSubject<boolean>>();
+    for (const z of this.settings.subscriptions) {
+      this.alarms$.set(z, new BehaviorSubject<boolean>(true));
     }
+    this.settings$ = new BehaviorSubject<UserSettings>(this.settings);
   }
 
   public isDarkTheme(): Observable<boolean> {
-    return this.darkTheme.asObservable();
+    return this.dark$.asObservable();
   }
 
-  private saveToLocalStorage(): void {
-    localStorage.setItem(userSettingsKey, this.userSettings.serialize());
+  private _next(): void {
+    localStorage.setItem(userSettingsKey, this.settings.serialize());
+    this.settings$.next(
+      new UserSettings(this.settings) as Required<UserSettings>
+    );
   }
 
-  public setDarkTheme(darkTheme: boolean): void {
-    if (this.userSettings.darkMode == darkTheme) {
+  public set darkTheme(darkTheme: boolean) {
+    let settings = this.settings$.value;
+    if (settings.darkMode == darkTheme) {
       return;
     }
-    this.userSettings.darkMode = darkTheme;
-    this.darkTheme.next(darkTheme);
-    this.saveToLocalStorage();
+
+    settings = new UserSettings(settings);
+    settings.darkMode = darkTheme;
+
+    this.dark$.next(darkTheme);
+    this._next();
   }
 
-  public isSubscribedToAlarmFrom(zone: string): Observable<boolean> {
-    let subject = this.alarmSubscription.get(zone);
+  public set notifyOnWarning(value: boolean) {
+    if (this.settings.notifyOnWarning == value) {
+      return;
+    }
+    this.settings.notifyOnWarning = value;
+    this._next();
+  }
+
+  public set subscribeToAll(value: boolean) {
+    if (this.settings.subscribeToAll == value) {
+      return;
+    }
+    this.settings.subscribeToAll = value;
+    this._next();
+    for (const [zone, subject] of this.alarms$) {
+      subject.next(this.settings.hasSubscription(zone));
+    }
+  }
+
+  public hasSubscription(zone: string): Observable<boolean> {
+    let subject = this.alarms$.get(zone);
     if (subject) {
       return subject.asObservable();
     }
-    subject = new BehaviorSubject<boolean>(false);
-    this.alarmSubscription.set(zone, subject);
+    subject = new BehaviorSubject<boolean>(this.settings$.value.subscribeToAll);
+
+    this.alarms$.set(zone, subject);
     return subject.asObservable();
   }
 
-  private modifyAlarmSubscription(zone: string, subscribe: boolean) {
+  public getSettings(): Observable<Required<UserSettings>> {
+    return this.settings$.asObservable();
+  }
+
+  private modifySubscription(zone: string, subscribe: boolean) {
     let skip: boolean;
     if (subscribe) {
-      skip = !this.userSettings.subscribeToAlarmFrom(zone);
+      skip = !this.settings.subscribeTo(zone);
     } else {
-      skip = !this.userSettings.unsubscribeFromAlarmFrom(zone);
+      skip = !this.settings.unsubscribeFrom(zone);
     }
-
-    if (skip) {
+    if (skip == true) {
       return;
     }
 
-    let subject = this.alarmSubscription.get(zone);
+    let subject = this.alarms$.get(zone);
     if (subject == undefined) {
       subject = new BehaviorSubject<boolean>(subscribe);
-      this.alarmSubscription.set(zone, subject);
+      this.alarms$.set(zone, subject);
     } else {
       subject.next(subscribe);
     }
-
-    this.saveToLocalStorage();
+    this._next();
   }
 
-  public subscribeToAlarmFrom(zone: string) {
-    this.modifyAlarmSubscription(zone, true);
+  public subscribeTo(zone: string) {
+    this.modifySubscription(zone, true);
   }
 
-  public unsubscribeFromAlarmFrom(zone: string) {
-    this.modifyAlarmSubscription(zone, false);
+  public unsubscribeTo(zone: string) {
+    this.modifySubscription(zone, false);
   }
 }

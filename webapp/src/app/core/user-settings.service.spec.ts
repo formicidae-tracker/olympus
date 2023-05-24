@@ -1,3 +1,5 @@
+import { cases } from 'jasmine-parameterized';
+
 import { TestBed } from '@angular/core/testing';
 
 import { userSettingsKey, UserSettingsService } from './user-settings.service';
@@ -29,25 +31,38 @@ describe('UserSettingsService', () => {
     });
 
     it('should default to no subscription', (done) => {
-      service.isSubscribedToAlarmFrom('foo').subscribe((s) => {
+      service.hasSubscription('foo').subscribe((s) => {
         expect(s).toBeFalse();
         done();
       });
     });
 
-    it('should store to localStorage when darkTheme is modified', () => {
-      expect(localStorage.getItem(userSettingsKey)).toBeNull();
-      service.setDarkTheme(false);
-      expect(localStorage.getItem(userSettingsKey)).toBeNull();
-      service.setDarkTheme(true);
-      expect(localStorage.getItem(userSettingsKey)).not.toBeNull();
-    });
+    cases([
+      ['darkTheme', false],
+      ['subscribeToAll', false],
+      ['notifyOnWarning', false],
+    ]).it(
+      'should store to localStorage when boolean is modified',
+      ([property, defaultValue]) => {
+        interface Indexable {
+          [key: string]: boolean;
+        }
+        let plain: Indexable = {};
+        expect(localStorage.getItem(userSettingsKey)).toBeNull();
+        plain[property] = defaultValue;
+        Object.assign(service, plain);
+        expect(localStorage.getItem(userSettingsKey)).toBeNull();
+        plain[property] = !defaultValue;
+        Object.assign(service, plain);
+        expect(localStorage.getItem(userSettingsKey)).not.toBeNull();
+      }
+    );
 
     it('should store to localStorage when subscription is modified', () => {
       expect(localStorage.getItem(userSettingsKey)).toBeNull();
-      service.unsubscribeFromAlarmFrom('foo'); // unsubscribed by default
+      service.unsubscribeTo('foo'); // unsubscribed by default
       expect(localStorage.getItem(userSettingsKey)).toBeNull();
-      service.subscribeToAlarmFrom('foo');
+      service.subscribeTo('foo');
       expect(localStorage.getItem(userSettingsKey)).not.toBeNull();
     });
   });
@@ -58,7 +73,7 @@ describe('UserSettingsService', () => {
         userSettingsKey,
         new UserSettings({
           darkMode: true,
-          alarmSubscriptions: new Set<string>(['foo', 'bar']),
+          subscriptions: new Set<string>(['foo', 'bar']),
         }).serialize()
       );
       TestBed.configureTestingModule({});
@@ -73,21 +88,21 @@ describe('UserSettingsService', () => {
     });
 
     it('should have "foo" subscribed', (done) => {
-      service.isSubscribedToAlarmFrom('foo').subscribe((subscribed) => {
+      service.hasSubscription('foo').subscribe((subscribed) => {
         expect(subscribed).toBeTrue();
         done();
       });
     });
 
     it('should have "bar" subscribed', (done) => {
-      service.isSubscribedToAlarmFrom('bar').subscribe((subscribed) => {
+      service.hasSubscription('bar').subscribe((subscribed) => {
         expect(subscribed).toBeTrue();
         done();
       });
     });
 
     it('should have "new" unsubscribed', (done) => {
-      service.isSubscribedToAlarmFrom('new').subscribe((subscribed) => {
+      service.hasSubscription('new').subscribe((subscribed) => {
         expect(subscribed).toBeFalse();
         done();
       });

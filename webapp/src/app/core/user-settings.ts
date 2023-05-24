@@ -1,48 +1,53 @@
 export class UserSettings {
   public darkMode: boolean;
-  public alarmSubscriptions: Set<string>;
+  public notifyOnWarning: boolean;
+  public subscribeToAll: boolean;
+  public subscriptions: Set<string>;
 
   constructor({
     darkMode = false,
-    alarmSubscriptions = new Set<string>([]),
+    subscribeToAll = false,
+    notifyOnWarning = false,
+    subscriptions = new Set<string>([]),
   }: Partial<UserSettings> = {}) {
     this.darkMode = darkMode;
-    this.alarmSubscriptions = alarmSubscriptions;
+    this.subscribeToAll = subscribeToAll;
+    this.notifyOnWarning = notifyOnWarning;
+    this.subscriptions = subscriptions;
   }
 
   public serialize(): string {
-    let plain = {
-      darkMode: this.darkMode,
-      alarmSubscriptions: Array.from(this.alarmSubscriptions),
-    };
+    let plain: any = Object.assign({}, this);
+    plain.subscriptions = Array.from(this.subscriptions);
     return JSON.stringify(plain);
   }
 
   static deserialize(jsondata: string) {
-    let plain = JSON.parse(jsondata) as Partial<UserSettings>;
-    if (plain.alarmSubscriptions != undefined) {
-      plain.alarmSubscriptions = new Set<string>(plain.alarmSubscriptions);
+    let plain = JSON.parse(jsondata);
+    const subscriptions = plain.subscriptions;
+    if (subscriptions != undefined) {
+      plain.subscriptions = new Set<string>(subscriptions);
     }
-    return new UserSettings(plain);
+    return new UserSettings(plain as Partial<UserSettings>);
   }
 
-  public hasSubscriptionToAlarmFrom(zone: string): boolean {
-    return this.alarmSubscriptions.has(zone);
+  public hasSubscription(zone: string): boolean {
+    return this.subscribeToAll || this.subscriptions.has(zone);
   }
 
-  public subscribeToAlarmFrom(zone: string): boolean {
-    if (this.alarmSubscriptions.has(zone)) {
+  public subscribeTo(zone: string): boolean {
+    if (this.subscribeToAll || this.subscriptions.has(zone)) {
       return false;
     }
-    this.alarmSubscriptions.add(zone);
+    this.subscriptions.add(zone);
     return true;
   }
 
-  public unsubscribeFromAlarmFrom(zone: string): boolean {
-    if (this.alarmSubscriptions.has(zone) == false) {
+  public unsubscribeFrom(zone: string): boolean {
+    if (this.subscribeToAll || this.subscriptions.has(zone) == false) {
       return false;
     }
-    this.alarmSubscriptions.delete(zone);
+    this.subscriptions.delete(zone);
     return true;
   }
 }

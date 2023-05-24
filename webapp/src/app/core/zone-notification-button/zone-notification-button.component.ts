@@ -12,6 +12,8 @@ export class ZoneNotificationButtonComponent implements OnInit, OnDestroy {
 
   @Input() buttonType: 'icon' | 'flat' | 'fab' = 'icon';
 
+  public disabled: boolean = false;
+
   @Input()
   set target(value: string) {
     this._target = value;
@@ -27,20 +29,29 @@ export class ZoneNotificationButtonComponent implements OnInit, OnDestroy {
 
   private _target = '';
   private _alarmSubscription?: Subscription;
-  private _themeSubscription?: Subscription;
+  private _subscriptions: Subscription[] = [];
 
   constructor(private settings: UserSettingsService) {}
 
   ngOnInit(): void {
     this.isSolid = this.isSolid !== undefined;
-    this._themeSubscription = this.settings.isDarkTheme().subscribe((dark) => {
-      this.dark = dark;
-    });
+    this._subscriptions.push(
+      this.settings.isDarkTheme().subscribe((dark) => {
+        this.dark = dark;
+      })
+    );
+    this._subscriptions.push(
+      this.settings.getSettings().subscribe((s) => {
+        this.disabled = s.subscribeToAll;
+      })
+    );
   }
 
   ngOnDestroy(): void {
     this._alarmSubscription?.unsubscribe();
-    this._themeSubscription?.unsubscribe();
+    for (const s of this._subscriptions) {
+      s.unsubscribe();
+    }
   }
 
   private _subscribe(): void {
@@ -49,7 +60,7 @@ export class ZoneNotificationButtonComponent implements OnInit, OnDestroy {
       return;
     }
     this._alarmSubscription = this.settings
-      .isSubscribedToAlarmFrom(this._target)
+      .hasSubscription(this._target)
       .subscribe((s) => {
         this.subscribed = s;
       });
@@ -60,9 +71,9 @@ export class ZoneNotificationButtonComponent implements OnInit, OnDestroy {
       return;
     }
     if (this.subscribed == true) {
-      this.settings.unsubscribeFromAlarmFrom(this._target);
+      this.settings.unsubscribeTo(this._target);
     } else {
-      this.settings.subscribeToAlarmFrom(this._target);
+      this.settings.subscribeTo(this._target);
     }
   }
 }

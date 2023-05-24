@@ -43,7 +43,7 @@ describe('AppComponent', () => {
       expect(classes).toContain('mat-app-background');
       expect(classes).not.toContain('dark-theme');
 
-      service.setDarkTheme(true);
+      service.darkTheme = true;
       fixture.detectChanges();
 
       compiled = fixture.nativeElement as HTMLElement;

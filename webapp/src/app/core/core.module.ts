@@ -13,6 +13,10 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatListModule } from '@angular/material/list';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import { VgCoreModule } from '@videogular/ngx-videogular/core';
 import { VgControlsModule } from '@videogular/ngx-videogular/controls';
@@ -36,6 +40,10 @@ let UiComponents = [
   MatPaginatorModule,
   MatButtonToggleModule,
   MatListModule,
+  MatFormFieldModule,
+  MatChipsModule,
+  MatAutocompleteModule,
+  MatSlideToggleModule,
 ];
 
 let VideoComponents = [
