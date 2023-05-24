@@ -5,6 +5,7 @@ export class TrackingInfo {
   public free_bytes: number = 0;
   public bytes_per_second: number = 0;
   public stream?: StreamInfo;
+  public since: Date = new Date(0);
 
   public get used_bytes(): number {
     return Math.max(0, this.total_bytes - this.free_bytes);
@@ -25,6 +26,7 @@ export class TrackingInfo {
       return undefined;
     }
     let ret = new TrackingInfo();
+    ret.since = new Date(plain.since || 0);
     ret.total_bytes = plain.total_bytes || 0;
     ret.free_bytes = plain.free_bytes || 0;
     ret.bytes_per_second = plain.bytes_per_second || 0;

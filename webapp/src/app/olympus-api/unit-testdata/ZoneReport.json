@@ -4,11 +4,13 @@
     "host": "foo",
     "name": "bar",
     "climate": {
+      "since": "0001-01-01T00:00:00Z",
       "temperature": 18,
       "temperature_bounds": {},
       "humidity_bounds": {}
     },
     "tracking": {
+      "since": "0001-01-01T00:00:00Z",
       "total_bytes": 2000
     },
     "alarms": [

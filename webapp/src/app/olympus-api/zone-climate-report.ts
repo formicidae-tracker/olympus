@@ -2,6 +2,7 @@ import { ClimateState } from './climate-state';
 import { Bounds } from './bounds';
 
 export class ZoneClimateReport {
+  since: Date = new Date(0);
   temperature?: number;
   humidity?: number;
 
@@ -22,7 +23,7 @@ export class ZoneClimateReport {
     let ret = new ZoneClimateReport();
     ret.temperature = plain.temperature;
     ret.humidity = plain.humidity;
-
+    ret.since = new Date(plain.since || 0);
     if (plain.temperature_bounds != undefined) {
       ret.temperature_bounds = Bounds.fromPlain(plain.temperature_bounds);
     }

@@ -16035,6 +16035,7 @@
     "host": "juno",
     "name": "box",
     "tracking": {
+      "since": "2023-03-28T10:00:00Z",
       "total_bytes": 2199023255552,
       "free_bytes": 86147380281,
       "bytes_per_second": 4086206,
@@ -16075,6 +16076,7 @@
     "host": "jupyter",
     "name": "desert",
     "climate": {
+      "since": "2023-03-28T11:00:00Z",
       "temperature": 28.874321,
       "humidity": 53.46568,
       "temperature_bounds": {
@@ -16839,6 +16841,7 @@
     "host": "minerva",
     "name": "box",
     "climate": {
+      "since": "2023-03-28T12:00:00Z",
       "temperature": 19.874321,
       "humidity": 53.46568,
       "temperature_bounds": {
@@ -16874,6 +16877,7 @@
       "next_time": "2023-04-01T06:30:00Z"
     },
     "tracking": {
+      "since": "2023-03-28T12:00:00Z",
       "total_bytes": 2199023255552,
       "free_bytes": 496143407015,
       "bytes_per_second": 2692616,
@@ -18363,6 +18367,7 @@
       "host": "jupyter",
       "name": "desert",
       "climate": {
+        "since": "2023-03-28T11:00:00Z",
         "temperature": 28.874321,
         "humidity": 53.46568,
         "temperature_bounds": {
@@ -18388,6 +18393,7 @@
       "host": "juno",
       "name": "box",
       "tracking": {
+        "since": "2023-03-28T10:00:00Z",
         "total_bytes": 2199023255552,
         "free_bytes": 86147380281,
         "bytes_per_second": 4086206,
@@ -18403,6 +18409,7 @@
       "host": "minerva",
       "name": "box",
       "climate": {
+        "since": "2023-03-28T12:00:00Z",
         "temperature": 19.874321,
         "humidity": 53.46568,
         "temperature_bounds": {
@@ -18438,6 +18445,7 @@
         "next_time": "2023-04-01T06:30:00Z"
       },
       "tracking": {
+        "since": "2023-03-28T12:00:00Z",
         "total_bytes": 2199023255552,
         "free_bytes": 496143407015,
         "bytes_per_second": 2692616,
@@ -18452,6 +18460,7 @@
       "host": "jupyter",
       "name": "desert",
       "climate": {
+        "since": "2023-03-28T11:00:00Z",
         "temperature": 28.874321,
         "humidity": 53.46568,
         "temperature_bounds": {
@@ -18477,6 +18486,7 @@
       "host": "juno",
       "name": "box",
       "tracking": {
+        "since": "2023-03-28T10:00:00Z",
         "total_bytes": 2199023255552,
         "free_bytes": 86147380281,
         "bytes_per_second": 4086206,
@@ -18492,6 +18502,7 @@
       "host": "minerva",
       "name": "box",
       "climate": {
+        "since": "2023-03-28T12:00:00Z",
         "temperature": 19.874321,
         "humidity": 53.46568,
         "temperature_bounds": {
@@ -18527,6 +18538,7 @@
         "next_time": "2023-04-01T06:30:00Z"
       },
       "tracking": {
+        "since": "2023-03-28T12:00:00Z",
         "total_bytes": 2199023255552,
         "free_bytes": 496143407015,
         "bytes_per_second": 2692616,

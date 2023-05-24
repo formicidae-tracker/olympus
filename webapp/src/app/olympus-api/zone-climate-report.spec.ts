@@ -16,6 +16,7 @@ describe('ZoneClimateReport', () => {
       if (e == undefined) {
         continue;
       }
+      expect(e.since).toEqual(new Date(plain.since || 0));
       expect(e.temperature).toEqual(plain.temperature);
       expect(e.humidity).toEqual(plain.humidity);
 

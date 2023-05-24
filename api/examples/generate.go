@@ -72,6 +72,7 @@ func generateUnitTestData() map[string][]interface{} {
 		"unit-testdata/ZoneClimateReport.json": {
 			api.ZoneClimateReport{},
 			api.ZoneClimateReport{
+				Since:             timeMustParse("2023-04-01T08:00:00.000Z"),
 				Temperature:       newWithValue[float32](18.0),
 				Humidity:          newWithValue[float32](60.0),
 				TemperatureBounds: api.Bounds{Minimum: newWithValue[float32](1.0)},
@@ -98,6 +99,7 @@ func generateUnitTestData() map[string][]interface{} {
 				FreeBytes:      800*1024 ^ 2,
 				BytesPerSecond: 10*1024 ^ 2,
 				Stream:         &api.StreamInfo{ExperimentName: "foo"},
+				Since:          timeMustParse("2023-04-01T08:00:00.000Z"),
 			},
 		},
 		"unit-testdata/ZoneReportSummary.json": {
@@ -219,6 +221,7 @@ func generateClimateData(window string, current time.Time) api.ClimateTimeSeries
 
 func generateMockData() (map[string]interface{}, map[string]string) {
 	minervaClimate := &api.ZoneClimateReport{
+		Since:             timeMustParse("2023-03-28T12:00:00.000Z"),
 		Temperature:       newWithValue[float32](19.8743205432),
 		Humidity:          newWithValue[float32](53.465679028734),
 		TemperatureBounds: api.Bounds{Minimum: newWithValue[float32](17.0), Maximum: newWithValue[float32](22.0)},
@@ -249,6 +252,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 	}
 
 	minervaTracking := &api.TrackingInfo{
+		Since:          timeMustParse("2023-03-28T12:00:00.000Z"),
 		TotalBytes:     int64(2.0 * math.Pow(2, 40)),
 		FreeBytes:      int64(0.45123980 * math.Pow(2, 40)),
 		BytesPerSecond: int64(2.567879 * math.Pow(2, 20)),
@@ -287,6 +291,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 	}
 
 	jupyterClimate := &api.ZoneClimateReport{
+		Since:             timeMustParse("2023-03-28T11:00:00.000Z"),
 		Temperature:       newWithValue[float32](28.8743205432),
 		Humidity:          newWithValue[float32](53.465679028734),
 		TemperatureBounds: api.Bounds{Minimum: newWithValue[float32](17.0), Maximum: newWithValue[float32](22.0)},
@@ -321,6 +326,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 	}
 
 	junoTracking := &api.TrackingInfo{
+		Since:          timeMustParse("2023-03-28T10:00:00.000Z"),
 		TotalBytes:     int64(2.0 * math.Pow(2, 40)),
 		FreeBytes:      int64(80.231 * math.Pow(2, 30)),
 		BytesPerSecond: int64(3.89691 * math.Pow(2, 20)),

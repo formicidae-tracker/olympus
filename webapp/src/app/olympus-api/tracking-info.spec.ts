@@ -20,6 +20,7 @@ describe('TrackingInfo', () => {
       expect(e.free_bytes).toEqual(plain.free_bytes || 0);
       expect(e.bytes_per_second).toEqual(plain.bytes_per_second || 0);
       expect(e.stream).toEqual(StreamInfo.fromPlain(plain.stream));
+      expect(e.since).toEqual(new Date(plain.since || 0));
     }
   });
 

@@ -1,9 +1,11 @@
 [
   {
+    "since": "0001-01-01T00:00:00Z",
     "temperature_bounds": {},
     "humidity_bounds": {}
   },
   {
+    "since": "2023-04-01T08:00:00Z",
     "temperature": 18,
     "humidity": 60,
     "temperature_bounds": {
