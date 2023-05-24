@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
@@ -15,7 +16,7 @@ export class ReportLogsComponent implements OnInit {
 
   @ViewChild(MatPaginator, { static: true }) paginator!: MatPaginator;
 
-  constructor(private humanizer: HumanizeService) {}
+  constructor(private humanizer: HumanizeService, private date: DatePipe) {}
 
   public columnsToDisplay = ['start', 'end', 'duration'];
 
@@ -34,5 +35,19 @@ export class ReportLogsComponent implements OnInit {
       return '';
     }
     return this.humanizer.humanizeDuration(d);
+  }
+
+  public formatStartDate(e: AlarmEvent): string {
+    return this.date.transform(e.start, 'dd/MM/yy HH:mm:ss') || '';
+  }
+
+  public formatEndDate(e: AlarmEvent): string {
+    if (e.end == undefined) {
+      return 'now';
+    }
+    if (e.end.toLocaleDateString() == e.start.toLocaleDateString()) {
+      return this.date.transform(e.end, 'HH:mm:ss') || '';
+    }
+    return this.date.transform(e.end, 'dd/MM/yy HH:mm:ss') || '';
   }
 }

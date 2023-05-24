@@ -10,15 +10,13 @@ mat-expansion-panel-header {
 }
 
 mat-expansion-panel-header span {
-  margin-left: 16px;
-  margin-right: 24px;
+  padding-left: 24px;
+  //padding-right: 24px;
 }
 
 mat-panel-title{
+  max-width: 180px;
   min-height: 48px;
   height: min-content;
-  max-width: max-content;
 
-  display: flex;
-  justify-content: space-between;
 }

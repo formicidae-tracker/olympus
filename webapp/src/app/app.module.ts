@@ -21,6 +21,7 @@ import { ReportLogsComponent } from './zone-view/alarms-reports/report-logs/repo
 import { TrackingStatusComponent } from './zone-view/tracking-status/tracking-status.component';
 
 import { NgxEchartsModule } from 'ngx-echarts';
+import { DatePipe } from '@angular/common';
 
 @NgModule({
   declarations: [
@@ -47,7 +48,7 @@ import { NgxEchartsModule } from 'ngx-echarts';
       echarts: () => import('echarts'),
     }),
   ],
-  providers: [],
+  providers: [DatePipe],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

@@ -34,7 +34,8 @@ export class AlarmsReportsComponent {
 
   public since(r: AlarmReport): string {
     return this.humanizer.humanizeDuration(
-      this.now.getTime() - r.time().getTime()
+      this.now.getTime() - r.time().getTime(),
+      1
     );
   }
 }

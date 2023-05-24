@@ -14,8 +14,8 @@ export class HumanizeService {
   private humanizer: HumanizeDuration = new HumanizeDuration(this.language);
   constructor() {}
 
-  public humanizeDuration(ms: number): string {
-    return this.humanizer.humanize(ms, { largest: 2 });
+  public humanizeDuration(ms: number, largest: number = 2): string {
+    return this.humanizer.humanize(ms, { largest: largest });
   }
 
   public findBinaryPrefixAndDivider(
