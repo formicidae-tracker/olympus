@@ -3,6 +3,7 @@ package main
 import (
 	"path"
 	"sync"
+	"time"
 
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/api"
@@ -20,8 +21,14 @@ type trackingLogger struct {
 }
 
 func NewTrackingLogger(declaration *api.TrackingDeclaration) TrackingLogger {
+	since := time.Now()
+	if declaration.Since != nil {
+		since = declaration.Since.AsTime()
+	}
+
 	return &trackingLogger{
 		infos: &api.TrackingInfo{
+			Since: since,
 			Stream: &api.StreamInfo{
 				ExperimentName: declaration.ExperimentName,
 				StreamURL:      path.Join("/olympus/hls", declaration.Hostname+".m3u8"),

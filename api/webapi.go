@@ -83,6 +83,7 @@ type Bounds struct {
 }
 
 type ZoneClimateReport struct {
+	Since             time.Time     `json:"since,omitempty"`
 	Temperature       *float32      `json:"temperature,omitempty"`
 	Humidity          *float32      `json:"humidity,omitempty"`
 	TemperatureBounds Bounds        `json:"temperature_bounds,omitempty"`
@@ -101,6 +102,7 @@ type StreamInfo struct {
 }
 
 type TrackingInfo struct {
+	Since          time.Time   `json:"since,omitempty"`
 	TotalBytes     int64       `json:"total_bytes,omitempty"`
 	FreeBytes      int64       `json:"free_bytes,omitempty"`
 	BytesPerSecond int64       `json:"bytes_per_second,omitempty"`

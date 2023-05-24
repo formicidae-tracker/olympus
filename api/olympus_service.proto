@@ -41,12 +41,13 @@ message ClimateState {
 }
 
 message ClimateDeclaration {
-	string         host            = 1;
-	string         name            = 2;
-	optional float min_temperature = 3;
-	optional float max_temperature = 4;
-	optional float min_humidity    = 5;
-	optional float max_humidity    = 6;
+	string         host                      = 1;
+	string         name                      = 2;
+	optional float min_temperature           = 3;
+	optional float max_temperature           = 4;
+	optional float min_humidity              = 5;
+	optional float max_humidity              = 6;
+	optional google.protobuf.Timestamp since = 7;
 }
 
 message ClimateTarget {
@@ -74,9 +75,10 @@ message ClimateDownStream {
 }
 
 message TrackingDeclaration {
-	string hostname        = 1;
-	string stream_server   = 2;
-	string experiment_name = 3;
+	string   hostname                        = 1;
+	string   stream_server                   = 2;
+	string   experiment_name                 = 3;
+	optional google.protobuf.Timestamp since = 4;
 }
 
 message DiskStatus {

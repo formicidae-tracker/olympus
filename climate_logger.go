@@ -77,6 +77,13 @@ func NewClimateLogger(declaration *api.ClimateDeclaration) ClimateLogger {
 			},
 		},
 	}
+
+	if declaration.Since != nil {
+		res.currentReport.Since = declaration.Since.AsTime()
+	} else {
+		res.currentReport.Since = time.Now()
+	}
+
 	return res
 }
 
