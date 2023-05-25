@@ -45,7 +45,7 @@ func (s *ClimateLoggerSuite) TestLogsClimate(c *C) {
 			return
 		}
 
-		for i, _ := range series.Humidity {
+		for i := range series.Humidity {
 			if i == 0 {
 				continue
 			}

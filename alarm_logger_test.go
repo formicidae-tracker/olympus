@@ -26,7 +26,7 @@ func (s *AlarmLoggerSuite) TearDownTest(c *C) {
 func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 	start := time.Now().Round(0)
 
-	eventList := []*api.AlarmEvent{
+	eventList := []*api.AlarmUpdate{
 		{
 			Identification: "foo",
 			Level:          api.AlarmLevel_WARNING,
@@ -46,12 +46,12 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 		On   bool
 	}{}
 
-	events := make([]*api.AlarmEvent, 300)
-	for i := 0; i < 300; i++ {
+	events := make([]*api.AlarmUpdate, 500)
+	for i := 0; i < 500; i++ {
 		r := rand.Intn(2000000)
 		t := start.Add(time.Duration(r) * time.Millisecond)
-		on := r%2 == 0
-		event := deepcopy.MustAnything(eventList[i%3]).(*api.AlarmEvent)
+		on := i%2 == 0
+		event := deepcopy.MustAnything(eventList[i%3]).(*api.AlarmUpdate)
 		if on {
 			event.Status = api.AlarmStatus_ON
 		} else {
@@ -78,12 +78,17 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 		case "baz":
 			c.Check(api.AlarmLevel(r.Level), Equals, api.AlarmLevel_WARNING)
 		}
-		c.Check(r.Events, HasLen, 100)
+		c.Check(len(r.Events) > 0, Equals, true)
 		for i, e := range r.Events {
 			if i == 0 {
 				continue
 			}
-			c.Check(r.Events[i-1].Time.After(e.Time), Equals, false)
+			previousEvent := r.Events[i-1]
+			if c.Check(previousEvent.End, Not(IsNil)) == false {
+				continue
+			}
+			c.Check(previousEvent.End.After(e.Start), Equals, false,
+				Commentf("Got consecutive events %+v %+v", previousEvent, e))
 		}
 	}
 

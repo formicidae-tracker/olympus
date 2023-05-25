@@ -10,23 +10,23 @@ import (
 	"github.com/atuleu/go-lttb"
 )
 
-type AlarmTimePoint struct {
-	Time time.Time `json:"time,omitempty"`
-	On   bool      `json:"on,omitempty"`
+type AlarmEvent struct {
+	Start time.Time  `json:"start,omitempty"`
+	End   *time.Time `json:"end,omitempty"`
 }
 
 type AlarmReport struct {
-	Identification string           `json:"identification,omitempty"`
-	Level          AlarmLevel       `json:"level"`
-	Events         []AlarmTimePoint `json:"events"`
-	Description    string           `json:"description"`
+	Identification string       `json:"identification,omitempty"`
+	Level          AlarmLevel   `json:"level"`
+	Events         []AlarmEvent `json:"events"`
+	Description    string       `json:"description"`
 }
 
 func (r *AlarmReport) On() bool {
 	if len(r.Events) == 0 {
 		return false
 	}
-	return r.Events[len(r.Events)-1].On
+	return r.Events[len(r.Events)-1].End != nil
 }
 
 type Point lttb.Point[float32]

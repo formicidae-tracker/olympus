@@ -37,28 +37,12 @@ export class AlarmEvent {
     return this.end.getTime() - this.start.getTime();
   }
 
-  static fromTimepoints(timepoints: any[]): AlarmEvent[] {
-    let res: AlarmEvent[] = [];
-    let lastOn: Date | undefined;
-    for (const tp of timepoints) {
-      if (lastOn != undefined) {
-        if (tp.on == true) {
-          continue;
-        }
-        res.push(new AlarmEvent(lastOn, new Date(tp.time)));
-        lastOn = undefined;
-      } else {
-        if (tp.on == undefined || tp.on == false) {
-          continue;
-        }
-        lastOn = new Date(tp.time);
-      }
+  static fromPlain(plain: Partial<AlarmEvent>): AlarmEvent {
+    let end = undefined;
+    if (plain.end != undefined) {
+      end = new Date(plain.end);
     }
-    if (lastOn != undefined) {
-      res.push(new AlarmEvent(lastOn, undefined));
-    }
-
-    return res;
+    return new AlarmEvent(new Date(plain.start || 0), end);
   }
 }
 
@@ -74,7 +58,9 @@ export class AlarmReport {
     res.identification = plain.identification || '';
     res.level = plain.level || 0;
     res.description = plain.description || '';
-    res.events = AlarmEvent.fromTimepoints(plain.events || []);
+    for (const pe of plain.events || []) {
+      res.events.push(AlarmEvent.fromPlain(pe));
+    }
     return res;
   }
 

@@ -21,7 +21,7 @@ enum AlarmLevel {
 	EMERGENCY = 1;
 }
 
-message AlarmEvent {
+message AlarmUpdate {
 	reserved "reason";
 
 	string                    identification = 1;
@@ -62,7 +62,7 @@ message ClimateUpStream {
 	optional ClimateDeclaration declaration = 1;
 	repeated ClimateReport      reports     = 2;
 	optional ClimateTarget      target      = 3;
-	repeated AlarmEvent         alarms      = 4;
+	repeated AlarmUpdate        alarms      = 4;
 }
 
 message ClimateRegistrationConfirmation {
@@ -89,7 +89,7 @@ message DiskStatus {
 
 message TrackingUpStream {
 	optional TrackingDeclaration declaration = 1;
-	repeated AlarmEvent          alarms      = 2;
+	repeated AlarmUpdate         alarms      = 2;
 	optional DiskStatus          disk_status = 3;
 }
 
