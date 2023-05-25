@@ -4,7 +4,7 @@
   </div>
 </ng-template>
 
-<div *ngIf="state == 'error'" class="flex vertical-center">
+<div *ngIf="state == 'offline'" class="flex vertical-center">
   <div class="big-icon">
     <mat-icon>link_off</mat-icon>
   </div>
@@ -14,7 +14,12 @@
 <div *ngIf="state == 'success'" class="flex">
   <div class="grid">
     <section class="tracking" *ngIf="zone.tracking">
-      <div class="mat-headline-6">Tracking<span class="mat-subtitle-1"> • started {{formatSince(zone.tracking)}} ago</span></div>
+      <div class="mat-headline-6">
+        Tracking
+        <span class="mat-subtitle-1">
+          • started {{formatSince(zone.tracking)}} ago
+        </span>
+      </div>
       <app-tracking-player *ngIf="zone.tracking.stream"
                            [src]="zone.tracking.stream.stream_URL"
                            [thumbnail]="zone.tracking.stream.thumbnail_URL" />
@@ -30,7 +35,7 @@
       <app-climate-chart  [host]="zone.host" [zone]="zone.name"/>
     </section>
 
-    <section class="alarms">
+    <section class="alarms" *ngIf="zone.identifier != '.'">
       <div class="alarms-actions">
         <div class="mat-headline-6">Alarms</div>
         <app-zone-notification-button [target]="zone.identifier"

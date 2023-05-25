@@ -1,15 +1,18 @@
 :host {
   height: 100%;
+  display: block;
 }
 
 .flex {
   height: 100%;
+  flex-flow: column wrap;
 }
 
 .vertical-center {
-  padding-top: 120px;
+  height: 100%;
   align-items: center;
   text-align: center;
+  padding-top: 160px;
 }
 
 .vertical-center mat-spinner{

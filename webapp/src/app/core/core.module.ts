@@ -17,6 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { VgCoreModule } from '@videogular/ngx-videogular/core';
 import { VgControlsModule } from '@videogular/ngx-videogular/controls';
@@ -26,6 +27,7 @@ import { VgStreamingModule } from '@videogular/ngx-videogular/streaming';
 
 import { BoundedProgressBarComponent } from './bounded-progress-bar/bounded-progress-bar.component';
 import { ZoneNotificationButtonComponent } from './zone-notification-button/zone-notification-button.component';
+import { SnackNetworkOfflineComponent } from './snack-network-offline/snack-network-offline.component';
 
 let UiComponents = [
   MatToolbarModule,
@@ -44,6 +46,7 @@ let UiComponents = [
   MatChipsModule,
   MatAutocompleteModule,
   MatSlideToggleModule,
+  MatSnackBarModule,
 ];
 
 let VideoComponents = [
@@ -55,13 +58,18 @@ let VideoComponents = [
 ];
 
 @NgModule({
-  declarations: [BoundedProgressBarComponent, ZoneNotificationButtonComponent],
+  declarations: [
+    BoundedProgressBarComponent,
+    ZoneNotificationButtonComponent,
+    SnackNetworkOfflineComponent,
+  ],
   imports: [CommonModule, UiComponents, VideoComponents],
   exports: [
     UiComponents,
     VideoComponents,
     BoundedProgressBarComponent,
     ZoneNotificationButtonComponent,
+    SnackNetworkOfflineComponent,
   ],
 })
 export class CoreModule {}

@@ -1,18 +1,13 @@
-import {
-  ApplicationRef,
-  Component,
-  NgZone,
-  OnDestroy,
-  OnInit,
-} from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, timer } from 'rxjs';
 import { ZoneReport } from '../olympus-api/zone-report';
 import { OlympusService } from '../olympus-api/services/olympus.service';
 import { AlarmReport } from '../olympus-api/alarm-report';
 import { HumanizeService } from '../core/humanize.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
-type ViewState = 'loading' | 'success' | 'error';
+type ViewState = 'loading' | 'success' | 'offline';
 
 interface HasSince {
   since: Date;
@@ -70,10 +65,13 @@ export class ZoneViewComponent implements OnInit, OnDestroy {
           this.zone = report;
           this.zone.alarms.sort(AlarmReport.compareFunction);
         },
-        () => {
-          this.zone = new ZoneReport();
+        (e: HttpErrorResponse) => {
           this.now = new Date();
-          this.state = 'error';
+          if (e.status == 404) {
+            this.zone = new ZoneReport();
+            this.state = 'offline';
+          } else {
+          }
         }
       );
   }
