@@ -1,8 +1,8 @@
 {
   "name": "olympus",
   "short_name": "olympus",
-  "theme_color": "#1976d2",
-  "background_color": "#fafafa",
+  "theme_color": "#004f58",
+  "background_color": "#fbfcfd",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
