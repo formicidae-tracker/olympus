@@ -1,5 +1,5 @@
 <div class="flex">
   <div class="grid">
-    <app-zone-card [zone]="z" *ngFor="let z of zones"/>
+    <app-zone-card [zone]="z" *ngFor="let z of zones; trackBy zoneName"/>
   </div>
 </div>

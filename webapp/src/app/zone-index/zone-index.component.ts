@@ -43,4 +43,8 @@ export class ZoneIndexComponent implements OnInit, OnDestroy {
       }
     );
   }
+
+  public zoneName(index: number, zone: ZoneReportSummary): any {
+    return zone.identifier;
+  }
 }
