@@ -23,6 +23,7 @@ import { TrackingStatusComponent } from './zone-view/tracking-status/tracking-st
 import { NgxEchartsModule } from 'ngx-echarts';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 
 @NgModule({
   declarations: [
@@ -49,6 +50,7 @@ import { FormsModule } from '@angular/forms';
     NgxEchartsModule.forRoot({
       echarts: () => import('echarts'),
     }),
+    RouterModule,
   ],
   providers: [DatePipe],
   bootstrap: [AppComponent],

@@ -3,6 +3,7 @@ import { UserSettingsService } from './core/user-settings.service';
 import { Subscription, fromEvent } from 'rxjs';
 import { MatSnackBar, MatSnackBarRef } from '@angular/material/snack-bar';
 import { SnackNetworkOfflineComponent } from './core/snack-network-offline/snack-network-offline.component';
+import { NetworkStatusService } from './core/network-status.service';
 
 @Component({
   selector: 'app-root',
@@ -17,7 +18,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor(
     private settings: UserSettingsService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private networkStatus: NetworkStatusService
   ) {}
 
   ngOnInit(): void {
@@ -25,13 +27,12 @@ export class AppComponent implements OnInit, OnDestroy {
       this.settings.isDarkTheme().subscribe((dark) => (this.darkTheme = dark))
     );
     this._subscriptions.push(
-      fromEvent(window, 'offline').subscribe(() => {
-        this._indicateOffline();
-      })
-    );
-    this._subscriptions.push(
-      fromEvent(window, 'online').subscribe(() => {
-        this._dismissOffline();
+      this.networkStatus.online.subscribe((online) => {
+        if (online == true) {
+          this._dismissOffline();
+        } else {
+          this._indicateOffline();
+        }
       })
     );
   }

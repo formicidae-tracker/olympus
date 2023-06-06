@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/olympus",
+            "outputPath": "dist/olympus/browser",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": [
@@ -102,6 +102,45 @@
             "scripts": [],
             "karmaConfig": "karma.conf.js"
           }
+        },
+        "server": {
+          "builder": "@angular-devkit/build-angular:server",
+          "options": {
+            "outputPath": "dist/olympus/server",
+            "main": "src/main.server.ts",
+            "tsConfig": "tsconfig.server.json",
+            "inlineStyleLanguage": "scss"
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "media"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "sourceMap": true,
+              "extractLicenses": false,
+              "vendorChunk": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "app-shell": {
+          "builder": "@angular-devkit/build-angular:app-shell",
+          "options": {
+            "route": "shell"
+          },
+          "configurations": {
+            "production": {
+              "browserTarget": "olympus:build:production",
+              "serverTarget": "olympus:server:production"
+            },
+            "development": {
+              "browserTarget": "olympus:build:development",
+              "serverTarget": "olympus:server:development"
+            }
+          },
+          "defaultConfiguration": "production"
         }
       }
     }
