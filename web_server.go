@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 func JSONify(w http.ResponseWriter, obj interface{}) {
@@ -48,10 +49,20 @@ func HTTPLogWrap(h http.Handler) http.Handler {
 	})
 }
 
-func EnableCORS(origin string) func(h http.Handler) http.Handler {
+func EnableCORS(origin string) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
+func CacheControl(maxAge time.Duration) func(http.Handler) http.Handler {
+	control := fmt.Sprintf("public max-age=%d", int(maxAge.Seconds()))
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", control)
 			h.ServeHTTP(w, r)
 		})
 	}

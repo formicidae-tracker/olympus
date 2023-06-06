@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sync"
+	"time"
 
 	olympuspb "github.com/formicidae-tracker/olympus/api"
 	"github.com/gorilla/mux"
@@ -56,17 +57,18 @@ func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.fileServer.ServeHTTP(w, r)
 }
 
-func NewSpaHandler(root string) http.Handler {
+func NewSpaHandler(root string, cacheTTL time.Duration) http.Handler {
 	return spaHandler{
 		root:       root,
 		index:      "index.html",
-		fileServer: http.FileServer(http.Dir(root)),
+		fileServer: CacheControl(cacheTTL)(http.FileServer(http.Dir(root))),
 	}
 
 }
 
 func setAngularRoute(router *mux.Router) {
-	router.PathPrefix("/").Handler(NewSpaHandler("./webapp/dist/olympus"))
+	router.PathPrefix("/").Handler(
+		NewSpaHandler("./webapp/dist/olympus", 7*24*time.Hour))
 }
 
 func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
