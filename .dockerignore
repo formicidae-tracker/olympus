@@ -1,0 +1,10 @@
+webapp/node_modules/
+webapp/.angular
+**/dist
+.git
+npm-debug.log
+**/cover.out
+.env
+.aws
+!Dockerfile.olympus
+!Dockerfile.nginx-rtmp

@@ -1,0 +1,23 @@
+FROM node:20-alpine
+
+COPY --from=golang:1.20-alpine /usr/local/go/ /usr/local/go/
+
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+WORKDIR /app
+
+COPY . .
+
+WORKDIR /app/webapp
+
+RUN npm install
+
+RUN npm run ng build --production
+
+WORKDIR /app
+
+RUN go mod download
+
+RUN go build
+
+CMD [ "./olympus" ]
