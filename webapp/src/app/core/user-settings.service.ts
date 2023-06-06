@@ -42,13 +42,11 @@ export class UserSettingsService {
   }
 
   public set darkTheme(darkTheme: boolean) {
-    let settings = this.settings$.value;
-    if (settings.darkMode == darkTheme) {
+    if (this.settings.darkMode == darkTheme) {
       return;
     }
 
-    settings = new UserSettings(settings);
-    settings.darkMode = darkTheme;
+    this.settings.darkMode = darkTheme;
 
     this.dark$.next(darkTheme);
     this._next();
