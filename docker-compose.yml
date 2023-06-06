@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  olympus:
+    build:
+      context: .
+      dockerfile: Dockerfile.olympus
+    ports:
+      - "3001:3001"
+      - "3000:3000"
+
+  rtmp:
+    build:
+      context: .
+      dockerfile: Dockerfile.rtmp
+    ports:
+      - "1935:1935"
+    volumes:
+      - srv-data:/srv
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - srv-data:/srv
+
+volumes:
+  srv-data:

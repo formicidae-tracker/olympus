@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -31,24 +30,43 @@ type Options struct {
 	SlackURL  string `long:"slack-url" description:"slack webhook URL, overiden by OLYMPUS_SLACK_URL"`
 }
 
+type spaHandler struct {
+	root       string
+	index      string
+	fileServer http.Handler
+}
+
+func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	path, err := filepath.Abs(r.URL.Path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	path = filepath.Join(h.root, path)
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		http.ServeFile(w, r, filepath.Join(h.root, h.index))
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	h.fileServer.ServeHTTP(w, r)
+}
+
+func NewSpaHandler(root string) http.Handler {
+	return spaHandler{
+		root:       root,
+		index:      "index.html",
+		fileServer: http.FileServer(http.Dir(root)),
+	}
+
+}
+
 func setAngularRoute(router *mux.Router) {
-	angularPaths := []string{
-		"/host/{h}/zone/{z}",
-		"/logs",
-	}
-
-	angularAssetsPath := "./webapp/dist/webapp"
-	for _, p := range angularPaths {
-		router.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) {
-			indexBytes, err := ioutil.ReadFile(filepath.Join(angularAssetsPath, "index.html"))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-			w.Write(indexBytes)
-		}).Methods("GET")
-	}
-
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./webapp/dist/webapp")))
+	router.PathPrefix("/").Handler(NewSpaHandler("./webapp/dist/olympus"))
 }
 
 func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
