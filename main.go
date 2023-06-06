@@ -68,7 +68,7 @@ func NewSpaHandler(root string, cacheTTL time.Duration) http.Handler {
 
 func setAngularRoute(router *mux.Router) {
 	router.PathPrefix("/").Handler(
-		NewSpaHandler("./webapp/dist/olympus", 7*24*time.Hour))
+		NewSpaHandler("./webapp/dist/olympus/browser", 7*24*time.Hour))
 }
 
 func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
