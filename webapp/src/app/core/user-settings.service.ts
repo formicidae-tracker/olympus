@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { UserSettings } from './user-settings';
+import { LocalStorageService } from './local-storage.service';
 
 export const userSettingsKey = 'userSettings';
 
@@ -17,9 +18,9 @@ export class UserSettingsService {
   // require everything, i.e. UserSettingsComponent
   private settings$: BehaviorSubject<Required<UserSettings>>;
 
-  constructor() {
+  constructor(private localStorage: LocalStorageService) {
     this.settings = UserSettings.deserialize(
-      localStorage.getItem(userSettingsKey) || '{}'
+      this.localStorage.getItem(userSettingsKey) || '{}'
     );
     this.dark$ = new BehaviorSubject<boolean>(this.settings.darkMode);
     this.alarms$ = new Map<string, BehaviorSubject<boolean>>();
@@ -34,7 +35,7 @@ export class UserSettingsService {
   }
 
   private _next(): void {
-    localStorage.setItem(userSettingsKey, this.settings.serialize());
+    this.localStorage.setItem(userSettingsKey, this.settings.serialize());
     this.settings$.next(
       new UserSettings(this.settings) as Required<UserSettings>
     );
