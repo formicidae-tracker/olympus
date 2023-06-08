@@ -119,14 +119,41 @@ type ZoneReportSummary struct {
 }
 
 type ServiceEvent struct {
-	Time     time.Time `json:"time,omitempty"`
-	On       bool      `json:"on,omitempty"`
-	Graceful bool      `json:"graceful,omitempty"`
+	Start    time.Time  `json:"start,omitempty"`
+	End      *time.Time `json:"end,omitempty"`
+	Graceful bool       `json:"graceful,omitempty"`
 }
 
 type ServiceEventList struct {
-	Zone   string         `json:"zone,omitempty"`
-	Events []ServiceEvent `json:"events,omitempty"`
+	Zone   string          `json:"zone,omitempty"`
+	Events []*ServiceEvent `json:"events,omitempty"`
+}
+
+func (l *ServiceEventList) On() bool {
+	if len(l.Events) == 0 {
+		return false
+	}
+	lastEvent := l.Events[len(l.Events)-1]
+	return lastEvent.End == nil
+}
+
+func (l *ServiceEventList) SetOn(time time.Time) {
+	if l.On() == true {
+		l.SetOff(time, false)
+	}
+	l.Events = append(l.Events, &ServiceEvent{Start: time})
+}
+
+func (l *ServiceEventList) SetOff(t time.Time, graceful bool) {
+	if l.On() == false {
+		l.SetOn(t)
+		l.SetOff(t, false)
+		return
+	}
+	lastEvent := l.Events[len(l.Events)-1]
+	lastEvent.End = new(time.Time)
+	*lastEvent.End = t
+	lastEvent.Graceful = graceful
 }
 
 type ServicesLogs struct {

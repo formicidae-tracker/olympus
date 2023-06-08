@@ -119,8 +119,8 @@ func generateUnitTestData() map[string][]interface{} {
 		"unit-testdata/ServiceEvent.json": {
 			api.ServiceEvent{},
 			api.ServiceEvent{
-				Time:     time.Unix(1, 1),
-				On:       true,
+				Start:    time.Unix(1, 1),
+				End:      newWithValue(time.Unix(2, 2)),
 				Graceful: true,
 			},
 		},
@@ -128,7 +128,7 @@ func generateUnitTestData() map[string][]interface{} {
 			api.ServiceEventList{},
 			api.ServiceEventList{
 				Zone:   "somehost.box",
-				Events: []api.ServiceEvent{{Time: time.Unix(1, 1), On: true, Graceful: false}},
+				Events: []*api.ServiceEvent{{Start: time.Unix(1, 1)}},
 			},
 		},
 		"unit-testdata/ServicesLogs.json": {
@@ -167,6 +167,7 @@ func generateAlarmReport(identifier, description string,
 	level api.AlarmLevel,
 	number int,
 	on bool) api.AlarmReport {
+
 	t := timeMustParse("2023-03-31T23:25:34.000Z")
 	events := make([]api.AlarmEvent, 0, number)
 	for i := 0; i < number; i++ {
@@ -275,6 +276,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		},
 	}
 
+	rand.Seed(42)
 	minervaAlarms := []api.AlarmReport{
 		generateAlarmReport("climate.temperature_out_of_bound",
 			"Temperature (22.1°C) is out of allowed range (17.0°C - 22.0°C)",
@@ -419,6 +421,30 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		"_api_host_jupyter_zone_desert_alarms": jupyterAlarms,
 		"_api_host_juno_zone_box_alarms":       junoAlarms,
 		"_api_host_minerva_zone_box_alarms":    minervaAlarms,
+		"_api_logs": &api.ServicesLogs{
+			Climate: []api.ServiceEventList{
+				{Zone: "jupyter.desert", Events: []*api.ServiceEvent{{Start: jupyterClimate.Since}}},
+				{Zone: "minerva.box", Events: []*api.ServiceEvent{{Start: minervaClimate.Since}}},
+				{Zone: "prometheus.box", Events: []*api.ServiceEvent{
+					{
+						Start:    timeMustParse("2011-01-01T01:02:00.000Z"),
+						End:      newWithValue(timeMustParse("2012-01-01T00:00:00.000Z")),
+						Graceful: false,
+					},
+				}},
+			},
+			Tracking: []api.ServiceEventList{
+				{Zone: "juno.box", Events: []*api.ServiceEvent{{Start: junoTracking.Since}}},
+				{Zone: "minerva.box", Events: []*api.ServiceEvent{{Start: minervaTracking.Since}}},
+				{Zone: "prometheus.box", Events: []*api.ServiceEvent{
+					{
+						Start:    timeMustParse("2011-01-01T01:02:00.000Z"),
+						End:      newWithValue(timeMustParse("2012-01-01T00:00:00.000Z")),
+						Graceful: true,
+					},
+				}},
+			},
+		},
 	}
 
 	routes := map[string]string{}
