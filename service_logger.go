@@ -25,19 +25,19 @@ type serviceLogger struct {
 func (l *serviceLogger) Log(zone string, on, graceful bool) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
-	if _, ok := l.logs[zone]; ok == false {
-		l.logs[zone] = &api.ServiceEventList{
+	now := time.Now()
+	list, ok := l.logs[zone]
+	if ok == false {
+		list = &api.ServiceEventList{
 			Zone: zone,
 		}
+		l.logs[zone] = list
 	}
 	if on == true {
-		graceful = true
+		list.SetOn(now)
+	} else {
+		list.SetOff(now, graceful)
 	}
-	l.logs[zone].Events = append(l.logs[zone].Events, api.ServiceEvent{
-		Time:     time.Now(),
-		On:       on,
-		Graceful: graceful,
-	})
 }
 
 func (l *serviceLogger) Logs() []api.ServiceEventList {
@@ -62,8 +62,7 @@ func (l *serviceLogger) Logs() []api.ServiceEventList {
 func (l *serviceLogger) find(on bool) []string {
 	res := make([]string, 0, len(l.logs))
 	for _, log := range l.logs {
-		events := log.Events
-		if len(events) == 0 || events[len(events)-1].On != on {
+		if on != log.On() {
 			continue
 		}
 		res = append(res, log.Zone)

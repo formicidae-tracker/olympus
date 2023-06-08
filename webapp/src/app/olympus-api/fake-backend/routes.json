@@ -7,5 +7,6 @@
   "/api/host/minerva/zone/box": "/_api_host_minerva_zone_box",
   "/api/host/minerva/zone/box/alarms": "/_api_host_minerva_zone_box_alarms",
   "/api/host/minerva/zone/box/climate?window=:window": "/_api_climate_:window",
+  "/api/logs": "/_api_logs",
   "/api/zones": "/_api_zones"
 }
