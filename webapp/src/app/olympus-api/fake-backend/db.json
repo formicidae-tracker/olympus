@@ -17460,7 +17460,8 @@
         "zone": "jupyter.desert",
         "events": [
           {
-            "start": "2023-03-28T11:00:00Z"
+            "start": "2023-03-28T11:00:00Z",
+            "graceful": false
           }
         ]
       },
@@ -17468,7 +17469,8 @@
         "zone": "minerva.box",
         "events": [
           {
-            "start": "2023-03-28T12:00:00Z"
+            "start": "2023-03-28T12:00:00Z",
+            "graceful": false
           }
         ]
       },
@@ -17477,7 +17479,8 @@
         "events": [
           {
             "start": "2011-01-01T01:02:00Z",
-            "end": "2012-01-01T00:00:00Z"
+            "end": "2012-01-01T00:00:00Z",
+            "graceful": false
           }
         ]
       }
@@ -17487,7 +17490,8 @@
         "zone": "juno.box",
         "events": [
           {
-            "start": "2023-03-28T10:00:00Z"
+            "start": "2023-03-28T10:00:00Z",
+            "graceful": false
           }
         ]
       },
@@ -17495,7 +17499,8 @@
         "zone": "minerva.box",
         "events": [
           {
-            "start": "2023-03-28T12:00:00Z"
+            "start": "2023-03-28T12:00:00Z",
+            "graceful": false
           }
         ]
       },

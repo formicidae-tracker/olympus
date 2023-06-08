@@ -14,14 +14,23 @@
   </ng-container>
 
   <ng-container matColumnDef="duration">
-    <th  mat-header-cell *matHeaderCellDef> Duration </th>
+    <th  mat-header-cell *matHeaderCellDef>Duration</th>
     <td class="mat-small" mat-cell *matCellDef="let element" >
       {{ duration(element) }}
     </td>
   </ng-container>
 
-  <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-  <tr mat-row *matRowDef="let row; columns: columnsToDisplay;"></tr>
+  <ng-container matColumnDef="status">
+    <th mat-header-cell *matHeaderCellDef>Status</th>
+    <td class="math-small" mat-cell *matCellDef="let element">
+      <mat-icon *ngIf="element.status() == 'running'">sync</mat-icon>
+      <mat-icon *ngIf="element.status() == 'done'">done</mat-icon>
+      <mat-icon *ngIf="element.status() == 'ungraceful'" color='warn'>error</mat-icon>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="cols"></tr>
+  <tr mat-row *matRowDef="let row; columns: cols;"></tr>
 
 </table>
 <mat-paginator [pageSize]="5"
