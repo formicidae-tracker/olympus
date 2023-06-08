@@ -1,4 +1,4 @@
-all: olympus olympus-stream-notifier/olympus-stream-notifier check webapp
+all: olympus olympus-stream-notifier/olympus-stream-notifier check
 
 clean:
 	rm -f olympus
