@@ -121,7 +121,7 @@ type ZoneReportSummary struct {
 type ServiceEvent struct {
 	Start    time.Time  `json:"start,omitempty"`
 	End      *time.Time `json:"end,omitempty"`
-	Graceful bool       `json:"graceful,omitempty"`
+	Graceful bool       `json:"graceful"`
 }
 
 type ServiceEventList struct {

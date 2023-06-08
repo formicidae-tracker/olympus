@@ -1,0 +1,18 @@
+<div class="flex">
+  <mat-accordion class="border">
+    <mat-expansion-panel *ngFor="let log of logs">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          {{log.zone}}
+        </mat-panel-title>
+        <mat-panel-description>
+          {{log.events.length}} events, since  {{lastEventTime(log)}}.
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <ng-template matExpansionPanelContent>
+        <app-event-report [events]="log.events" [displayStatus]="true"/>
+      </ng-template>
+    </mat-expansion-panel>
+  </mat-accordion>
+</div>

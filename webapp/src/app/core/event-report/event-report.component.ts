@@ -3,7 +3,7 @@ import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { HumanizeService } from 'src/app/core/humanize.service';
-import { Event } from 'src/app/olympus-api/event';
+import { Event, EventStatus } from 'src/app/olympus-api/event';
 
 @Component({
   selector: 'app-event-report',
@@ -12,13 +12,15 @@ import { Event } from 'src/app/olympus-api/event';
 })
 export class EventReportComponent implements OnInit {
   @Input() events: Event[] = [];
+  @Input() displayStatus: boolean = false;
+
   dataSource = new MatTableDataSource<Event>();
 
   @ViewChild(MatPaginator, { static: true }) paginator!: MatPaginator;
 
   constructor(private humanizer: HumanizeService, private date: DatePipe) {}
 
-  public columnsToDisplay = ['start', 'end', 'duration'];
+  public cols = ['start', 'end', 'duration'];
 
   public trackByTime(index: number, e: Event): number {
     return e.time().getTime();
@@ -27,6 +29,9 @@ export class EventReportComponent implements OnInit {
   ngOnInit() {
     this.dataSource = new MatTableDataSource<Event>(this.events);
     this.dataSource.paginator = this.paginator;
+    if (this.displayStatus == true) {
+      this.cols = ['status', 'start', 'end', 'duration'];
+    }
   }
 
   public duration(e: Event): string {
@@ -43,7 +48,7 @@ export class EventReportComponent implements OnInit {
 
   public formatEndDate(e: Event): string {
     if (e.end == undefined) {
-      return 'now';
+      return '';
     }
     if (e.end.toLocaleDateString() == e.start.toLocaleDateString()) {
       return this.date.transform(e.end, 'HH:mm:ss') || '';

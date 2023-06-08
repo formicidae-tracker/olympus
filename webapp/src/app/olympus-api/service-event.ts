@@ -12,6 +12,20 @@ export class ServiceEventList {
     }
     return res;
   }
+
+  static listFromPlain(plain: any): ServiceEventList[] {
+    const logs = ServicesLogs.fromPlain(plain);
+    let res: ServiceEventList[] = [];
+    for (let l of logs.tracking) {
+      l.zone = l.zone + '.tracking';
+      res.push(l);
+    }
+    for (let l of logs.climate) {
+      l.zone = l.zone + '.climate';
+      res.push(l);
+    }
+    return res;
+  }
 }
 
 export class ServicesLogs {
