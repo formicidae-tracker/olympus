@@ -6,5 +6,5 @@ npm-debug.log
 **/cover.out
 .env
 .aws
-!Dockerfile.olympus
-!Dockerfile.nginx-rtmp
+Dockerfile.*
+.dockerignore
