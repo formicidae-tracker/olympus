@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { NetworkStatusService } from './network-status.service.ts~';
+import { NetworkStatusService } from './network-status.service';
 
 describe('NetworkStatusService', () => {
   let service: NetworkStatusService;

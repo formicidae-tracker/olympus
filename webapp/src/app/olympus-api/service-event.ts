@@ -1,12 +1,14 @@
 export class ServiceEvent {
-  public time: Date = new Date(0);
-  public on: boolean = false;
+  public start: Date = new Date(0);
+  public end?: Date;
   public graceful: boolean = false;
 
   static fromPlain(plain: any): ServiceEvent {
     let res = new ServiceEvent();
-    res.time = new Date(plain.time || 0);
-    res.on = plain.on || false;
+    res.start = new Date(plain.start || 0);
+    if (plain.end != undefined) {
+      res.end = new Date(plain.end);
+    }
     res.graceful = plain.graceful || false;
     return res;
   }
