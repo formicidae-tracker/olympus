@@ -3,20 +3,11 @@
   display: block;
 }
 
-.flex {
-  height: 100%;
-  flex-flow: column wrap;
-}
-
 .vertical-center {
   height: 100%;
   align-items: center;
   text-align: center;
-  padding-top: 160px;
-}
-
-.vertical-center mat-spinner{
-  margin-top: 48px;
+  flex-flow: column wrap;
 }
 
 .big-icon {

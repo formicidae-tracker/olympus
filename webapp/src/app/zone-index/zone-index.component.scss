@@ -12,3 +12,14 @@ app-zone-card {
     grid-column-end: span 3;
   }
 }
+
+
+.flex {
+  flex-flow: row wrap;
+  height: 100%;
+}
+
+.footer {
+  width: 100%;
+  align-self: flex-end;
+}
