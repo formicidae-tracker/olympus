@@ -12,8 +12,10 @@ describe('ServiceEvent', () => {
     for (const plain of eventTestData) {
       let e = ServiceEvent.fromPlain(plain);
       expect(e).toBeTruthy();
-      expect(e.time).toEqual(new Date(plain.time) || new Date(0));
-      expect(e.on).toEqual(plain.on || false);
+      expect(e.start).toEqual(new Date(plain.start) || new Date(0));
+      if (plain.end != undefined) {
+        expect(e.end).toEqual(new Date(plain.end));
+      }
       expect(e.graceful).toEqual(plain.graceful || false);
     }
   });
