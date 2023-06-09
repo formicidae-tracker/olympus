@@ -20,6 +20,10 @@ app-zone-card {
 }
 
 .footer {
-  width: 100%;
+  padding-top: 32px;
   align-self: flex-end;
+}
+
+.footer a {
+  color:  #006874;
 }

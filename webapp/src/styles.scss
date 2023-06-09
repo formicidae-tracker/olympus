@@ -347,14 +347,28 @@ body {
 
 }
 
-.grid {
+.border {
+  width:100%;
 
+  @media (min-width: 905px) {
+    width: 840px;
+  }
+
+  @media (min-width: 1240px) {
+    width: 100%;
+  }
+
+  @media (min-width:1440px) {
+    width: 1240px;
+  }
+}
+
+
+.grid {
   display: grid;
   justify-items: stretch;
 
   grid-template-columns: repeat(4,1fr);
-
-  width:100%;
 
   gap: 16px;
 
@@ -362,15 +376,11 @@ body {
   @media (min-width: 600px) {
     grid-template-columns: repeat(8,1fr);
 
-    width:100%;
-
     gap: 24px;
   }
 
   @media (min-width: 905px) {
     grid-template-columns: repeat(12,1fr);
-
-    width: 840px;
 
     gap: 24px;
   }
@@ -378,15 +388,11 @@ body {
   @media (min-width: 1240px) {
     grid-template-columns: repeat(12,1fr);
 
-    width: 100%;
-
     gap: 32px;
   }
 
   @media (min-width:1440px) {
     grid-template-columns: repeat(12,1fr);
-
-    width: 1240px;
 
     gap: 32px;
   }
