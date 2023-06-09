@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { OlympusService } from '../olympus-api/services/olympus.service';
-import { ServiceEventList, ServicesLogs } from '../olympus-api/service-event';
+import { ServiceLog } from '../olympus-api/service-event';
 import { HumanizeService } from '../core/humanize.service';
 
 @Component({
@@ -9,7 +9,7 @@ import { HumanizeService } from '../core/humanize.service';
   styleUrls: ['./log-index.component.scss'],
 })
 export class LogIndexComponent implements OnInit {
-  public logs: ServiceEventList[] = [];
+  public logs: ServiceLog[] = [];
 
   constructor(
     private olympus: OlympusService,
@@ -20,7 +20,7 @@ export class LogIndexComponent implements OnInit {
     this.olympus.getLogs().subscribe((logs) => (this.logs = logs));
   }
 
-  lastEventTime(log: ServiceEventList): string {
+  lastEventTime(log: ServiceLog): string {
     const lastEvent = log.events.at(-1);
     if (lastEvent == undefined) {
       return 'never';
