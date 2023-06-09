@@ -28,6 +28,7 @@ import { VgStreamingModule } from '@videogular/ngx-videogular/streaming';
 import { BoundedProgressBarComponent } from './bounded-progress-bar/bounded-progress-bar.component';
 import { ZoneNotificationButtonComponent } from './zone-notification-button/zone-notification-button.component';
 import { SnackNetworkOfflineComponent } from './snack-network-offline/snack-network-offline.component';
+import { EventReportComponent } from './event-report/event-report.component';
 
 let UiComponents = [
   MatToolbarModule,
@@ -62,6 +63,7 @@ let VideoComponents = [
     BoundedProgressBarComponent,
     ZoneNotificationButtonComponent,
     SnackNetworkOfflineComponent,
+    EventReportComponent,
   ],
   imports: [CommonModule, UiComponents, VideoComponents],
   exports: [
@@ -70,6 +72,7 @@ let VideoComponents = [
     BoundedProgressBarComponent,
     ZoneNotificationButtonComponent,
     SnackNetworkOfflineComponent,
+    EventReportComponent,
   ],
 })
 export class CoreModule {}

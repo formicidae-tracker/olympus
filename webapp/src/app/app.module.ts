@@ -17,7 +17,6 @@ import { ClimateChartComponent } from './zone-view/climate-chart/climate-chart.c
 import { ClimateStatusComponent } from './zone-view/climate-status/climate-status.component';
 import { TrackingPlayerComponent } from './zone-view/tracking-player/tracking-player.component';
 import { AlarmsReportsComponent } from './zone-view/alarms-reports/alarms-reports.component';
-import { ReportLogsComponent } from './zone-view/alarms-reports/report-logs/report-logs.component';
 import { TrackingStatusComponent } from './zone-view/tracking-status/tracking-status.component';
 
 import { NgxEchartsModule } from 'ngx-echarts';
@@ -25,6 +24,7 @@ import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ServiceWorkerModule } from '@angular/service-worker';
+import { LogIndexComponent } from './log-index/log-index.component';
 
 @NgModule({
   declarations: [
@@ -38,8 +38,8 @@ import { ServiceWorkerModule } from '@angular/service-worker';
     ClimateStatusComponent,
     TrackingPlayerComponent,
     AlarmsReportsComponent,
-    ReportLogsComponent,
     TrackingStatusComponent,
+    LogIndexComponent,
   ],
   imports: [
     BrowserModule,
@@ -56,7 +56,7 @@ import { ServiceWorkerModule } from '@angular/service-worker';
       enabled: !isDevMode(),
       // Register the ServiceWorker as soon as the application is stable
       // or after 30 seconds (whichever comes first).
-      registrationStrategy: 'registerWhenStable:30000'
+      registrationStrategy: 'registerWhenStable:30000',
     }),
   ],
   providers: [DatePipe],

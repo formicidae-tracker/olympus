@@ -3,16 +3,16 @@ import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { HumanizeService } from 'src/app/core/humanize.service';
-import { AlarmEvent } from 'src/app/olympus-api/alarm-report';
+import { Event } from 'src/app/olympus-api/event';
 
 @Component({
-  selector: 'app-report-logs',
-  templateUrl: './report-logs.component.html',
-  styleUrls: ['./report-logs.component.scss'],
+  selector: 'app-event-report',
+  templateUrl: './event-report.component.html',
+  styleUrls: ['./event-report.component.scss'],
 })
-export class ReportLogsComponent implements OnInit {
-  @Input() events: AlarmEvent[] = [];
-  dataSource = new MatTableDataSource<AlarmEvent>();
+export class EventReportComponent implements OnInit {
+  @Input() events: Event[] = [];
+  dataSource = new MatTableDataSource<Event>();
 
   @ViewChild(MatPaginator, { static: true }) paginator!: MatPaginator;
 
@@ -20,16 +20,16 @@ export class ReportLogsComponent implements OnInit {
 
   public columnsToDisplay = ['start', 'end', 'duration'];
 
-  public trackByTime(index: number, e: AlarmEvent): number {
+  public trackByTime(index: number, e: Event): number {
     return e.time().getTime();
   }
 
   ngOnInit() {
-    this.dataSource = new MatTableDataSource<AlarmEvent>(this.events);
+    this.dataSource = new MatTableDataSource<Event>(this.events);
     this.dataSource.paginator = this.paginator;
   }
 
-  public duration(e: AlarmEvent): string {
+  public duration(e: Event): string {
     const d = e.duration();
     if (d == undefined) {
       return '';
@@ -37,11 +37,11 @@ export class ReportLogsComponent implements OnInit {
     return this.humanizer.humanizeDuration(d);
   }
 
-  public formatStartDate(e: AlarmEvent): string {
+  public formatStartDate(e: Event): string {
     return this.date.transform(e.start, 'dd/MM/yy HH:mm:ss') || '';
   }
 
-  public formatEndDate(e: AlarmEvent): string {
+  public formatEndDate(e: Event): string {
     if (e.end == undefined) {
       return 'now';
     }
