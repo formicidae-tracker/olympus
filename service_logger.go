@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/adrg/xdg"
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/api"
 )
@@ -25,8 +24,9 @@ type ServiceLogger interface {
 type serviceLogger struct {
 	mx sync.RWMutex
 
-	logs   map[string]*api.ServiceLog
-	logger *log.Logger
+	logs     map[string]*api.ServiceLog
+	logger   *log.Logger
+	datapath string
 }
 
 func (l *serviceLogger) Log(zone string, on, graceful bool) {
@@ -140,7 +140,7 @@ func (l *serviceLogger) loadUnsafe(name string) error {
 }
 
 func (l *serviceLogger) dataPath() string {
-	return filepath.Join(xdg.DataHome, "fort", "olympus", "services")
+	return filepath.Join(datapath, "services")
 }
 
 func (l *serviceLogger) zoneFilePath(zone string) string {

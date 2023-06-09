@@ -1,30 +1,15 @@
 package main
 
 import (
-	"os"
-
-	"github.com/adrg/xdg"
 	. "gopkg.in/check.v1"
 )
 
-type ServiceLoggerSuite struct {
-	XdgDataHome string
-}
+type ServiceLoggerSuite struct{}
 
 var _ = Suite(&ServiceLoggerSuite{})
 
-func (s *ServiceLoggerSuite) SetUpSuite(c *C) {
-	s.XdgDataHome = os.Getenv("XDG_DATA_HOME")
-}
-
-func (s *ServiceLoggerSuite) TearDownSuite(c *C) {
-	os.Setenv("XDG_DATA_HOME", s.XdgDataHome)
-	xdg.Reload()
-}
-
 func (s *ServiceLoggerSuite) SetUpTest(c *C) {
-	os.Setenv("XDG_DATA_HOME", c.MkDir())
-	xdg.Reload()
+	datapath = c.MkDir()
 }
 
 func (s *ServiceLoggerSuite) TestKeepsLogsSorted(c *C) {
