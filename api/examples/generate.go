@@ -131,13 +131,6 @@ func generateUnitTestData() map[string][]interface{} {
 				Events: []*api.ServiceEvent{{Start: time.Unix(1, 1)}},
 			},
 		},
-		"unit-testdata/ServicesLogs.json": {
-			api.ServicesLogs{},
-			api.ServicesLogs{
-				Climate:  []api.ServiceEventList{{Zone: "foo"}},
-				Tracking: []api.ServiceEventList{{Zone: "foo"}},
-			},
-		},
 		"unit-testdata/ZoneReport.json": {
 			api.ZoneReport{},
 			api.ZoneReport{
@@ -421,28 +414,25 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		"_api_host_jupyter_zone_desert_alarms": jupyterAlarms,
 		"_api_host_juno_zone_box_alarms":       junoAlarms,
 		"_api_host_minerva_zone_box_alarms":    minervaAlarms,
-		"_api_logs": &api.ServicesLogs{
-			Climate: []api.ServiceEventList{
-				{Zone: "jupyter.desert", Events: []*api.ServiceEvent{{Start: jupyterClimate.Since}}},
-				{Zone: "minerva.box", Events: []*api.ServiceEvent{{Start: minervaClimate.Since}}},
-				{Zone: "prometheus.box", Events: []*api.ServiceEvent{
-					{
-						Start:    timeMustParse("2011-01-01T01:02:00.000Z"),
-						End:      newWithValue(timeMustParse("2012-01-01T00:00:00.000Z")),
-						Graceful: false,
-					},
-				}},
+		"_api_logs": []api.ServiceEventList{
+			{Zone: "jupyter.desert.climate", Events: []*api.ServiceEvent{{Start: jupyterClimate.Since}}},
+			{Zone: "minerva.box.climate", Events: []*api.ServiceEvent{{Start: minervaClimate.Since}}},
+			{Zone: "prometheus.box.climate", Events: []*api.ServiceEvent{
+				{
+					Start:    timeMustParse("2011-01-01T01:02:00.000Z"),
+					End:      newWithValue(timeMustParse("2012-01-01T00:00:00.000Z")),
+					Graceful: false,
+				},
+			}},
+			{Zone: "juno.box.tracking", Events: []*api.ServiceEvent{{Start: junoTracking.Since}}},
+			{Zone: "minerva.box.tracking", Events: []*api.ServiceEvent{{Start: minervaTracking.Since}}},
+			{Zone: "prometheus.box.tracking", Events: []*api.ServiceEvent{
+				{
+					Start:    timeMustParse("2011-01-01T01:02:00.000Z"),
+					End:      newWithValue(timeMustParse("2012-01-01T00:00:00.000Z")),
+					Graceful: true,
+				},
 			},
-			Tracking: []api.ServiceEventList{
-				{Zone: "juno.box", Events: []*api.ServiceEvent{{Start: junoTracking.Since}}},
-				{Zone: "minerva.box", Events: []*api.ServiceEvent{{Start: minervaTracking.Since}}},
-				{Zone: "prometheus.box", Events: []*api.ServiceEvent{
-					{
-						Start:    timeMustParse("2011-01-01T01:02:00.000Z"),
-						End:      newWithValue(timeMustParse("2012-01-01T00:00:00.000Z")),
-						Graceful: true,
-					},
-				}},
 			},
 		},
 	}

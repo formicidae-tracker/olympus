@@ -1,10 +1,16 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/api"
 )
@@ -19,7 +25,8 @@ type ServiceLogger interface {
 type serviceLogger struct {
 	mx sync.RWMutex
 
-	logs map[string]*api.ServiceEventList
+	logs   map[string]*api.ServiceEventList
+	logger *log.Logger
 }
 
 func (l *serviceLogger) Log(zone string, on, graceful bool) {
@@ -38,6 +45,7 @@ func (l *serviceLogger) Log(zone string, on, graceful bool) {
 	} else {
 		list.SetOff(now, graceful)
 	}
+	l.save(zone)
 }
 
 func (l *serviceLogger) Logs() []api.ServiceEventList {
@@ -85,8 +93,81 @@ func (l *serviceLogger) OffServices() []string {
 	return l.find(false)
 }
 
-func NewServiceLogger() ServiceLogger {
-	return &serviceLogger{
-		logs: make(map[string]*api.ServiceEventList),
+func (l *serviceLogger) saveUnsafe(zone string) error {
+	filename := l.zoneFilePath(zone)
+	dirpath := filepath.Dir(filename)
+	err := os.MkdirAll(dirpath, 0755)
+	if err != nil {
+		return fmt.Errorf("could not make %s: %w", dirpath, err)
 	}
+
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("could not create %s: %w", filename, err)
+	}
+	defer file.Close()
+
+	enc := json.NewEncoder(file)
+	if err := enc.Encode(l.logs[zone]); err != nil {
+		return fmt.Errorf("could not write %s: %w", filename, err)
+	}
+	return nil
+}
+
+func (l *serviceLogger) save(zone string) {
+	if err := l.saveUnsafe(zone); err != nil {
+		l.logger.Printf("%s", err)
+	}
+}
+
+func (l *serviceLogger) loadUnsafe(name string) error {
+	if filepath.Ext(name) != ".json" {
+		return nil
+	}
+	filename := filepath.Join(l.dataPath(), filepath.Base(name))
+	file, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("could not open %s: %w", filename, err)
+	}
+	defer file.Close()
+	dec := json.NewDecoder(file)
+	res := &api.ServiceEventList{}
+	if err := dec.Decode(res); err != nil {
+		return fmt.Errorf("could not read %s: %w", filename, err)
+	}
+	l.logs[res.Zone] = res
+	return nil
+}
+
+func (l *serviceLogger) dataPath() string {
+	return filepath.Join(xdg.DataHome, "fort", "olympus", "services")
+}
+
+func (l *serviceLogger) zoneFilePath(zone string) string {
+	return filepath.Join(l.dataPath(), "zone"+".json")
+}
+
+func (l *serviceLogger) reload() {
+	entries, err := os.ReadDir(l.dataPath())
+	if err != nil {
+		l.logger.Printf("could not read %s: %s", l.dataPath(), err)
+		return
+	}
+
+	for _, e := range entries {
+		if err := l.loadUnsafe(e.Name()); err != nil {
+			l.logger.Println(err.Error())
+		}
+	}
+}
+
+func NewServiceLogger() ServiceLogger {
+	res := &serviceLogger{
+		logs:   make(map[string]*api.ServiceEventList),
+		logger: log.New(os.Stderr, "[services]: ", log.LstdFlags),
+	}
+	res.mx.Lock()
+	defer res.mx.Unlock()
+	res.reload()
+	return res
 }

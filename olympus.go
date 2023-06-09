@@ -79,8 +79,7 @@ type Olympus struct {
 	log           *log.Logger
 	subscriptions map[string]*subscription
 
-	trackingLogger ServiceLogger
-	climateLogger  ServiceLogger
+	serviceLogger ServiceLogger
 
 	hostname string
 	slackURL string
@@ -106,11 +105,10 @@ type subscription struct {
 
 func NewOlympus(slackURL string) (*Olympus, error) {
 	res := &Olympus{
-		log:            log.New(os.Stderr, "[olympus] :", log.LstdFlags),
-		subscriptions:  make(map[string]*subscription),
-		trackingLogger: NewServiceLogger(),
-		climateLogger:  NewServiceLogger(),
-		slackURL:       slackURL,
+		log:           log.New(os.Stderr, "[olympus] :", log.LstdFlags),
+		subscriptions: make(map[string]*subscription),
+		serviceLogger: NewServiceLogger(),
+		slackURL:      slackURL,
 	}
 	var err error
 	res.hostname, err = os.Hostname()
@@ -148,11 +146,8 @@ func (o *Olympus) Close() error {
 	return multipleError(errs)
 }
 
-func (o *Olympus) GetServiceLogs() api.ServicesLogs {
-	return api.ServicesLogs{
-		Climate:  o.climateLogger.Logs(),
-		Tracking: o.trackingLogger.Logs(),
-	}
+func (o *Olympus) GetServiceLogs() []api.ServiceEventList {
+	return o.serviceLogger.Logs()
 }
 
 func (o *Olympus) ZoneIsRegistered(host, zone string) bool {
@@ -327,7 +322,7 @@ func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration, cancel co
 		alarmLogger: sub.alarmLogger,
 	}
 
-	go o.climateLogger.Log(zoneIdentifier, true, true)
+	go o.serviceLogger.Log(zoneIdentifier+".climate", true, true)
 	return sub.climate, nil
 }
 
@@ -350,10 +345,7 @@ func (o *Olympus) UnregisterClimate(host, name string, graceful bool) error {
 		delete(o.subscriptions, zoneIdentifier)
 	}
 
-	o.climateLogger.Log(zoneIdentifier, false, graceful)
-	if graceful == false {
-		go o.postToSlack(":warning: Climate on *%s* ended unexpectedly.", zoneIdentifier)
-	}
+	o.serviceLogger.Log(zoneIdentifier+".climate", false, graceful)
 
 	return s.climate.Close()
 }
@@ -392,7 +384,7 @@ func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration, cancel 
 		alarmLogger: sub.alarmLogger,
 	}
 
-	o.trackingLogger.Log(declaration.Hostname, true, true)
+	o.serviceLogger.Log(zoneIdentifier+".tracking", true, true)
 
 	return sub.tracking, nil
 }
@@ -415,10 +407,7 @@ func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 		delete(o.subscriptions, zoneIdentifier)
 	}
 
-	o.trackingLogger.Log(host, false, graceful)
-	if graceful == false {
-		o.postToSlack(":warning: Tracking experiment `%s` on %s ended unexpectedly.", "", host)
-	}
+	o.serviceLogger.Log(zoneIdentifier+".tracking", false, graceful)
 	return s.tracking.Close()
 }
 
@@ -493,13 +482,4 @@ func (o *Olympus) postToSlackError(message string) error {
 		return fmt.Errorf("response %d: %s", resp.StatusCode, string(d))
 	}
 	return nil
-}
-
-func (o *Olympus) postToSlack(message string, args ...interface{}) {
-	if len(o.slackURL) == 0 {
-		return
-	}
-	if err := o.postToSlackError(fmt.Sprintf(message, args...)); err != nil {
-		o.log.Printf("slack error: %s", err)
-	}
 }

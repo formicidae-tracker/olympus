@@ -139,26 +139,19 @@ func (l *ServiceEventList) On() bool {
 
 func (l *ServiceEventList) SetOn(time time.Time) {
 	if l.On() == true {
-		l.SetOff(time, false)
+		return
 	}
 	l.Events = append(l.Events, &ServiceEvent{Start: time})
 }
 
 func (l *ServiceEventList) SetOff(t time.Time, graceful bool) {
 	if l.On() == false {
-		l.SetOn(t)
-		l.SetOff(t, false)
 		return
 	}
 	lastEvent := l.Events[len(l.Events)-1]
 	lastEvent.End = new(time.Time)
 	*lastEvent.End = t
 	lastEvent.Graceful = graceful
-}
-
-type ServicesLogs struct {
-	Climate  []ServiceEventList `json:"climate,omitempty"`
-	Tracking []ServiceEventList `json:"tracking,omitempty"`
 }
 
 type ZoneReport struct {
