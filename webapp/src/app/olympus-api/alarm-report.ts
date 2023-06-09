@@ -1,3 +1,5 @@
+import { Event } from './event';
+
 function compareTimeDescending(a: Date, b: Date): number {
   if (a == b) {
     return 0;
@@ -19,39 +21,12 @@ function compareOnDescending(a: boolean, b: boolean): number {
   return a ? -1 : 1;
 }
 
-export class AlarmEvent {
-  constructor(public start: Date, public end: Date | undefined) {}
-
-  public time(): Date {
-    return this.end == undefined ? this.start : this.end;
-  }
-
-  public on(): boolean {
-    return this.end == undefined;
-  }
-
-  public duration(): number | undefined {
-    if (this.end == undefined) {
-      return undefined;
-    }
-    return this.end.getTime() - this.start.getTime();
-  }
-
-  static fromPlain(plain: Partial<AlarmEvent>): AlarmEvent {
-    let end = undefined;
-    if (plain.end != undefined) {
-      end = new Date(plain.end);
-    }
-    return new AlarmEvent(new Date(plain.start || 0), end);
-  }
-}
-
 export class AlarmReport {
   public identification: string = '';
   public level: number = 0;
   public description: string = '';
 
-  public events: AlarmEvent[] = [];
+  public events: Event[] = [];
 
   static fromPlain(plain: any): AlarmReport {
     let res = new AlarmReport();
@@ -59,7 +34,7 @@ export class AlarmReport {
     res.level = plain.level || 0;
     res.description = plain.description || '';
     for (const pe of plain.events || []) {
-      res.events.push(AlarmEvent.fromPlain(pe));
+      res.events.push(Event.fromPlain(pe));
     }
     return res;
   }

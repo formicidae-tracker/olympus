@@ -1,31 +1,6 @@
-import { cases } from 'jasmine-parameterized';
-
-import { AlarmEvent, AlarmReport } from './alarm-report';
+import { AlarmReport } from './alarm-report';
 
 import testData from './unit-testdata/AlarmReport.json';
-
-describe('AlarmEvent', () => {
-  cases([
-    [new Date(0), undefined],
-    [new Date(0), new Date(1)],
-  ]).it('should create', ([start, end]) => {
-    expect(new AlarmEvent(start, end)).toBeTruthy();
-  });
-
-  cases([
-    [new AlarmEvent(new Date(0), undefined), true],
-    [new AlarmEvent(new Date(0), new Date(1)), false],
-  ]).it('should be on when it has an end Date', ([event, expected]) => {
-    expect(event.on()).toEqual(expected);
-  });
-
-  cases([
-    [new AlarmEvent(new Date(0), undefined), new Date(0)],
-    [new AlarmEvent(new Date(0), new Date(1)), new Date(1)],
-  ]).it('should be on when it has an end Date', ([event, expected]) => {
-    expect(event.time()).toEqual(expected);
-  });
-});
 
 describe('AlarmReport', () => {
   it('should be created', () => {
