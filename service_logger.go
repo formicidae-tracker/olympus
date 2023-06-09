@@ -17,7 +17,7 @@ import (
 
 type ServiceLogger interface {
 	Log(identifier string, on, graceful bool)
-	Logs() []api.ServiceEventList
+	Logs() []api.ServiceLog
 	OnServices() []string
 	OffServices() []string
 }
@@ -25,7 +25,7 @@ type ServiceLogger interface {
 type serviceLogger struct {
 	mx sync.RWMutex
 
-	logs   map[string]*api.ServiceEventList
+	logs   map[string]*api.ServiceLog
 	logger *log.Logger
 }
 
@@ -33,27 +33,27 @@ func (l *serviceLogger) Log(zone string, on, graceful bool) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	now := time.Now()
-	list, ok := l.logs[zone]
+	log, ok := l.logs[zone]
 	if ok == false {
-		list = &api.ServiceEventList{
+		log = &api.ServiceLog{
 			Zone: zone,
 		}
-		l.logs[zone] = list
+		l.logs[zone] = log
 	}
 	if on == true {
-		list.SetOn(now)
+		log.SetOn(now)
 	} else {
-		list.SetOff(now, graceful)
+		log.SetOff(now, graceful)
 	}
 	l.save(zone)
 }
 
-func (l *serviceLogger) Logs() []api.ServiceEventList {
+func (l *serviceLogger) Logs() []api.ServiceLog {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
 
 	services := make([]string, 0, len(l.logs))
-	logs := make([]api.ServiceEventList, 0, len(l.logs))
+	logs := make([]api.ServiceLog, 0, len(l.logs))
 
 	for idt := range l.logs {
 		services = append(services, idt)
@@ -61,7 +61,7 @@ func (l *serviceLogger) Logs() []api.ServiceEventList {
 	sort.Strings(services)
 
 	for _, idt := range services {
-		logs = append(logs, *deepcopy.MustAnything(l.logs[idt]).(*api.ServiceEventList))
+		logs = append(logs, *deepcopy.MustAnything(l.logs[idt]).(*api.ServiceLog))
 	}
 
 	return logs
@@ -131,7 +131,7 @@ func (l *serviceLogger) loadUnsafe(name string) error {
 	}
 	defer file.Close()
 	dec := json.NewDecoder(file)
-	res := &api.ServiceEventList{}
+	res := &api.ServiceLog{}
 	if err := dec.Decode(res); err != nil {
 		return fmt.Errorf("could not read %s: %w", filename, err)
 	}
@@ -163,7 +163,7 @@ func (l *serviceLogger) reload() {
 
 func NewServiceLogger() ServiceLogger {
 	res := &serviceLogger{
-		logs:   make(map[string]*api.ServiceEventList),
+		logs:   make(map[string]*api.ServiceLog),
 		logger: log.New(os.Stderr, "[services]: ", log.LstdFlags),
 	}
 	res.mx.Lock()

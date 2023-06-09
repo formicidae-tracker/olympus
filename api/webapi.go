@@ -124,12 +124,12 @@ type ServiceEvent struct {
 	Graceful bool       `json:"graceful"`
 }
 
-type ServiceEventList struct {
+type ServiceLog struct {
 	Zone   string          `json:"zone,omitempty"`
 	Events []*ServiceEvent `json:"events,omitempty"`
 }
 
-func (l *ServiceEventList) On() bool {
+func (l *ServiceLog) On() bool {
 	if len(l.Events) == 0 {
 		return false
 	}
@@ -137,14 +137,14 @@ func (l *ServiceEventList) On() bool {
 	return lastEvent.End == nil
 }
 
-func (l *ServiceEventList) SetOn(time time.Time) {
+func (l *ServiceLog) SetOn(time time.Time) {
 	if l.On() == true {
 		return
 	}
 	l.Events = append(l.Events, &ServiceEvent{Start: time})
 }
 
-func (l *ServiceEventList) SetOff(t time.Time, graceful bool) {
+func (l *ServiceLog) SetOff(t time.Time, graceful bool) {
 	if l.On() == false {
 		return
 	}

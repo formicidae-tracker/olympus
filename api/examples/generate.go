@@ -124,9 +124,9 @@ func generateUnitTestData() map[string][]interface{} {
 				Graceful: true,
 			},
 		},
-		"unit-testdata/ServiceEventList.json": {
-			api.ServiceEventList{},
-			api.ServiceEventList{
+		"unit-testdata/ServiceLog.json": {
+			api.ServiceLog{},
+			api.ServiceLog{
 				Zone:   "somehost.box",
 				Events: []*api.ServiceEvent{{Start: time.Unix(1, 1)}},
 			},
@@ -414,7 +414,7 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 		"_api_host_jupyter_zone_desert_alarms": jupyterAlarms,
 		"_api_host_juno_zone_box_alarms":       junoAlarms,
 		"_api_host_minerva_zone_box_alarms":    minervaAlarms,
-		"_api_logs": []api.ServiceEventList{
+		"_api_logs": []api.ServiceLog{
 			{Zone: "jupyter.desert.climate", Events: []*api.ServiceEvent{{Start: jupyterClimate.Since}}},
 			{Zone: "minerva.box.climate", Events: []*api.ServiceEvent{{Start: minervaClimate.Since}}},
 			{Zone: "prometheus.box.climate", Events: []*api.ServiceEvent{

@@ -4,7 +4,7 @@ import { ZoneReportSummary } from '../zone-report-summary';
 import { Observable, map } from 'rxjs';
 import { ZoneReport } from '../zone-report';
 import { ClimateTimeSeries } from '../climate-time-series';
-import { ServiceEventList, ServicesLogs } from '../service-event';
+import { ServiceLog } from '../service-event';
 
 @Injectable({
   providedIn: 'root',
@@ -38,9 +38,13 @@ export class OlympusService {
       .pipe(map((plain) => ClimateTimeSeries.fromPlain(plain)));
   }
 
-  getLogs(): Observable<ServiceEventList[]> {
+  getLogs(): Observable<ServiceLog[]> {
     return this.httpClient
-      .get<any>('/api/logs')
-      .pipe(map((plain) => ServiceEventList.listFromPlain(plain)));
+      .get<any[]>('/api/logs')
+      .pipe(
+        map((plainList) =>
+          plainList.map((plain: any) => ServiceLog.fromPlain(plain))
+        )
+      );
   }
 }

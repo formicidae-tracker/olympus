@@ -146,7 +146,7 @@ func (o *Olympus) Close() error {
 	return multipleError(errs)
 }
 
-func (o *Olympus) GetServiceLogs() []api.ServiceEventList {
+func (o *Olympus) GetServiceLogs() []api.ServiceLog {
 	return o.serviceLogger.Logs()
 }
 
