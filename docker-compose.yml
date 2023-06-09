@@ -1,16 +1,19 @@
+# Sample docker-compose for testing purpose. Most likely you would
+# need to adapt in production environment ( SSL ...)
+
 version: "3.9"
 
 services:
   olympus:
     build:
       context: .
-      dockerfile: Dockerfile.olympus
+      dockerfile: Dockerfile
     ports:
       - "3001:3001"
 
   rtmp:
     build:
-      context: .
+      context: docker
       dockerfile: Dockerfile.rtmp
     ports:
       - "1935:1935"
@@ -19,7 +22,7 @@ services:
 
   nginx:
     build:
-      context: .
+      context: docker
       dockerfile: Dockerfile.nginx
     ports:
       - "8080:80"
