@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/formicidae-tracker/olympus/api"
 	"github.com/gorilla/mux"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -16,6 +17,7 @@ import (
 )
 
 type OlympusSuite struct {
+	XdgDataHome                            string
 	o                                      *Olympus
 	somehostBox, anotherBox, anotherTunnel *GrpcSubscription[ClimateLogger]
 	somehostTracking, fifouTracking        *GrpcSubscription[TrackingLogger]
@@ -23,7 +25,19 @@ type OlympusSuite struct {
 
 var _ = Suite(&OlympusSuite{})
 
+func (s *OlympusSuite) SetUpSuite(c *C) {
+	s.XdgDataHome = os.Getenv("XDG_DATA_HOME")
+}
+
+func (s *OlympusSuite) TearDownSuite(c *C) {
+	os.Setenv("XDG_DATA_HOME", s.XdgDataHome)
+	xdg.Reload()
+}
+
 func (s *OlympusSuite) SetUpTest(c *C) {
+	os.Setenv("XDG_DATA_HOME", s.XdgDataHome)
+	xdg.Reload()
+
 	var err error
 	s.o, err = NewOlympus("")
 	c.Assert(err, IsNil)

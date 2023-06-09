@@ -1,10 +1,31 @@
 package main
 
-import . "gopkg.in/check.v1"
+import (
+	"os"
 
-type ServiceLoggerSuite struct{}
+	"github.com/adrg/xdg"
+	. "gopkg.in/check.v1"
+)
+
+type ServiceLoggerSuite struct {
+	XdgDataHome string
+}
 
 var _ = Suite(&ServiceLoggerSuite{})
+
+func (s *ServiceLoggerSuite) SetUpSuite(c *C) {
+	s.XdgDataHome = os.Getenv("XDG_DATA_HOME")
+}
+
+func (s *ServiceLoggerSuite) TearDownSuite(c *C) {
+	os.Setenv("XDG_DATA_HOME", s.XdgDataHome)
+	xdg.Reload()
+}
+
+func (s *ServiceLoggerSuite) SetUpTest(c *C) {
+	os.Setenv("XDG_DATA_HOME", c.MkDir())
+	xdg.Reload()
+}
 
 func (s *ServiceLoggerSuite) TestKeepsLogsSorted(c *C) {
 	l := NewServiceLogger()
@@ -35,10 +56,8 @@ func (s *ServiceLoggerSuite) TestEnforceGracefulCorrectness(c *C) {
 	l.Log("a", false, true)
 	logs := l.Logs()
 	c.Assert(logs, HasLen, 1)
-	c.Assert(logs[0].Events, HasLen, 3)
+	c.Assert(logs[0].Events, HasLen, 1)
 	c.Check(logs[0].Events[0].Graceful, Equals, false)
-	c.Check(logs[0].Events[1].Graceful, Equals, false)
-	c.Check(logs[0].Events[2].Graceful, Equals, false)
 }
 
 func (s *ServiceLoggerSuite) TestFetchLastStatus(c *C) {

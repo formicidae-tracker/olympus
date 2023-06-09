@@ -17454,68 +17454,64 @@
       "description": "Right Extraction Fan is not operating as expected."
     }
   ],
-  "_api_logs": {
-    "climate": [
-      {
-        "zone": "jupyter.desert",
-        "events": [
-          {
-            "start": "2023-03-28T11:00:00Z",
-            "graceful": false
-          }
-        ]
-      },
-      {
-        "zone": "minerva.box",
-        "events": [
-          {
-            "start": "2023-03-28T12:00:00Z",
-            "graceful": false
-          }
-        ]
-      },
-      {
-        "zone": "prometheus.box",
-        "events": [
-          {
-            "start": "2011-01-01T01:02:00Z",
-            "end": "2012-01-01T00:00:00Z",
-            "graceful": false
-          }
-        ]
-      }
-    ],
-    "tracking": [
-      {
-        "zone": "juno.box",
-        "events": [
-          {
-            "start": "2023-03-28T10:00:00Z",
-            "graceful": false
-          }
-        ]
-      },
-      {
-        "zone": "minerva.box",
-        "events": [
-          {
-            "start": "2023-03-28T12:00:00Z",
-            "graceful": false
-          }
-        ]
-      },
-      {
-        "zone": "prometheus.box",
-        "events": [
-          {
-            "start": "2011-01-01T01:02:00Z",
-            "end": "2012-01-01T00:00:00Z",
-            "graceful": true
-          }
-        ]
-      }
-    ]
-  },
+  "_api_logs": [
+    {
+      "zone": "jupyter.desert.climate",
+      "events": [
+        {
+          "start": "2023-03-28T11:00:00Z",
+          "graceful": false
+        }
+      ]
+    },
+    {
+      "zone": "minerva.box.climate",
+      "events": [
+        {
+          "start": "2023-03-28T12:00:00Z",
+          "graceful": false
+        }
+      ]
+    },
+    {
+      "zone": "prometheus.box.climate",
+      "events": [
+        {
+          "start": "2011-01-01T01:02:00Z",
+          "end": "2012-01-01T00:00:00Z",
+          "graceful": false
+        }
+      ]
+    },
+    {
+      "zone": "juno.box.tracking",
+      "events": [
+        {
+          "start": "2023-03-28T10:00:00Z",
+          "graceful": false
+        }
+      ]
+    },
+    {
+      "zone": "minerva.box.tracking",
+      "events": [
+        {
+          "start": "2023-03-28T12:00:00Z",
+          "graceful": false
+        }
+      ]
+    },
+    {
+      "zone": "prometheus.box.tracking",
+      "events": [
+        {
+          "start": "2011-01-01T01:02:00Z",
+          "end": "2012-01-01T00:00:00Z",
+          "graceful": true
+        }
+      ]
+    }
+  ],
   "_api_zones": [
     {
       "host": "jupyter",
