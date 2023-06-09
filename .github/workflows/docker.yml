@@ -25,6 +25,9 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: formicidaetracker/olympus
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern=v{{version}}
 
       - name: Login to DockerHub
         if: github.event_name != 'pull_request'
@@ -38,5 +41,5 @@ jobs:
         with:
           context: .
           push: ${{github.event_name != 'pull_request' }}
-          tags: ${{steps.meta.output.tags }}
-          labels: ${{steps.meta.output.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
