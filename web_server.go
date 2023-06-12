@@ -49,10 +49,19 @@ func HTTPLogWrap(h http.Handler) http.Handler {
 	})
 }
 
-func EnableCORS(origin string) func(http.Handler) http.Handler {
+func EnableCORS(origins []string) func(http.Handler) http.Handler {
+	allowed := make(map[string]bool)
+	for _, origin := range origins {
+		allowed[origin] = true
+	}
+
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", origin)
+			origin := r.Header.Get("Origin")
+			//concurrent read access to map is ok.
+			if allowed[origin] == true {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
 			h.ServeHTTP(w, r)
 		})
 	}
