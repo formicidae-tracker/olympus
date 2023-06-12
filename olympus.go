@@ -447,4 +447,12 @@ func (o *Olympus) setRoutes(router *mux.Router) {
 		JSONify(w, &res)
 	}).Methods("GET")
 
+	router.HandleFunc("/api/version", func(w http.ResponseWriter, r *http.Request) {
+		type Version struct {
+			Version string `json:"version"`
+		}
+		version := Version{Version: OLYMPUS_VERSION}
+		JSONify(w, &version)
+	}).Methods("GET")
+
 }
