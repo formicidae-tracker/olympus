@@ -5,12 +5,13 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { UserSettingsService } from '../core/services/user-settings.service';
+import { NotificationSettingsService } from '../core/services/notification-settings.service';
 import { OlympusService } from '../olympus-api/services/olympus.service';
 import { Observable, Subscription, map, of } from 'rxjs';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { UserSettings } from '../core/user-settings';
+import { NotificationSettings } from '../core/notification-settings';
+import { ThemeService } from '../core/services/theme.service';
 
 @Component({
   selector: 'app-user-settings',
@@ -20,7 +21,8 @@ import { UserSettings } from '../core/user-settings';
 export class UserSettingsComponent implements OnInit, OnDestroy {
   //Note we use a Required interface to disallow calling UserSetting
   //logic.
-  public settings: Required<UserSettings> = new UserSettings();
+  public _darkTheme: boolean = false;
+  public settings: Required<NotificationSettings> = new NotificationSettings();
   private _availableZones: string[] = [];
   private _subscriptions: Subscription[] = [];
 
@@ -32,10 +34,10 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
   }
 
   public get darkTheme(): boolean {
-    return this.settings.darkMode;
+    return this._darkTheme;
   }
   public set darkTheme(value: boolean) {
-    this.settingsService.darkTheme = value;
+    this.theme.darkTheme = value;
   }
 
   public get notifyOnWarnings(): boolean {
@@ -45,14 +47,27 @@ export class UserSettingsComponent implements OnInit, OnDestroy {
     this.settingsService.notifyOnWarning = value;
   }
 
+  public get notifyNonGraceful(): boolean {
+    return this.settings.notifyNonGraceful;
+  }
+
+  public set notifyNonGraceful(value: boolean) {
+    this.settingsService.notifyNonGraceful = value;
+  }
+
   @ViewChild('zoneInput') zoneInput!: ElementRef<HTMLInputElement>;
 
   constructor(
-    private settingsService: UserSettingsService,
+    private theme: ThemeService,
+    private settingsService: NotificationSettingsService,
     private olympus: OlympusService
   ) {}
 
   ngOnInit(): void {
+    this._subscriptions.push(
+      this.theme.isDarkTheme().subscribe((dark) => (this._darkTheme = dark))
+    );
+
     this._subscriptions.push(
       this.settingsService.getSettings().subscribe((settings) => {
         this.settings = settings;

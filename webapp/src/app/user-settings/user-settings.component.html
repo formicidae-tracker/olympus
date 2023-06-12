@@ -11,6 +11,10 @@
         <mat-slide-toggle matListItemMeta [(ngModel)]="notifyOnWarnings" />
       </mat-list-item>
       <mat-list-item>
+        Notify on Unexpected Service Stop
+        <mat-slide-toggle matListItemMeta [(ngModel)]="notifyNonGraceful" />
+      </mat-list-item>
+      <mat-list-item>
         Notify for any Zone
         <mat-slide-toggle matListItemMeta [(ngModel)]="subscribeToAll" />
       </mat-list-item>

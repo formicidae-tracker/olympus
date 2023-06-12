@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { UserSettings } from '../user-settings';
+import { NotificationSettings } from '../notification-settings';
 import { LocalStorageService } from './local-storage.service';
 
 export const userSettingsKey = 'userSettings';
@@ -8,47 +8,38 @@ export const userSettingsKey = 'userSettings';
 @Injectable({
   providedIn: 'root',
 })
-export class UserSettingsService {
-  private settings: UserSettings;
-  private dark$: BehaviorSubject<boolean>;
+export class NotificationSettingsService {
+  private settings: NotificationSettings;
   private alarms$: Map<string, BehaviorSubject<boolean>>;
   // Note we use a Required interface to forbid the access to
   // UserSettings method, they should go through the service. The
   // observable is only useful to get updated data in a component that
   // require everything, i.e. UserSettingsComponent
-  private settings$: BehaviorSubject<Required<UserSettings>>;
+  private settings$: BehaviorSubject<Required<NotificationSettings>>;
 
   constructor(private localStorage: LocalStorageService) {
-    this.settings = UserSettings.deserialize(
+    this.settings = NotificationSettings.deserialize(
       this.localStorage.getItem(userSettingsKey) || '{}'
     );
-    this.dark$ = new BehaviorSubject<boolean>(this.settings.darkMode);
     this.alarms$ = new Map<string, BehaviorSubject<boolean>>();
     for (const z of this.settings.subscriptions) {
       this.alarms$.set(z, new BehaviorSubject<boolean>(true));
     }
-    this.settings$ = new BehaviorSubject<UserSettings>(this.settings);
-  }
-
-  public isDarkTheme(): Observable<boolean> {
-    return this.dark$.asObservable();
+    this.settings$ = new BehaviorSubject<NotificationSettings>(this.settings);
   }
 
   private _next(): void {
     this.localStorage.setItem(userSettingsKey, this.settings.serialize());
     this.settings$.next(
-      new UserSettings(this.settings) as Required<UserSettings>
+      new NotificationSettings(this.settings) as Required<NotificationSettings>
     );
   }
 
-  public set darkTheme(darkTheme: boolean) {
-    if (this.settings.darkMode == darkTheme) {
+  public set notifyNonGraceful(value: boolean) {
+    if (this.settings.notifyNonGraceful == value) {
       return;
     }
-
-    this.settings.darkMode = darkTheme;
-
-    this.dark$.next(darkTheme);
+    this.settings.notifyNonGraceful = value;
     this._next();
   }
 
@@ -82,7 +73,7 @@ export class UserSettingsService {
     return subject.asObservable();
   }
 
-  public getSettings(): Observable<Required<UserSettings>> {
+  public getSettings(): Observable<Required<NotificationSettings>> {
     return this.settings$.asObservable();
   }
 

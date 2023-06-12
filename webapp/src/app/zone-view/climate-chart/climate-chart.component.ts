@@ -13,7 +13,7 @@ import { Subscription, timer } from 'rxjs';
 import { EChartsOption } from 'echarts';
 import { ClimateTimeSeries } from 'src/app/olympus-api/climate-time-series';
 import { OlympusService } from 'src/app/olympus-api/services/olympus.service';
-import { UserSettingsService } from 'src/app/core/services/user-settings.service';
+import { ThemeService } from 'src/app/core/services/theme.service';
 
 @Component({
   selector: 'app-climate-chart',
@@ -46,7 +46,7 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
   }
   constructor(
     private olympus: OlympusService,
-    private settings: UserSettingsService,
+    private theme: ThemeService,
     private ngZone: NgZone
   ) {}
 
@@ -67,7 +67,7 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit(): void {
     this._setInterval();
     this._setUpChartOptions();
-    this.settings.isDarkTheme().subscribe((dark) => {
+    this.theme.isDarkTheme().subscribe((dark) => {
       this._dark = dark;
       this._updateChart();
     });

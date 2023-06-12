@@ -1,56 +1,58 @@
 import { cases } from 'jasmine-parameterized';
+import { NotificationSettings } from './notification-settings';
 
-import { UserSettings } from 'src/app/core/user-settings';
-
-describe('UserSettings', () => {
+describe('NotificationSettings', () => {
   it('should becreated with default values', () => {
-    let e = new UserSettings();
+    let e = new NotificationSettings();
     expect(e).toBeTruthy();
-    expect(e.darkMode).toBe(false);
     expect(e.subscriptions).toEqual(new Set<string>([]));
   });
 
   it('should be created with non-default values', () => {
-    let e = new UserSettings({
-      darkMode: true,
+    let e = new NotificationSettings({
       subscriptions: new Set<string>(['some.zone']),
     });
     expect(e).toBeTruthy();
-    expect(e.darkMode).toEqual(true);
     expect(e.subscriptions).toEqual(new Set<string>(['some.zone']));
   });
 
   cases([
     [
       {},
-      '{"darkMode":false,"subscribeToAll":false,"notifyOnWarning":false,"subscriptions":[]}',
+      '{"notifyNonGraceful":false,"subscribeToAll":false,"notifyOnWarning":false,"subscriptions":[]}',
     ],
     [
       {
-        darkMode: true,
+        notifyNonGraceful: true,
         subscribeToAll: true,
         notifyOnWarning: true,
         subscriptions: new Set<string>(['some.zone']),
       },
-      '{"darkMode":true,"subscribeToAll":true,"notifyOnWarning":true,"subscriptions":["some.zone"]}',
+      '{"notifyNonGraceful":true,"subscribeToAll":true,"notifyOnWarning":true,"subscriptions":["some.zone"]}',
     ],
   ]).it('should serialize to JSON', ([args, jsondata]) => {
-    expect(new UserSettings(args).serialize()).toEqual(jsondata);
+    expect(new NotificationSettings(args).serialize()).toEqual(jsondata);
   });
 
   cases([
     [{}, '{}'],
-    [{}, '{"darkMode":false,"subscriptions":[]}'],
+    [{}, '{"notifyNonGraceful":false,"subscriptions":[]}'],
     [
-      { darkMode: true, subscriptions: new Set<string>(['some.zone']) },
-      '{"darkMode":true,"subscriptions":["some.zone"]}',
+      {
+        notifyNonGraceful: true,
+        subscriptions: new Set<string>(['some.zone']),
+      },
+      '{"notifyNonGraceful":true,"subscriptions":["some.zone"]}',
     ],
+    [{}, '{"oldKey":true}'],
   ]).it('should deserialize from JSON', ([args, jsondata]) => {
-    expect(UserSettings.deserialize(jsondata)).toEqual(new UserSettings(args));
+    expect(NotificationSettings.deserialize(jsondata)).toEqual(
+      new NotificationSettings(args)
+    );
   });
 
   it('should handle simple alarm subscription', () => {
-    let s = new UserSettings();
+    let s = new NotificationSettings();
     expect(s.hasSubscription('foo')).toBeFalse();
     expect(s.subscribeTo('foo')).toBeTrue();
     expect(s.hasSubscription('foo')).toBeTrue();
@@ -62,7 +64,7 @@ describe('UserSettings', () => {
   });
 
   it('should handle subscribeToAll', () => {
-    let s = new UserSettings();
+    let s = new NotificationSettings();
     expect(s.hasSubscription('foo')).toBeFalse();
     s.subscribeToAll = true;
     expect(s.hasSubscription('foo')).toBeTrue();

@@ -1,6 +1,7 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { UserSettingsService } from '../services/user-settings.service';
+import { ThemeService } from '../services/theme.service';
+import { NotificationSettingsService } from '../services/notification-settings.service';
 
 @Component({
   selector: 'app-zone-notification-button',
@@ -31,12 +32,15 @@ export class ZoneNotificationButtonComponent implements OnInit, OnDestroy {
   private _alarmSubscription?: Subscription;
   private _subscriptions: Subscription[] = [];
 
-  constructor(private settings: UserSettingsService) {}
+  constructor(
+    private theme: ThemeService,
+    private settings: NotificationSettingsService
+  ) {}
 
   ngOnInit(): void {
     this.isSolid = this.isSolid !== undefined;
     this._subscriptions.push(
-      this.settings.isDarkTheme().subscribe((dark) => {
+      this.theme.isDarkTheme().subscribe((dark) => {
         this.dark = dark;
       })
     );

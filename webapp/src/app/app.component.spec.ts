@@ -3,10 +3,16 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 import { CoreModule } from './core/core.module';
 import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
-import { UserSettingsService } from './core/services/user-settings.service';
+import { ThemeService } from './core/services/theme.service';
+import { Observable, of } from 'rxjs';
+import { SwPush } from '@angular/service-worker';
+
+class FakeSwPush {
+  public subscription: Observable<PushSubscription | null> = of(null);
+}
 
 describe('AppComponent', () => {
-  let service: UserSettingsService;
+  let service: ThemeService;
 
   beforeEach(() => {
     localStorage.clear();
@@ -14,9 +20,10 @@ describe('AppComponent', () => {
     TestBed.configureTestingModule({
       imports: [RouterTestingModule, CoreModule],
       declarations: [AppComponent, NavToolbarComponent],
+      providers: [{ provide: SwPush, useClass: FakeSwPush }],
     });
 
-    service = TestBed.inject(UserSettingsService);
+    service = TestBed.inject(ThemeService);
   });
 
   it('should create the app', () => {

@@ -1,16 +1,16 @@
-export class UserSettings {
-  public darkMode: boolean;
+export class NotificationSettings {
   public notifyOnWarning: boolean;
+  public notifyNonGraceful: boolean;
   public subscribeToAll: boolean;
   public subscriptions: Set<string>;
 
   constructor({
-    darkMode = false,
+    notifyNonGraceful = false,
     subscribeToAll = false,
     notifyOnWarning = false,
     subscriptions = new Set<string>([]),
-  }: Partial<UserSettings> = {}) {
-    this.darkMode = darkMode;
+  }: Partial<NotificationSettings> = {}) {
+    this.notifyNonGraceful = notifyNonGraceful;
     this.subscribeToAll = subscribeToAll;
     this.notifyOnWarning = notifyOnWarning;
     this.subscriptions = subscriptions;
@@ -28,7 +28,7 @@ export class UserSettings {
     if (subscriptions != undefined) {
       plain.subscriptions = new Set<string>(subscriptions);
     }
-    return new UserSettings(plain as Partial<UserSettings>);
+    return new NotificationSettings(plain as Partial<NotificationSettings>);
   }
 
   public hasSubscription(zone: string): boolean {
