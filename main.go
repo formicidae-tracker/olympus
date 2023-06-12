@@ -28,7 +28,6 @@ type Options struct {
 	Address   string `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
 	RPC       int    `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
 	AllowCORS string `long:"allow-cors" description:"allow cors from domain"`
-	SlackURL  string `long:"slack-url" description:"slack webhook URL, overiden by OLYMPUS_SLACK_URL"`
 }
 
 type spaHandler struct {
@@ -105,12 +104,7 @@ func Execute() error {
 		return nil
 	}
 
-	slackURL := os.Getenv("OLYMPUS_SLACK_URL")
-	if len(slackURL) > 0 {
-		opts.SlackURL = slackURL
-	}
-
-	o, err := NewOlympus(opts.SlackURL)
+	o, err := NewOlympus()
 	if err != nil {
 		return err
 	}

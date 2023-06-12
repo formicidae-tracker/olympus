@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -82,7 +79,6 @@ type Olympus struct {
 	serviceLogger ServiceLogger
 
 	hostname string
-	slackURL string
 }
 
 type GrpcSubscription[T any] struct {
@@ -103,12 +99,11 @@ type subscription struct {
 	alarmLogger AlarmLogger
 }
 
-func NewOlympus(slackURL string) (*Olympus, error) {
+func NewOlympus() (*Olympus, error) {
 	res := &Olympus{
 		log:           log.New(os.Stderr, "[olympus] :", log.LstdFlags),
 		subscriptions: make(map[string]*subscription),
 		serviceLogger: NewServiceLogger(),
-		slackURL:      slackURL,
 	}
 	var err error
 	res.hostname, err = os.Hostname()
@@ -452,34 +447,4 @@ func (o *Olympus) route(router *mux.Router) {
 		JSONify(w, &res)
 	}).Methods("GET")
 
-}
-
-func (o *Olympus) encodeSlackMessage(message string) (*bytes.Buffer, error) {
-	type SlackMessage struct {
-		Text string `json:"text"`
-	}
-
-	buffer := bytes.NewBuffer(nil)
-	enc := json.NewEncoder(buffer)
-	if err := enc.Encode(SlackMessage{Text: message}); err != nil {
-		return nil, err
-	}
-	return buffer, nil
-}
-
-func (o *Olympus) postToSlackError(message string) error {
-	buffer, err := o.encodeSlackMessage(message)
-	if err != nil {
-		return err
-	}
-	resp, err := http.Post(o.slackURL, "application/json", buffer)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		d, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("response %d: %s", resp.StatusCode, string(d))
-	}
-	return nil
 }
