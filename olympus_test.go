@@ -27,7 +27,7 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	datapath = c.MkDir()
 
 	var err error
-	s.o, err = NewOlympus("")
+	s.o, err = NewOlympus()
 	c.Assert(err, IsNil)
 	cancel := func() {}
 	s.somehostBox, err = s.o.RegisterClimate(&api.ClimateDeclaration{

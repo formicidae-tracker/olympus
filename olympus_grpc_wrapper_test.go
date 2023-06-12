@@ -21,7 +21,7 @@ type GRPCSuite struct {
 
 func (s *GRPCSuite) initialize() error {
 	var err error
-	s.o, err = NewOlympus("")
+	s.o, err = NewOlympus()
 	if err != nil {
 		return err
 	}
