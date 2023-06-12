@@ -12,8 +12,6 @@ WORKDIR /app/webapp
 
 RUN npm install
 
-RUN npm run ng build -- --configuration production --source-map
-
 RUN npm run ng run olympus:app-shell:production
 
 WORKDIR /app
