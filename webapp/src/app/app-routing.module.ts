@@ -4,6 +4,7 @@ import { ZoneIndexComponent } from './zone-index/zone-index.component';
 import { UserSettingsComponent } from './user-settings/user-settings.component';
 import { ZoneViewComponent } from './zone-view/zone-view.component';
 import { LogIndexComponent } from './log-index/log-index.component';
+import { VersionComponent } from './version/version.component';
 
 const routes: Routes = [
   { path: '', component: ZoneIndexComponent, title: 'Olympus' },
@@ -29,6 +30,7 @@ const routes: Routes = [
     component: LogIndexComponent,
     title: 'Olympus: Logs',
   },
+  { path: 'version', component: VersionComponent, title: 'Olympus: Versions' },
 ];
 
 @NgModule({

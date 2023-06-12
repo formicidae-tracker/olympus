@@ -25,6 +25,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { LogIndexComponent } from './log-index/log-index.component';
+import { VersionComponent } from './version/version.component';
 
 @NgModule({
   declarations: [
@@ -40,6 +41,7 @@ import { LogIndexComponent } from './log-index/log-index.component';
     AlarmsReportsComponent,
     TrackingStatusComponent,
     LogIndexComponent,
+    VersionComponent,
   ],
   imports: [
     BrowserModule,

@@ -47,4 +47,10 @@ export class OlympusService {
         )
       );
   }
+
+  getVersion(): Observable<string> {
+    return this.httpClient
+      .get<any>('/api/version')
+      .pipe(map((plain: any) => plain.version || 'undefined'));
+  }
 }

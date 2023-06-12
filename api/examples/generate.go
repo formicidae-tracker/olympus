@@ -435,6 +435,9 @@ func generateMockData() (map[string]interface{}, map[string]string) {
 			},
 			},
 		},
+		"_api_version": struct {
+			Version string `json:"version"`
+		}{Version: "1.0.0-fakebackend"},
 	}
 
 	routes := map[string]string{}
