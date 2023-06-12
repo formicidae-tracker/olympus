@@ -1,9 +1,12 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { UserSettingsService } from './core/user-settings.service';
-import { Subscription, fromEvent } from 'rxjs';
+import { Subscription } from 'rxjs';
+
 import { MatSnackBar, MatSnackBarRef } from '@angular/material/snack-bar';
+
 import { SnackNetworkOfflineComponent } from './core/snack-network-offline/snack-network-offline.component';
-import { NetworkStatusService } from './core/network-status.service';
+
+import { NetworkStatusService } from './core/services/network-status.service';
+import { UserSettingsService } from './core/services/user-settings.service';
 
 @Component({
   selector: 'app-root',

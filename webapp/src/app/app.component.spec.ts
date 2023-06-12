@@ -3,7 +3,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 import { CoreModule } from './core/core.module';
 import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
-import { UserSettingsService } from './core/user-settings.service';
+import { UserSettingsService } from './core/services/user-settings.service';
 
 describe('AppComponent', () => {
   let service: UserSettingsService;

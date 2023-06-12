@@ -3,7 +3,7 @@ import { cases } from 'jasmine-parameterized';
 import { TestBed } from '@angular/core/testing';
 
 import { userSettingsKey, UserSettingsService } from './user-settings.service';
-import { UserSettings } from './user-settings';
+import { UserSettings } from '../user-settings';
 
 describe('UserSettingsService', () => {
   let service: UserSettingsService;

@@ -1,6 +1,6 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { UserSettingsService } from '../user-settings.service';
+import { UserSettingsService } from '../services/user-settings.service';
 
 @Component({
   selector: 'app-zone-notification-button',

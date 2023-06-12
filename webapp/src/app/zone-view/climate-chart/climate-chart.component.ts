@@ -13,7 +13,7 @@ import { Subscription, timer } from 'rxjs';
 import { EChartsOption } from 'echarts';
 import { ClimateTimeSeries } from 'src/app/olympus-api/climate-time-series';
 import { OlympusService } from 'src/app/olympus-api/services/olympus.service';
-import { UserSettingsService } from 'src/app/core/user-settings.service';
+import { UserSettingsService } from 'src/app/core/services/user-settings.service';
 
 @Component({
   selector: 'app-climate-chart',

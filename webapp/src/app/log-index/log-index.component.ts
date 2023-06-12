@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { OlympusService } from '../olympus-api/services/olympus.service';
 import { ServiceLog } from '../olympus-api/service-event';
-import { HumanizeService } from '../core/humanize.service';
+import { HumanizeService } from '../core/services/humanize.service';
 
 @Component({
   selector: 'app-log-index',

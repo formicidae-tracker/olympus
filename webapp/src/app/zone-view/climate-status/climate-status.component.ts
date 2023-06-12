@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { HumanizeService } from 'src/app/core/humanize.service';
+import { HumanizeService } from 'src/app/core/services/humanize.service';
 import { ZoneClimateReport } from 'src/app/olympus-api/zone-climate-report';
 
 function formatValue(

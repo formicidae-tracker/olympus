@@ -4,7 +4,7 @@ import { Subscription, timer } from 'rxjs';
 import { ZoneReport } from '../olympus-api/zone-report';
 import { OlympusService } from '../olympus-api/services/olympus.service';
 import { AlarmReport } from '../olympus-api/alarm-report';
-import { HumanizeService } from '../core/humanize.service';
+import { HumanizeService } from '../core/services/humanize.service';
 import { HttpErrorResponse } from '@angular/common/http';
 
 type ViewState = 'loading' | 'success' | 'offline';

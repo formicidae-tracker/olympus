@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { UserSettings } from './user-settings';
+import { UserSettings } from '../user-settings';
 import { LocalStorageService } from './local-storage.service';
 
 export const userSettingsKey = 'userSettings';

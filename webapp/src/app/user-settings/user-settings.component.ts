@@ -5,7 +5,7 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { UserSettingsService } from '../core/user-settings.service';
+import { UserSettingsService } from '../core/services/user-settings.service';
 import { OlympusService } from '../olympus-api/services/olympus.service';
 import { Observable, Subscription, map, of } from 'rxjs';
 import { MatChipInputEvent } from '@angular/material/chips';

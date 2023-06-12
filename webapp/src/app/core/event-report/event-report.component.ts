@@ -2,8 +2,8 @@ import { DatePipe } from '@angular/common';
 import { Component, Input, OnInit, ViewChild } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
-import { HumanizeService } from 'src/app/core/humanize.service';
-import { Event, EventStatus } from 'src/app/olympus-api/event';
+import { HumanizeService } from 'src/app/core/services/humanize.service';
+import { Event } from 'src/app/olympus-api/event';
 
 @Component({
   selector: 'app-event-report',

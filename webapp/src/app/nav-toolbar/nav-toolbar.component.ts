@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivationEnd, ResolveEnd, Router } from '@angular/router';
 import { map, filter } from 'rxjs';
-import { UserSettingsService } from '../core/user-settings.service';
+import { UserSettingsService } from '../core/services/user-settings.service';
 
 @Component({
   selector: 'app-nav-toolbar',
