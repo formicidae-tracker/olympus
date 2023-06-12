@@ -17512,6 +17512,9 @@
       ]
     }
   ],
+  "_api_version": {
+    "version": "1.0.0-fakebackend"
+  },
   "_api_zones": [
     {
       "host": "jupyter",
