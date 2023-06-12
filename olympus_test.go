@@ -201,7 +201,7 @@ func (s *OlympusSuite) TestRoute(c *C) {
 	}
 
 	router := mux.NewRouter()
-	s.o.route(router)
+	s.o.setRoutes(router)
 
 	for _, d := range testdata {
 		comment := Commentf("%s: '%s'", d.Method, d.URL)

@@ -406,7 +406,7 @@ func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 	return s.tracking.Close()
 }
 
-func (o *Olympus) route(router *mux.Router) {
+func (o *Olympus) setRoutes(router *mux.Router) {
 	router.HandleFunc("/api/zones", func(w http.ResponseWriter, r *http.Request) {
 		res := o.GetZones()
 		JSONify(w, &res)
