@@ -49,6 +49,9 @@ export class AppComponent implements OnInit, OnDestroy {
       })
     );
     this._subscriptions.push(
+      this.push.requestSubscriptionOnDemand().subscribe()
+    );
+    this._subscriptions.push(
       this.push.updateNotificationsOnDemand().subscribe()
     );
   }

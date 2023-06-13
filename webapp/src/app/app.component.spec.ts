@@ -12,6 +12,7 @@ describe('AppComponent', () => {
   let push: jasmine.SpyObj<PushNotificationService> =
     jasmine.createSpyObj<PushNotificationService>('PushNotificationService', [
       'updateNotificationsOnDemand',
+      'requestSubscriptionOnDemand',
     ]);
   beforeEach(() => {
     localStorage.clear();
@@ -23,6 +24,7 @@ describe('AppComponent', () => {
     });
 
     push.updateNotificationsOnDemand.and.callFake(() => of());
+    push.requestSubscriptionOnDemand.and.callFake(() => of());
 
     service = TestBed.inject(ThemeService);
   });
@@ -60,6 +62,11 @@ describe('AppComponent', () => {
         ?.attributes.getNamedItem('class')?.textContent;
       expect(classes).toContain('mat-app-background');
       expect(classes).toContain('dark-theme');
+    });
+
+    it('should ask for subscription if needed', () => {
+      expect(push.requestSubscriptionOnDemand).toHaveBeenCalled();
+      expect(push.updateNotificationsOnDemand).toHaveBeenCalled();
     });
   });
 });

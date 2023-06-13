@@ -4,13 +4,14 @@ import { NotificationSettingsService } from './notification-settings.service';
 import {
   Observable,
   concat,
+  filter,
   first,
   from,
   map,
-  merge,
   of,
   retry,
   switchMap,
+  take,
 } from 'rxjs';
 import { NotificationSettings } from '../notification-settings';
 import { OlympusService } from 'src/app/olympus-api/services/olympus.service';
@@ -21,25 +22,31 @@ export type PushSubscriptionStatus = 'non-accepted' | 'not-updated' | 'updated';
   providedIn: 'root',
 })
 export class PushNotificationService {
-  private pushSubscriptionRequired$: Observable<null>;
-  private updatePushSubscription$: Observable<PushSubscriptionStatus>;
-  private requestPushSubscriptionWhenHasKey$: Observable<PushSubscriptionStatus>;
-
   private serverPublicKey: string = '';
 
   constructor(
     private push: SwPush,
     private notifications: NotificationSettingsService,
     private olympus: OlympusService
-  ) {
-    this.pushSubscriptionRequired$ = this.notifications.getSettings().pipe(
-      first((settings) => settings.needPushSubscription()),
-      switchMap(() => this.push.subscription),
-      first((sub: PushSubscription | null) => sub == null),
-      map(() => null)
-    );
+  ) {}
 
-    this.updatePushSubscription$ = this.push.subscription.pipe(
+  public updateNotificationsOnDemand(): Observable<PushSubscriptionStatus> {
+    if (this.push.isEnabled == false) {
+      return of();
+    }
+
+    return this.updatePushSubscription();
+  }
+
+  public requestSubscriptionOnDemand(): Observable<boolean> {
+    if (this.push.isEnabled == false) {
+      return of();
+    }
+    return this.requestPushSubscriptionWhenHasKey();
+  }
+
+  private updatePushSubscription(): Observable<PushSubscriptionStatus> {
+    return this.push.subscription.pipe(
       switchMap((subscription: PushSubscription | null) => {
         if (subscription == null) {
           return of('non-accepted' as PushSubscriptionStatus);
@@ -57,38 +64,6 @@ export class PushNotificationService {
         );
       })
     );
-
-    this.requestPushSubscriptionWhenHasKey$ = this.olympus
-      .getPushServerPublicKey()
-      .pipe(
-        switchMap((key: string) => {
-          this.serverPublicKey = key;
-          if (key.length == 0) {
-            return of();
-          }
-          return this.pushSubscriptionRequired$;
-        }),
-        switchMap(() => this.requestPushSubscription()),
-        map(() => 'not-updated' as PushSubscriptionStatus)
-      );
-  }
-
-  public updateNotificationsOnDemand(): Observable<PushSubscriptionStatus> {
-    if (this.push.isEnabled == false) {
-      console.log('Push Notification disabled');
-      return of();
-    }
-
-    return merge(
-      this.requestPushSubscriptionWhenHasKey$,
-      this.updatePushSubscription$
-    );
-  }
-
-  private requestPushSubscription(): Observable<PushSubscription> {
-    return from(
-      this.push.requestSubscription({ serverPublicKey: this.serverPublicKey })
-    );
   }
 
   private updateNotificationSettings(
@@ -101,5 +76,35 @@ export class PushNotificationService {
         .updateNotificationSettings(endpoint, notifications)
         .pipe(map(() => 'updated' as PushSubscriptionStatus))
     );
+  }
+
+  private requestPushSubscriptionWhenHasKey(): Observable<boolean> {
+    return this.olympus.getPushServerPublicKey().pipe(
+      switchMap((key: string) => {
+        this.serverPublicKey = key;
+        if (key.length == 0) {
+          return of();
+        }
+        return this.pushSubscriptionRequired();
+      }),
+      switchMap(() => this.requestPushSubscription())
+    );
+  }
+
+  private pushSubscriptionRequired(): Observable<null> {
+    return this.notifications.getSettings().pipe(
+      filter((settings) => settings.needPushSubscription()),
+      take(1),
+      switchMap(() => this.push.subscription),
+      filter((sub: PushSubscription | null) => sub == null),
+      take(1),
+      map(() => null)
+    );
+  }
+
+  private requestPushSubscription(): Observable<boolean> {
+    return from(
+      this.push.requestSubscription({ serverPublicKey: this.serverPublicKey })
+    ).pipe(map(() => true));
   }
 }

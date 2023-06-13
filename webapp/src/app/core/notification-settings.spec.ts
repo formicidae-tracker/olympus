@@ -74,4 +74,14 @@ describe('NotificationSettings', () => {
     s.subscribeToAll = false;
     expect(s.hasSubscription('foo')).toBeFalse();
   });
+
+  cases([
+    [{}, false],
+    [{ notifyOnWarning: true }, false],
+    [{ subscribeToAll: true }, true],
+    [{ subscriptions: new Set<string>(['foo']) }, true],
+  ]).it('should inform if it needs susbscription', ([args, expected]) => {
+    const s = new NotificationSettings(args);
+    expect(s.needPushSubscription()).toEqual(expected);
+  });
 });
