@@ -5,7 +5,6 @@ import {
   Observable,
   concat,
   filter,
-  first,
   from,
   map,
   of,
@@ -23,6 +22,8 @@ export type PushSubscriptionStatus = 'non-accepted' | 'not-updated' | 'updated';
 })
 export class PushNotificationService {
   private serverPublicKey: string = '';
+
+  public retryDelay: number = 2000;
 
   constructor(
     private push: SwPush,
@@ -52,14 +53,15 @@ export class PushNotificationService {
           return of('non-accepted' as PushSubscriptionStatus);
         }
         return this.notifications.getSettings().pipe(
-          switchMap(
-            (notifications: NotificationSettings) =>
-              this.updateNotificationSettings(
-                subscription.endpoint,
-                notifications
-              ).pipe(retry({ delay: 1000 }))
-            // retry every second until either: a) succeed, b) have a
-            // new settings or c) have no endpoint anymore.
+          switchMap((notifications: NotificationSettings) =>
+            this.updateNotificationSettings(
+              subscription.endpoint,
+              notifications
+            ).pipe(
+              retry({
+                delay: this.retryDelay,
+              })
+            )
           )
         );
       })

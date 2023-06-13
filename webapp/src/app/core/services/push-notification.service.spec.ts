@@ -1,9 +1,5 @@
-import { TestBed, flushMicrotasks } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 
-import {
-  PushNotificationService,
-  PushSubscriptionStatus,
-} from './push-notification.service';
 import {
   Observable,
   of,
@@ -14,12 +10,19 @@ import {
   BehaviorSubject,
   finalize,
   startWith,
-  scan,
   reduce,
-  from,
+  defer,
+  interval,
+  take,
 } from 'rxjs';
+
 import { SwPush } from '@angular/service-worker';
 import { HttpClientModule } from '@angular/common/http';
+
+import {
+  PushNotificationService,
+  PushSubscriptionStatus,
+} from './push-notification.service';
 import { NotificationSettingsService } from './notification-settings.service';
 import { OlympusService } from 'src/app/olympus-api/services/olympus.service';
 import { NotificationSettings } from '../notification-settings';
@@ -266,6 +269,103 @@ describe('PushNotificationService', () => {
           expect(statuses).toEqual([
             'not-updated',
             'updated',
+            'not-updated',
+            'updated',
+          ]);
+          done();
+        });
+    });
+
+    it('should retry if something goes wrong', (done: DoneFn) => {
+      service.retryDelay = 10;
+      notifications.getSettings.and.returnValue(of(new NotificationSettings()));
+
+      let count = 0;
+      const httpFakeCall = () =>
+        new Promise<boolean>((resolve, reject) => {
+          count += 1;
+          if (count < 3) {
+            reject('500');
+          }
+          push.complete();
+          resolve(true);
+        });
+
+      olympus.updateNotificationSettings.and.returnValue(defer(httpFakeCall));
+      service.requestSubscriptionOnDemand().subscribe({
+        next: (value) => {
+          fail('should not have subscribed: ' + value);
+        },
+        error: (e) => {
+          fail('should not have tried to subscribe: ' + e);
+        },
+      });
+
+      service
+        .updateNotificationsOnDemand()
+        .pipe(
+          reduce((acc, value) => {
+            acc.push(value);
+            return acc;
+          }, [] as PushSubscriptionStatus[])
+        )
+        .subscribe((statuses) => {
+          expect(statuses).toEqual([
+            'not-updated',
+            'not-updated',
+            'not-updated',
+            'updated',
+          ]);
+          done();
+        });
+    });
+
+    it('should stop retrying on new settings', (done: DoneFn) => {
+      service.retryDelay = 8;
+      const toSend = [
+        new NotificationSettings({ subscribeToAll: true }),
+        new NotificationSettings(),
+      ];
+
+      notifications.getSettings.and.returnValue(
+        interval(20).pipe(
+          take(toSend.length),
+          map((i) => toSend[i] as Required<NotificationSettings>)
+        )
+      );
+
+      olympus.updateNotificationSettings.and.callFake(
+        (endpoint, notification) => {
+          console.log(notification);
+          if (notification.subscribeToAll == true) {
+            return defer(() => throwError('500'));
+          }
+          push.complete();
+          return of(true);
+        }
+      );
+
+      service.requestSubscriptionOnDemand().subscribe({
+        next: (value) => {
+          fail('should not have subscribed: ' + value);
+        },
+        error: (e) => {
+          fail('should not have tried to subscribe: ' + e);
+        },
+      });
+
+      service
+        .updateNotificationsOnDemand()
+        .pipe(
+          reduce((acc, value) => {
+            acc.push(value);
+            return acc;
+          }, [] as PushSubscriptionStatus[])
+        )
+        .subscribe((statuses) => {
+          expect(statuses).toEqual([
+            'not-updated',
+            'not-updated',
             'not-updated',
             'updated',
           ]);
