@@ -15,11 +15,7 @@ import { SnackNetworkOfflineComponent } from './core/snack-network-offline/snack
 
 import { NetworkStatusService } from './core/services/network-status.service';
 import { ThemeService } from './core/services/theme.service';
-import { SwPush } from '@angular/service-worker';
-import { NotificationSettingsService } from './core/services/notification-settings.service';
-import { NotificationSettings } from './core/notification-settings';
-
-export type PushSubscriptionStatus = 'non-accepted' | 'not-updated' | 'updated';
+import { PushNotificationService } from './core/services/push-notification.service';
 
 @Component({
   selector: 'app-root',
@@ -36,35 +32,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private theme: ThemeService,
     private snackBar: MatSnackBar,
     private networkStatus: NetworkStatusService,
-    private notifications: NotificationSettingsService,
-    private push: SwPush
+    private push: PushNotificationService
   ) {}
-
-  updatePushSubscriptionStatus(): Observable<PushSubscriptionStatus> {
-    return this.push.subscription.pipe(
-      switchMap((subscription: PushSubscription | null) => {
-        if (subscription == null) {
-          return of('non-accepted' as PushSubscriptionStatus);
-        }
-        return this.notifications.getSettings().pipe(
-          switchMap((settings: Required<NotificationSettings>) => {
-            return concat(
-              of('not-updated' as PushSubscriptionStatus),
-              //TODO: this of should call olympus to update the
-              //endpoint notification settings.
-              of({
-                endpoint: subscription.endpoint,
-                settings: settings,
-              }).pipe(map(() => 'updated' as PushSubscriptionStatus))
-            );
-          }),
-          // retry every second until either: a) succeed, b) have a
-          // new settings or c) have no endpoint anymore.
-          retry({ delay: 1000 })
-        );
-      })
-    );
-  }
 
   ngOnInit(): void {
     this._subscriptions.push(
@@ -79,13 +48,8 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       })
     );
-
     this._subscriptions.push(
-      this.updatePushSubscriptionStatus().subscribe(
-        (status: PushSubscriptionStatus) => {
-          console.log('PushSubscription status is :' + status);
-        }
-      )
+      this.push.updateNotificationsOnDemand().subscribe()
     );
   }
 

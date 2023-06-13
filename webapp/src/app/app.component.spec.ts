@@ -4,24 +4,25 @@ import { AppComponent } from './app.component';
 import { CoreModule } from './core/core.module';
 import { NavToolbarComponent } from './nav-toolbar/nav-toolbar.component';
 import { ThemeService } from './core/services/theme.service';
-import { Observable, of } from 'rxjs';
-import { SwPush } from '@angular/service-worker';
-
-class FakeSwPush {
-  public subscription: Observable<PushSubscription | null> = of(null);
-}
+import { PushNotificationService } from './core/services/push-notification.service';
+import { of } from 'rxjs';
 
 describe('AppComponent', () => {
   let service: ThemeService;
-
+  let push: jasmine.SpyObj<PushNotificationService> =
+    jasmine.createSpyObj<PushNotificationService>('PushNotificationService', [
+      'updateNotificationsOnDemand',
+    ]);
   beforeEach(() => {
     localStorage.clear();
 
     TestBed.configureTestingModule({
       imports: [RouterTestingModule, CoreModule],
       declarations: [AppComponent, NavToolbarComponent],
-      providers: [{ provide: SwPush, useClass: FakeSwPush }],
+      providers: [{ provide: PushNotificationService, useValue: push }],
     });
+
+    push.updateNotificationsOnDemand.and.callFake(() => of());
 
     service = TestBed.inject(ThemeService);
   });

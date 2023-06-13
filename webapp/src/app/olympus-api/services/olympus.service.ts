@@ -1,10 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { ZoneReportSummary } from '../zone-report-summary';
-import { Observable, map } from 'rxjs';
+import { Observable, map, throwError } from 'rxjs';
 import { ZoneReport } from '../zone-report';
 import { ClimateTimeSeries } from '../climate-time-series';
 import { ServiceLog } from '../service-event';
+import { NotificationSettings } from 'src/app/core/notification-settings';
 
 @Injectable({
   providedIn: 'root',
@@ -52,5 +53,18 @@ export class OlympusService {
     return this.httpClient
       .get<any>('/api/version')
       .pipe(map((plain: any) => plain.version || 'undefined'));
+  }
+
+  getPushServerPublicKey(): Observable<string> {
+    return this.httpClient
+      .get<any>('/api/notifications/server_public_key')
+      .pipe(map((plain: any) => plain.public_key || ''));
+  }
+
+  updateNotificationSettings(
+    endpoint: string,
+    notifications: NotificationSettings
+  ): Observable<boolean> {
+    return throwError(new Error(`Not Yet Implemented`));
   }
 }

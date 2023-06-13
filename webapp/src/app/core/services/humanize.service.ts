@@ -4,7 +4,7 @@ import {
   HumanizeDurationLanguage,
 } from 'humanize-duration-ts';
 
-const prefixes = ['', 'ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi'];
+const prefixes = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi'];
 
 @Injectable({
   providedIn: 'root',

@@ -50,4 +50,8 @@ export class NotificationSettings {
     this.subscriptions.delete(zone);
     return true;
   }
+
+  public needPushSubscription(): boolean {
+    return this.subscribeToAll || this.subscriptions.size > 0;
+  }
 }
