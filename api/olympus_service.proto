@@ -63,6 +63,7 @@ message ClimateUpStream {
 	repeated ClimateReport      reports     = 2;
 	optional ClimateTarget      target      = 3;
 	repeated AlarmUpdate        alarms      = 4;
+	bool                        backlog     = 5;
 }
 
 message ClimateRegistrationConfirmation {

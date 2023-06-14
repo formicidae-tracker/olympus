@@ -161,3 +161,27 @@ type ZoneReport struct {
 	Tracking *TrackingInfo      `json:"tracking,omitempty"`
 	Alarms   []AlarmReport      `json:"alarms,omitempty"`
 }
+
+type NotificationSettings struct {
+	NotifyOnWarning   bool     `json:"notifyOnWarning,omitempty"`
+	NotifyNonGraceful bool     `json:"notifyNonGraceful,omitempty"`
+	SubscribeToAll    bool     `json:"subscribeToAll,omitempty"`
+	Subscriptions     []string `json:"subscriptions,omitempty"`
+}
+
+func (s NotificationSettings) SubscribedTo(zone string) bool {
+	if s.SubscribeToAll == true {
+		return true
+	}
+	for _, z := range s.Subscriptions {
+		if z == zone {
+			return true
+		}
+	}
+	return false
+}
+
+type NotificationSettingsUpdate struct {
+	Endpoint string               `json:"endpoint,omitempty"`
+	Settings NotificationSettings `json:"settings,omitempty"`
+}

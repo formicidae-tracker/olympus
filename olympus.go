@@ -8,6 +8,7 @@ import (
 	"os"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/formicidae-tracker/olympus/api"
 	"github.com/gorilla/mux"
@@ -72,24 +73,39 @@ func (m multipleError) Error() string {
 
 type Olympus struct {
 	api.UnimplementedOlympusServer
-	mx            sync.RWMutex
-	log           *log.Logger
+
+	mx sync.RWMutex
+	wg sync.WaitGroup
+
+	log *log.Logger
+
 	subscriptions map[string]*subscription
 
 	serviceLogger ServiceLogger
+
+	unfilteredAlarms chan ZonedAlarmUpdate
+	notifier         Notifier
 
 	hostname string
 }
 
 type GrpcSubscription[T any] struct {
+	zone        string
 	object      T
 	alarmLogger AlarmLogger
 	cancel      context.CancelFunc
+	updates     chan<- ZonedAlarmUpdate
 }
 
 func (s GrpcSubscription[T]) Close() (err error) {
 	s.cancel()
 	return nil
+}
+
+func (s GrpcSubscription[T]) NotifyAlarms(updates []*api.AlarmUpdate) {
+	for _, u := range updates {
+		s.updates <- ZonedAlarmUpdate{Zone: s.zone, Update: u}
+	}
 }
 
 type subscription struct {
@@ -101,19 +117,32 @@ type subscription struct {
 
 func NewOlympus() (*Olympus, error) {
 	res := &Olympus{
-		log:           log.New(os.Stderr, "[olympus] :", log.LstdFlags),
-		subscriptions: make(map[string]*subscription),
-		serviceLogger: NewServiceLogger(),
+		log:              log.New(os.Stderr, "[olympus] :", log.LstdFlags),
+		subscriptions:    make(map[string]*subscription),
+		serviceLogger:    NewServiceLogger(),
+		unfilteredAlarms: make(chan ZonedAlarmUpdate, 100),
+		notifier:         NewNotifier(),
 	}
 	var err error
 	res.hostname, err = os.Hostname()
 	if err != nil {
 		return nil, err
 	}
+
+	res.wg.Add(2)
+	go func() {
+		defer res.wg.Done()
+		FilterAlarmUpdates(1*time.Minute)(res.notifier.Incoming(), res.unfilteredAlarms)
+	}()
+	go func() {
+		defer res.wg.Done()
+		res.notifier.Loop()
+	}()
+
 	return res, nil
 }
 
-func (o *Olympus) Close() error {
+func (o *Olympus) Close() (err error) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
 
@@ -135,7 +164,19 @@ func (o *Olympus) Close() error {
 	}
 	o.subscriptions = nil
 
-	if errs == nil {
+	defer func() {
+		rerr := recover()
+		if rerr == nil {
+			return
+		}
+		errs = append(errs, fmt.Errorf("%v", rerr))
+		err = multipleError(errs)
+	}()
+
+	close(o.unfilteredAlarms)
+	o.wg.Wait()
+
+	if len(errs) == 0 {
 		return nil
 	}
 	return multipleError(errs)
@@ -312,9 +353,11 @@ func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration, cancel co
 		o.subscriptions[zoneIdentifier] = sub
 	}
 	sub.climate = &GrpcSubscription[ClimateLogger]{
+		zone:        zoneIdentifier,
 		object:      NewClimateLogger(declaration),
 		cancel:      cancel,
 		alarmLogger: sub.alarmLogger,
+		updates:     o.unfilteredAlarms,
 	}
 
 	go o.serviceLogger.Log(zoneIdentifier+".climate", true, true)
@@ -374,9 +417,11 @@ func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration, cancel 
 		o.subscriptions[zoneIdentifier] = sub
 	}
 	sub.tracking = &GrpcSubscription[TrackingLogger]{
+		zone:        zoneIdentifier,
 		object:      NewTrackingLogger(declaration),
 		cancel:      cancel,
 		alarmLogger: sub.alarmLogger,
+		updates:     o.unfilteredAlarms,
 	}
 
 	o.serviceLogger.Log(zoneIdentifier+".tracking", true, true)
@@ -396,7 +441,9 @@ func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 	if ok == false || s.tracking == nil {
 		return ZoneNotFoundError(zoneIdentifier)
 	}
-	defer func() { s.climate = nil }()
+	defer func() {
+		s.climate = nil
+	}()
 
 	if s.climate == nil {
 		delete(o.subscriptions, zoneIdentifier)

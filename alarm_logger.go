@@ -23,54 +23,83 @@ type alarmLog struct {
 	identification string
 	level          api.AlarmLevel
 	description    string
-	logs           []alarmTimePoint
+	timepoints     []alarmTimePoint
 }
 
 func (l *alarmLog) getReport() api.AlarmReport {
-	res := api.AlarmReport{
+	return api.AlarmReport{
 		Identification: l.identification,
 		Level:          l.level,
 		Description:    l.description,
-		Events:         make([]api.AlarmEvent, 0, len(l.logs)/2+1),
+		Events:         l.buildEvents(),
 	}
+}
+
+func (l *alarmLog) buildEvents() []api.AlarmEvent {
+	events := make([]api.AlarmEvent, 0, len(l.timepoints)/2+1)
 	var start *time.Time = nil
-	for _, u := range l.logs {
+	for _, tp := range l.timepoints {
 		if start == nil {
-			if u.on == false {
+			if tp.on == false {
 				continue
 			}
-			start = &u.time
+			start = &tp.time
 		} else {
-			if u.on == true {
+			if tp.on == true {
 				continue
 			}
 			e := api.AlarmEvent{
 				Start: *start,
 				End:   new(time.Time),
 			}
-			*e.End = u.time
-			res.Events = append(res.Events, e)
+			*e.End = tp.time
+			events = append(events, e)
 			start = nil
 		}
 	}
 
 	if start != nil {
-		res.Events = append(res.Events, api.AlarmEvent{Start: *start})
+		events = append(events, api.AlarmEvent{Start: *start})
 	}
 
-	return res
+	return events
+}
+
+func (l *alarmLog) needDecimate() bool {
+	lastOn := false
+	for _, tp := range l.timepoints {
+		if tp.on == lastOn {
+			return true
+		}
+		lastOn = tp.on
+	}
+	return false
+}
+
+func (l *alarmLog) decimate() {
+	if l.needDecimate() == false {
+		return
+	}
+	events := l.buildEvents()
+	l.timepoints = make([]alarmTimePoint, 0, len(events)*2)
+	for _, e := range events {
+		l.timepoints = append(l.timepoints, alarmTimePoint{time: e.Start, on: true})
+		if e.End != nil {
+			l.timepoints = append(l.timepoints, alarmTimePoint{time: *e.End, on: false})
+		}
+	}
 }
 
 func (l *alarmLog) on() bool {
-	if len(l.logs) == 0 {
+	if len(l.timepoints) == 0 {
 		return false
 	}
-	return l.logs[len(l.logs)-1].on
+	return l.timepoints[len(l.timepoints)-1].on
 }
 
 func (l *alarmLog) pushUpdate(u *api.AlarmUpdate) {
 	updateTime := u.Time.AsTime()
-	l.logs = BackInsertionSort(l.logs,
+	l.timepoints = BackInsertionSort(l.timepoints,
 		alarmTimePoint{
 			time: updateTime,
 			on:   u.Status == api.AlarmStatus_ON,
@@ -81,7 +110,7 @@ func (l *alarmLog) pushUpdate(u *api.AlarmUpdate) {
 
 	updateHasDescription := len(u.Description) != 0
 	hasNoDescription := len(l.description) == 0
-	isLastUpdate := l.logs[len(l.logs)-1].time.Equal(updateTime)
+	isLastUpdate := l.timepoints[len(l.timepoints)-1].time.Equal(updateTime)
 	if updateHasDescription && (hasNoDescription || isLastUpdate) {
 		l.description = u.Description
 	}
@@ -123,6 +152,7 @@ func (l *alarmLogger) PushAlarms(updates []*api.AlarmUpdate) {
 		l.pushUpdateToLog(e)
 	}
 	l.computeActives()
+	l.decimateLogs(updates)
 }
 
 func (l *alarmLogger) pushUpdateToLog(update *api.AlarmUpdate) {
@@ -135,6 +165,17 @@ func (l *alarmLogger) pushUpdateToLog(update *api.AlarmUpdate) {
 		l.logs[log.identification] = log
 	}
 	log.pushUpdate(update)
+}
+
+func (l *alarmLogger) decimateLogs(updates []*api.AlarmUpdate) {
+	idts := make(map[string]bool)
+	for _, u := range updates {
+		idts[u.Identification] = true
+	}
+
+	for idt := range idts {
+		l.logs[idt].decimate()
+	}
 }
 
 func (l *alarmLogger) computeActives() {
