@@ -24,7 +24,7 @@ type OlympusSuite struct {
 var _ = Suite(&OlympusSuite{})
 
 func (s *OlympusSuite) SetUpTest(c *C) {
-	datapath = c.MkDir()
+	_datapath = c.MkDir()
 
 	var err error
 	s.o, err = NewOlympus()

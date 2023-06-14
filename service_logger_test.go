@@ -9,7 +9,7 @@ type ServiceLoggerSuite struct{}
 var _ = Suite(&ServiceLoggerSuite{})
 
 func (s *ServiceLoggerSuite) SetUpTest(c *C) {
-	datapath = c.MkDir()
+	_datapath = c.MkDir()
 }
 
 func (s *ServiceLoggerSuite) TestKeepsLogsSorted(c *C) {
