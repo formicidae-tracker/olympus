@@ -113,18 +113,10 @@ func (n *notifier) Loop() {
 	}
 }
 
-func (n *notifier) getOrBuildRegistration(zone string) zoneRegistration {
+func (n *notifier) Register(zone string) zoneRegistration {
 	n.mx.Lock()
 	defer n.mx.Unlock()
 
-	reg, ok := n.zones[zone]
-	if ok == false {
-		reg = n.register(zone)
-	}
-	return reg
-}
-
-func (n *notifier) register(zone string) zoneRegistration {
 	reg, ok := n.zones[zone]
 	if ok == true {
 		return reg
@@ -140,10 +132,20 @@ func (n *notifier) register(zone string) zoneRegistration {
 	return reg
 }
 
+func (n *notifier) getOrRegister(lock sync.Locker, zone string) zoneRegistration {
+	reg, ok := n.zones[zone]
+	if ok == true {
+		return reg
+	}
+	defer lock.Lock()
+	lock.Unlock()
+	return n.Register(zone)
+}
+
 func (n *notifier) handle(update ZonedAlarmUpdate) {
-	reg := n.getOrBuildRegistration(update.Zone)
 	n.mx.RLock()
 	defer n.mx.RUnlock()
+	reg := n.getOrRegister(n.mx.RLocker(), update.Zone)
 
 	for endpoint, maySend := range reg.potentialEndpoints {
 		if maySend == true &&

@@ -130,3 +130,36 @@ func (s *BatchAlarmUpdateSuite) TestBatching(c *C) {
 	}
 
 }
+
+func (s *BatchAlarmUpdateSuite) TestDisabledBatching(c *C) {
+	inputs := buildAlarm("abcdefghijklmn")
+	expected := make([][]ZonedAlarmUpdate, 0, len(inputs))
+	for _, i := range inputs {
+		expected = append(expected, []ZonedAlarmUpdate{i})
+	}
+
+	go func(incoming <-chan ZonedAlarmUpdate) {
+		BatchAlarmUpdate(0)(s.outgoing, incoming)
+	}(s.incoming)
+
+	go func() {
+		defer func() {
+			close(s.incoming)
+			s.incoming = nil
+		}()
+		for _, u := range inputs {
+			s.incoming <- u
+			time.Sleep(10 * time.Microsecond)
+		}
+		time.Sleep(1 * time.Millisecond)
+	}()
+
+	result := make([][]ZonedAlarmUpdate, 0, len(expected))
+
+	for r := range s.outgoing {
+		result = append(result, r)
+	}
+
+	c.Check(len(result), Equals, len(expected))
+
+}
