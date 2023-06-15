@@ -86,8 +86,9 @@ type Olympus struct {
 
 	serviceLogger ServiceLogger
 
-	unfilteredAlarms chan ZonedAlarmUpdate
-	notifier         Notifier
+	unfilteredAlarms   chan ZonedAlarmUpdate
+	notifier           Notifier
+	notificationSender NotificationSender
 
 	hostname string
 }
@@ -122,7 +123,8 @@ func NewOlympus() (*Olympus, error) {
 		subscriptions:       make(map[string]*subscription),
 		serviceLogger:       NewServiceLogger(),
 		unfilteredAlarms:    make(chan ZonedAlarmUpdate, 100),
-		notifier:            NewNotifier(),
+		notifier:            NewNotifier(5 * time.Minute),
+		notificationSender:  &discardNotification{},
 	}
 	var err error
 	res.hostname, err = os.Hostname()
@@ -130,14 +132,24 @@ func NewOlympus() (*Olympus, error) {
 		return nil, err
 	}
 
-	res.notificationWg.Add(2)
+	res.notificationWg.Add(3)
 	go func() {
 		defer res.notificationWg.Done()
 		FilterAlarmUpdates(1*time.Minute)(res.notifier.Incoming(), res.unfilteredAlarms)
 	}()
+
 	go func() {
 		defer res.notificationWg.Done()
 		res.notifier.Loop()
+	}()
+
+	go func() {
+		defer res.notificationWg.Done()
+		for n := range res.notifier.Outgoing() {
+			if err := res.notificationSender.Send(n); err != nil {
+				res.log.Printf("could not send notificaton: %s", err)
+			}
+		}
 	}()
 
 	return res, nil

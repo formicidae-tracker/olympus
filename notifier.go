@@ -2,6 +2,7 @@ package main
 
 import (
 	"sync"
+	"time"
 
 	"github.com/formicidae-tracker/olympus/api"
 )
@@ -24,6 +25,7 @@ func IsSubscribedTo(zone string, level api.AlarmLevel, settings api.Notification
 
 type Notifier interface {
 	Incoming() chan<- ZonedAlarmUpdate
+	Outgoing() <-chan NotificationFor
 
 	UpdatePushSubscription(*api.NotificationSettingsUpdate) error
 
@@ -35,24 +37,42 @@ type zoneRegistration struct {
 }
 
 type notifier struct {
-	mx       sync.RWMutex
-	incoming chan ZonedAlarmUpdate
+	mx                   sync.RWMutex
+	incoming             chan ZonedAlarmUpdate
+	outgoingNotification chan NotificationFor
 
 	zones map[string]zoneRegistration
 
 	subscriptions *PersistentMap[api.NotificationSettings]
+
+	wg sync.WaitGroup
+
+	outgoing map[string]chan<- ZonedAlarmUpdate
+
+	batchPeriod time.Duration
 }
 
-func NewNotifier() Notifier {
-	return &notifier{
-		zones:         make(map[string]zoneRegistration),
-		incoming:      make(chan ZonedAlarmUpdate, 100),
-		subscriptions: NewPersistentMap[api.NotificationSettings]("push-notifications"),
+func NewNotifier(batchPeriod time.Duration) Notifier {
+	res := &notifier{
+		zones:                make(map[string]zoneRegistration),
+		incoming:             make(chan ZonedAlarmUpdate, 100),
+		subscriptions:        NewPersistentMap[api.NotificationSettings]("push-notifications"),
+		outgoing:             make(map[string]chan<- ZonedAlarmUpdate),
+		outgoingNotification: make(chan NotificationFor, 100),
+		batchPeriod:          batchPeriod,
 	}
+	for endpoint := range res.subscriptions.Map {
+		res.ensureOutgoing(endpoint)
+	}
+	return res
 }
 
 func (n *notifier) Incoming() chan<- ZonedAlarmUpdate {
 	return n.incoming
+}
+
+func (n *notifier) Outgoing() <-chan NotificationFor {
+	return n.outgoingNotification
 }
 
 func (n *notifier) UpdatePushSubscription(update *api.NotificationSettingsUpdate) error {
@@ -62,6 +82,8 @@ func (n *notifier) UpdatePushSubscription(update *api.NotificationSettingsUpdate
 	n.subscriptions.Map[update.Endpoint] = update.Settings
 	n.subscriptions.SaveKey(update.Endpoint)
 
+	n.ensureOutgoing(update.Endpoint)
+
 	for zone, reg := range n.zones {
 		reg.potentialEndpoints[update.Endpoint] = MayBeSubscribedTo(zone, update.Settings)
 	}
@@ -70,6 +92,16 @@ func (n *notifier) UpdatePushSubscription(update *api.NotificationSettingsUpdate
 }
 
 func (n *notifier) Loop() {
+	defer func() {
+
+		for _, ch := range n.outgoing {
+			close(ch)
+		}
+		n.wg.Wait()
+
+		close(n.outgoingNotification)
+	}()
+
 	for {
 		select {
 		case update, ok := <-n.incoming:
@@ -118,12 +150,32 @@ func (n *notifier) handle(update ZonedAlarmUpdate) {
 			IsSubscribedTo(update.Zone,
 				update.Update.Level,
 				n.subscriptions.Map[endpoint]) {
-
-			n.sendNotification(endpoint, update)
+			n.outgoing[endpoint] <- update
 		}
 	}
 }
 
-func (n *notifier) sendNotification(endpoint string, update ZonedAlarmUpdate) {
-	//TODO: send the notification
+func (n *notifier) ensureOutgoing(endpoint string) {
+	_, ok := n.outgoing[endpoint]
+	if ok == true {
+		return
+	}
+
+	unfiltered := make(chan ZonedAlarmUpdate)
+	filtered := make(chan []ZonedAlarmUpdate)
+
+	n.wg.Add(2)
+	go func() {
+		defer n.wg.Done()
+		BatchAlarmUpdate(n.batchPeriod)(filtered, unfiltered)
+	}()
+
+	go func(endpoint string) {
+		defer n.wg.Done()
+		for u := range filtered {
+			n.outgoingNotification <- NotificationFor{Endpoint: endpoint, Updates: u}
+		}
+	}(endpoint)
+
+	n.outgoing[endpoint] = unfiltered
 }
