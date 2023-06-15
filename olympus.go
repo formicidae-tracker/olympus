@@ -74,12 +74,15 @@ func (m multipleError) Error() string {
 type Olympus struct {
 	api.UnimplementedOlympusServer
 
-	mx sync.RWMutex
-	wg sync.WaitGroup
+	mx             sync.RWMutex
+	subscriptionWg sync.WaitGroup
+	notificationWg sync.WaitGroup
 
 	log *log.Logger
 
-	subscriptions map[string]*subscription
+	cancelSubscription  context.CancelFunc
+	subscriptionContext context.Context
+	subscriptions       map[string]*subscription
 
 	serviceLogger ServiceLogger
 
@@ -93,13 +96,7 @@ type GrpcSubscription[T any] struct {
 	zone        string
 	object      T
 	alarmLogger AlarmLogger
-	cancel      context.CancelFunc
 	updates     chan<- ZonedAlarmUpdate
-}
-
-func (s GrpcSubscription[T]) Close() (err error) {
-	s.cancel()
-	return nil
 }
 
 func (s GrpcSubscription[T]) NotifyAlarms(updates []*api.AlarmUpdate) {
@@ -116,12 +113,16 @@ type subscription struct {
 }
 
 func NewOlympus() (*Olympus, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	res := &Olympus{
-		log:              log.New(os.Stderr, "[olympus] :", log.LstdFlags),
-		subscriptions:    make(map[string]*subscription),
-		serviceLogger:    NewServiceLogger(),
-		unfilteredAlarms: make(chan ZonedAlarmUpdate, 100),
-		notifier:         NewNotifier(),
+		log:                 log.New(os.Stderr, "[olympus] :", log.LstdFlags),
+		subscriptionContext: ctx,
+		cancelSubscription:  cancel,
+		subscriptions:       make(map[string]*subscription),
+		serviceLogger:       NewServiceLogger(),
+		unfilteredAlarms:    make(chan ZonedAlarmUpdate, 100),
+		notifier:            NewNotifier(),
 	}
 	var err error
 	res.hostname, err = os.Hostname()
@@ -129,13 +130,13 @@ func NewOlympus() (*Olympus, error) {
 		return nil, err
 	}
 
-	res.wg.Add(2)
+	res.notificationWg.Add(2)
 	go func() {
-		defer res.wg.Done()
+		defer res.notificationWg.Done()
 		FilterAlarmUpdates(1*time.Minute)(res.notifier.Incoming(), res.unfilteredAlarms)
 	}()
 	go func() {
-		defer res.wg.Done()
+		defer res.notificationWg.Done()
 		res.notifier.Loop()
 	}()
 
@@ -146,22 +147,17 @@ func (o *Olympus) Close() (err error) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
 
-	var errs []error
-	for _, s := range o.subscriptions {
-		if s.climate != nil {
-			err := s.climate.Close()
-			if err != nil {
-				errs = append(errs, err)
-			}
-		}
+	o.cancelSubscription()
 
-		if s.tracking != nil {
-			err := s.tracking.Close()
-			if err != nil {
-				errs = append(errs, err)
-			}
-		}
-	}
+	// wait for all subscription to terminate to avoid panic on alarms
+	// channels. There is almost a slight race condition where an
+	// attempt to register could happen, but since the context for
+	// gRPC subscription is done, it should not read and process
+	// messages.
+	o.mx.Unlock()
+	o.subscriptionWg.Wait()
+	o.mx.Lock()
+
 	o.subscriptions = nil
 
 	defer func() {
@@ -169,17 +165,13 @@ func (o *Olympus) Close() (err error) {
 		if rerr == nil {
 			return
 		}
-		errs = append(errs, fmt.Errorf("%v", rerr))
-		err = multipleError(errs)
+		err = fmt.Errorf("%s", rerr)
 	}()
 
 	close(o.unfilteredAlarms)
-	o.wg.Wait()
+	o.notificationWg.Wait()
 
-	if len(errs) == 0 {
-		return nil
-	}
-	return multipleError(errs)
+	return nil
 }
 
 func (o *Olympus) GetServiceLogs() []api.ServiceLog {
@@ -330,7 +322,7 @@ func (o *Olympus) GetAlarmReports(host, zone string) ([]api.AlarmReport, error) 
 	return a.GetReports(), nil
 }
 
-func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration, cancel context.CancelFunc) (*GrpcSubscription[ClimateLogger], error) {
+func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration) (*GrpcSubscription[ClimateLogger], error) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
 	if o.subscriptions == nil {
@@ -352,15 +344,17 @@ func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration, cancel co
 		}
 		o.subscriptions[zoneIdentifier] = sub
 	}
+	o.subscriptionWg.Add(1)
+
 	sub.climate = &GrpcSubscription[ClimateLogger]{
 		zone:        zoneIdentifier,
 		object:      NewClimateLogger(declaration),
-		cancel:      cancel,
 		alarmLogger: sub.alarmLogger,
 		updates:     o.unfilteredAlarms,
 	}
 
 	go o.serviceLogger.Log(zoneIdentifier+".climate", true, true)
+
 	return sub.climate, nil
 }
 
@@ -378,17 +372,21 @@ func (o *Olympus) UnregisterClimate(host, name string, graceful bool) error {
 		return ZoneNotFoundError(zoneIdentifier)
 	}
 
-	defer func() { s.climate = nil }()
+	defer func() {
+		s.climate = nil
+		o.subscriptionWg.Done()
+	}()
+
 	if s.tracking == nil {
 		delete(o.subscriptions, zoneIdentifier)
 	}
 
 	o.serviceLogger.Log(zoneIdentifier+".climate", false, graceful)
 
-	return s.climate.Close()
+	return nil
 }
 
-func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration, cancel context.CancelFunc) (*GrpcSubscription[TrackingLogger], error) {
+func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (*GrpcSubscription[TrackingLogger], error) {
 	if declaration.StreamServer != o.hostname+".local" {
 		return nil, fmt.Errorf("unexpected server %s (expect: %s)", declaration.StreamServer, o.hostname+".local")
 	}
@@ -416,10 +414,11 @@ func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration, cancel 
 		}
 		o.subscriptions[zoneIdentifier] = sub
 	}
+	o.subscriptionWg.Add(1)
+
 	sub.tracking = &GrpcSubscription[TrackingLogger]{
 		zone:        zoneIdentifier,
 		object:      NewTrackingLogger(declaration),
-		cancel:      cancel,
 		alarmLogger: sub.alarmLogger,
 		updates:     o.unfilteredAlarms,
 	}
@@ -443,6 +442,7 @@ func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 	}
 	defer func() {
 		s.climate = nil
+		o.subscriptionWg.Done()
 	}()
 
 	if s.climate == nil {
@@ -450,7 +450,7 @@ func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 	}
 
 	o.serviceLogger.Log(zoneIdentifier+".tracking", false, graceful)
-	return s.tracking.Close()
+	return nil
 }
 
 func (o *Olympus) setRoutes(router *mux.Router) {
@@ -501,5 +501,4 @@ func (o *Olympus) setRoutes(router *mux.Router) {
 		version := Version{Version: OLYMPUS_VERSION}
 		JSONify(w, &version)
 	}).Methods("GET")
-
 }

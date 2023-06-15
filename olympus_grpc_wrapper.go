@@ -94,15 +94,17 @@ func mapError(err error) error {
 	}
 }
 
+func (o *OlympusGRPCWrapper) Context() context.Context {
+	return (*Olympus)(o).subscriptionContext
+}
+
 func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err error) {
 	var subscription *GrpcSubscription[ClimateLogger] = nil
-	ctx, cancel := context.WithCancel(context.Background())
-
 	defer func() {
 		if subscription == nil {
 			return
 		}
-		graceful := err != nil && err != io.EOF
+		graceful := err != nil && err != io.EOF && err != context.Canceled
 		(*Olympus)(o).UnregisterClimate(subscription.object.Host(), subscription.object.ZoneName(), graceful)
 	}()
 	ack := &api.ClimateDownStream{}
@@ -113,7 +115,7 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain ZoneDeclaration")
 			}
 			var err error
-			subscription, err = (*Olympus)(o).RegisterClimate(m.Declaration, cancel)
+			subscription, err = (*Olympus)(o).RegisterClimate(m.Declaration)
 			if err != nil {
 				return nil, mapError(err)
 			}
@@ -145,18 +147,17 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 		return ack, nil
 	}
 
-	return serveLoop[api.ClimateUpStream, api.ClimateDownStream](stream, handleMessage, ctx)
+	return serveLoop[api.ClimateUpStream, api.ClimateDownStream](stream, handleMessage, o.Context())
 }
 
 func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err error) {
 	var subscription *GrpcSubscription[TrackingLogger] = nil
-	ctx, cancel := context.WithCancel(context.Background())
 	hostname := ""
 	defer func() {
 		if subscription == nil {
 			return
 		}
-		graceful := err != nil
+		graceful := err != nil && err != io.EOF && err != context.Canceled
 		(*Olympus)(o).UnregisterTracker(hostname, graceful)
 	}()
 	ack := &api.TrackingDownStream{}
@@ -166,7 +167,7 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain TrackingDeclaration")
 			}
 			var err error
-			subscription, err = (*Olympus)(o).RegisterTracking(m.Declaration, cancel)
+			subscription, err = (*Olympus)(o).RegisterTracking(m.Declaration)
 			if err != nil {
 				return nil, mapError(err)
 			}
@@ -186,5 +187,5 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 		return ack, nil
 	}
 
-	return serveLoop[api.TrackingUpStream, api.TrackingDownStream](stream, handleMessage, ctx)
+	return serveLoop[api.TrackingUpStream, api.TrackingDownStream](stream, handleMessage, o.Context())
 }
