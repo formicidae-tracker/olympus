@@ -24,12 +24,18 @@ RUN go mod download
 
 RUN go build
 
+WORKDIR /app/olympus-generate-vapid-keys
+
+RUN go build
+
 FROM alpine
 
 WORKDIR /app
 
 COPY --from=build-node /app/webapp/dist/olympus/browser /app/webapp/dist/olympus/browser
 
-COPY --from=build-golang /app/olympus /app/olympus
+COPY --from=build-golang /app/olympus \
+	/app/olympus-generate-vapid-keys/olympus-generate-vapid-keys \
+	/app/
 
 CMD [ "./olympus" ]

@@ -124,7 +124,7 @@ func NewOlympus() (*Olympus, error) {
 		serviceLogger:       NewServiceLogger(),
 		unfilteredAlarms:    make(chan ZonedAlarmUpdate, 100),
 		notifier:            NewNotifier(5 * time.Minute),
-		notificationSender:  &discardNotification{},
+		notificationSender:  NewNotificationSender(),
 	}
 	var err error
 	res.hostname, err = os.Hostname()

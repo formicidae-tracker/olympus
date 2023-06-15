@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/api"
 )
 
@@ -27,6 +29,7 @@ type Notifier interface {
 	Incoming() chan<- ZonedAlarmUpdate
 	Outgoing() <-chan NotificationFor
 
+	RegisterPushSubscription(*webpush.Subscription) error
 	UpdatePushSubscription(*api.NotificationSettingsUpdate) error
 
 	Loop()
@@ -36,6 +39,11 @@ type zoneRegistration struct {
 	potentialEndpoints map[string]bool
 }
 
+type NotificationSubscription struct {
+	Push     *webpush.Subscription
+	Settings api.NotificationSettings
+}
+
 type notifier struct {
 	mx                   sync.RWMutex
 	incoming             chan ZonedAlarmUpdate
@@ -43,7 +51,7 @@ type notifier struct {
 
 	zones map[string]zoneRegistration
 
-	subscriptions *PersistentMap[api.NotificationSettings]
+	subscriptions *PersistentMap[*NotificationSubscription]
 
 	wg sync.WaitGroup
 
@@ -56,13 +64,13 @@ func NewNotifier(batchPeriod time.Duration) Notifier {
 	res := &notifier{
 		zones:                make(map[string]zoneRegistration),
 		incoming:             make(chan ZonedAlarmUpdate, 100),
-		subscriptions:        NewPersistentMap[api.NotificationSettings]("push-notifications"),
+		subscriptions:        NewPersistentMap[*NotificationSubscription]("push-notifications"),
 		outgoing:             make(map[string]chan<- ZonedAlarmUpdate),
 		outgoingNotification: make(chan NotificationFor, 100),
 		batchPeriod:          batchPeriod,
 	}
-	for endpoint := range res.subscriptions.Map {
-		res.ensureOutgoing(endpoint)
+	for _, sub := range res.subscriptions.Map {
+		res.ensureOutgoing(sub.Push)
 	}
 	return res
 }
@@ -75,14 +83,29 @@ func (n *notifier) Outgoing() <-chan NotificationFor {
 	return n.outgoingNotification
 }
 
+func (n *notifier) RegisterPushSubscription(s *webpush.Subscription) error {
+	n.mx.Lock()
+	defer n.mx.Unlock()
+
+	n.subscriptions.Map[s.Endpoint] = &NotificationSubscription{
+		Push: s,
+	}
+
+	n.ensureOutgoing(s)
+
+	return n.subscriptions.SaveKey(s.Endpoint)
+}
+
 func (n *notifier) UpdatePushSubscription(update *api.NotificationSettingsUpdate) error {
 	n.mx.Lock()
 	defer n.mx.Unlock()
 
-	n.subscriptions.Map[update.Endpoint] = update.Settings
-	n.subscriptions.SaveKey(update.Endpoint)
+	subscription, ok := n.subscriptions.Map[update.Endpoint]
+	if ok == false {
+		return fmt.Errorf("Unknow PushSubscription Endpoint")
+	}
 
-	n.ensureOutgoing(update.Endpoint)
+	subscription.Settings = update.Settings
 
 	for zone, reg := range n.zones {
 		reg.potentialEndpoints[update.Endpoint] = MayBeSubscribedTo(zone, update.Settings)
@@ -122,8 +145,8 @@ func (n *notifier) Register(zone string) zoneRegistration {
 		return reg
 	}
 	endpoints := make(map[string]bool)
-	for endpoint, settings := range n.subscriptions.Map {
-		endpoints[endpoint] = MayBeSubscribedTo(zone, settings)
+	for endpoint, sub := range n.subscriptions.Map {
+		endpoints[endpoint] = MayBeSubscribedTo(zone, sub.Settings)
 	}
 
 	reg = zoneRegistration{potentialEndpoints: endpoints}
@@ -151,14 +174,14 @@ func (n *notifier) handle(update ZonedAlarmUpdate) {
 		if maySend == true &&
 			IsSubscribedTo(update.Zone,
 				update.Update.Level,
-				n.subscriptions.Map[endpoint]) {
+				n.subscriptions.Map[endpoint].Settings) {
 			n.outgoing[endpoint] <- update
 		}
 	}
 }
 
-func (n *notifier) ensureOutgoing(endpoint string) {
-	_, ok := n.outgoing[endpoint]
+func (n *notifier) ensureOutgoing(sub *webpush.Subscription) {
+	_, ok := n.outgoing[sub.Endpoint]
 	if ok == true {
 		return
 	}
@@ -172,12 +195,12 @@ func (n *notifier) ensureOutgoing(endpoint string) {
 		BatchAlarmUpdate(n.batchPeriod)(filtered, unfiltered)
 	}()
 
-	go func(endpoint string) {
+	go func(sub *webpush.Subscription) {
 		defer n.wg.Done()
 		for u := range filtered {
-			n.outgoingNotification <- NotificationFor{Endpoint: endpoint, Updates: u}
+			n.outgoingNotification <- NotificationFor{Subscription: sub, Updates: u}
 		}
-	}(endpoint)
+	}(sub)
 
-	n.outgoing[endpoint] = unfiltered
+	n.outgoing[sub.Endpoint] = unfiltered
 }

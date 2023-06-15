@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/api"
 	. "gopkg.in/check.v1"
 )
@@ -82,8 +83,8 @@ func (d alarmData) ToAlarmUpdate() ZonedAlarmUpdate {
 
 func (d alarmData) ToNotification() NotificationFor {
 	return NotificationFor{
-		Endpoint: d.Endpoint,
-		Updates:  []ZonedAlarmUpdate{d.ToAlarmUpdate()},
+		Subscription: &webpush.Subscription{Endpoint: d.Endpoint},
+		Updates:      []ZonedAlarmUpdate{d.ToAlarmUpdate()},
 	}
 }
 
@@ -91,27 +92,31 @@ func (s *NotifierSuite) TestSendOnlyToSubscribed(c *C) {
 	go func() {
 		s.notifier.Loop()
 	}()
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "a"}), IsNil)
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "b"}), IsNil)
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "c"}), IsNil)
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "d"}), IsNil)
 
-	s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{Endpoint: "a"})
-	s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
+	c.Check(s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{Endpoint: "a"}), IsNil)
+	c.Check(s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
 		Endpoint: "b",
 		Settings: api.NotificationSettings{
 			SubscribeToAll: true,
 		},
-	})
-	s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
+	}), IsNil)
+	c.Check(s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
 		Endpoint: "c",
 		Settings: api.NotificationSettings{
 			NotifyOnWarning: true,
 			Subscriptions:   []string{"foo"},
 		},
-	})
-	s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
+	}), IsNil)
+	c.Check(s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
 		Endpoint: "d",
 		Settings: api.NotificationSettings{
 			NotifyNonGraceful: true,
 		},
-	})
+	}), IsNil)
 
 	alarms := []alarmData{
 		{"", "foo/critical", api.AlarmLevel_EMERGENCY},
@@ -143,7 +148,7 @@ func (s *NotifierSuite) TestSendOnlyToSubscribed(c *C) {
 	}()
 
 	for r := range s.notifier.Outgoing() {
-		ID := path.Join(r.Endpoint, r.Updates[0].ID())
+		ID := path.Join(r.Subscription.Endpoint, r.Updates[0].ID())
 		c.Check(expected[ID], Equals, true, Commentf("for %s", ID))
 		delete(expected, ID)
 	}
@@ -155,12 +160,13 @@ func (s *NotifierSuite) TestSendOnlyToSubscribed(c *C) {
 }
 
 func (s *NotifierSuite) TestSubscriptionPersistence(c *C) {
-	s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "a"}), IsNil)
+	c.Check(s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
 		Endpoint: "a",
 		Settings: api.NotificationSettings{
 			SubscribeToAll: true,
 		},
-	})
+	}), IsNil)
 
 	notifier := NewNotifier(0)
 
@@ -194,7 +200,7 @@ func (s *NotifierSuite) TestSubscriptionPersistence(c *C) {
 	}()
 
 	for r := range notifier.Outgoing() {
-		ID := path.Join(r.Endpoint, r.Updates[0].ID())
+		ID := path.Join(r.Subscription.Endpoint, r.Updates[0].ID())
 		c.Check(expected[ID], Equals, true, Commentf("for %s", ID))
 		delete(expected, ID)
 	}
