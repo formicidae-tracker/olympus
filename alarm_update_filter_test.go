@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/formicidae-tracker/olympus/api"
+	"golang.org/x/exp/constraints"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
 )
@@ -57,35 +58,116 @@ func (s *AlarmUpdateFilterSuite) TestFilterSpuriousAlarm(c *C) {
 		At     time.Duration
 		Update ZonedAlarmUpdate
 	}{
+		// A simple alarm
 		{At: 0, Update: ZonedAlarmUpdate{Zone: "nice.zone",
 			Update: &api.AlarmUpdate{
 				Identification: "nice",
 				Status:         api.AlarmStatus_ON,
 			},
 		}},
-		{At: 6 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "nice.zone",
+		{At: 40 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "nice.zone",
 			Update: &api.AlarmUpdate{
 				Identification: "nice",
+				Status:         api.AlarmStatus_OFF,
 			},
 		}},
 
-		{At: 500 * time.Microsecond, Update: ZonedAlarmUpdate{Zone: "ramping.up",
+		// An increasing alarm
+		{At: 3 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "ramping.up",
 			Update: &api.AlarmUpdate{
 				Identification: "diff",
 				Level:          api.AlarmLevel_WARNING,
 				Status:         api.AlarmStatus_ON,
 			},
 		}},
-		{At: 7 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "ramping.up",
+		{At: 10 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "ramping.up",
 			Update: &api.AlarmUpdate{
 				Identification: "diff",
 				Level:          api.AlarmLevel_EMERGENCY,
 				Status:         api.AlarmStatus_ON,
 			},
 		}},
-		{At: 13 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "ramping.up",
+
+		{At: 17 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "ramping.up",
 			Update: &api.AlarmUpdate{
 				Identification: "diff",
+				Status:         api.AlarmStatus_OFF,
+			},
+		}},
+
+		// Should update descriptions
+		// An increasing alarm
+		{At: 9 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "ramping.up",
+			Update: &api.AlarmUpdate{
+				Identification: "changing",
+				Level:          api.AlarmLevel_WARNING,
+				Status:         api.AlarmStatus_ON,
+				Description:    "a",
+			},
+		}},
+		{At: 10 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "ramping.up",
+			Update: &api.AlarmUpdate{
+				Identification: "changing",
+				Level:          api.AlarmLevel_WARNING,
+				Status:         api.AlarmStatus_ON,
+				Description:    "b",
+			},
+		}},
+		{At: 10 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "ramping.up",
+			Update: &api.AlarmUpdate{
+				Identification: "changing",
+				Level:          api.AlarmLevel_EMERGENCY,
+				Status:         api.AlarmStatus_ON,
+				Description:    "",
+			},
+		}},
+
+		// Warning should not fire twice
+		{At: 6 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "faulty",
+			Update: &api.AlarmUpdate{
+				Identification: "twice",
+				Status:         api.AlarmStatus_ON,
+				Level:          api.AlarmLevel_WARNING,
+			},
+		}},
+		{At: 13 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "faulty",
+			Update: &api.AlarmUpdate{
+				Identification: "twice",
+				Status:         api.AlarmStatus_ON,
+				Level:          api.AlarmLevel_WARNING,
+			},
+		}},
+		{At: 20 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "faulty",
+			Update: &api.AlarmUpdate{
+				Identification: "twice",
+				Status:         api.AlarmStatus_OFF,
+				Level:          api.AlarmLevel_WARNING,
+			},
+		}},
+
+		//Spurious alarms should be discarded
+		{At: 0, Update: ZonedAlarmUpdate{Zone: "faulty",
+			Update: &api.AlarmUpdate{
+				Identification: "spurious",
+				Status:         api.AlarmStatus_ON,
+			},
+		}},
+		{At: 1 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "faulty",
+			Update: &api.AlarmUpdate{
+				Identification: "spurious",
+				Status:         api.AlarmStatus_OFF,
+			},
+		}},
+		{At: 2 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "faulty",
+			Update: &api.AlarmUpdate{
+				Identification: "spurious",
+				Status:         api.AlarmStatus_ON,
+			},
+		}},
+		{At: 4 * time.Millisecond, Update: ZonedAlarmUpdate{Zone: "faulty",
+			Update: &api.AlarmUpdate{
+				Identification: "spurious",
+				Status:         api.AlarmStatus_OFF,
 			},
 		}},
 	}
@@ -120,23 +202,41 @@ func (s *AlarmUpdateFilterSuite) TestFilterSpuriousAlarm(c *C) {
 	}()
 
 	expected := []ZonedAlarmUpdate{
-		{Zone: "nice.zone", Update: &api.AlarmUpdate{Identification: "nice"}},
+		{Zone: "nice.zone", Update: &api.AlarmUpdate{Identification: "nice", Level: api.AlarmLevel_WARNING}},
 		{Zone: "ramping.up", Update: &api.AlarmUpdate{Identification: "diff", Level: api.AlarmLevel_WARNING}},
+		{Zone: "faulty", Update: &api.AlarmUpdate{Identification: "twice", Level: api.AlarmLevel_WARNING}},
+		{Zone: "ramping.up", Update: &api.AlarmUpdate{Identification: "changing", Level: api.AlarmLevel_EMERGENCY, Description: "b"}},
 		{Zone: "ramping.up", Update: &api.AlarmUpdate{Identification: "diff", Level: api.AlarmLevel_EMERGENCY}},
 	}
 
-	j := 0
+	received := make([]ZonedAlarmUpdate, 0, len(expected))
 	for update := range s.filtered {
+		received = append(received, update)
+	}
 
-		if c.Check(j < len(expected), Equals, true, Commentf("got unexpected update %d:%v", j, update)) == false {
-			continue
-		}
-		comment := Commentf("expected %d: %v", j, expected[j])
-		c.Check(update.ID(), Equals, expected[j].ID(), comment)
-		c.Check(update.Update.Level, Equals, expected[j].Update.Level, comment)
-		j++
+	c.Check(len(received), Equals, len(expected))
+
+	for i := 0; i < Min(len(expected), len(received)); i++ {
+		comment := Commentf("alarm #%d", i)
+		c.Check(received[i].ID(), Equals, expected[i].ID(), comment)
+		c.Check(received[i].Update.Level, Equals, expected[i].Update.Level, comment)
+		c.Check(received[i].Update.Description, Equals, expected[i].Update.Description, comment)
+		c.Check(received[i].Update.Status, Equals, api.AlarmStatus_ON)
 	}
-	for _, update := range expected[j:] {
-		c.Errorf("Did not receive expected update %v", update)
+
+	for _, u := range expected[Min(len(received), len(expected)):] {
+		c.Errorf("Did not receive alarm %v", u)
 	}
+
+	for _, u := range received[Min(len(received), len(expected)):] {
+		c.Errorf("Received unexpected alarm %v", u)
+	}
+
+}
+
+func Min[T constraints.Ordered](a, b T) T {
+	if a < b {
+		return a
+	}
+	return b
 }

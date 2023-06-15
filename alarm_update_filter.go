@@ -53,12 +53,15 @@ func (f *updateFilter) filter(
 				return
 			}
 			if f.stage(u) == true && timer == nil {
-				timer = time.After(f.minimumOn)
+				wait := u.Update.Time.AsTime().Add(f.minimumOn).Sub(time.Now())
+				timer = time.After(wait)
 			}
 		case t := <-timer:
+			timer = nil
 			oldest := f.unstage(outgoing, t)
 			if len(f.staged) > 0 {
-				timer = time.After(oldest.Add(f.minimumOn).Sub(t))
+				wait := oldest.Add(f.minimumOn).Sub(t)
+				timer = time.After(wait)
 			}
 		}
 	}
@@ -72,9 +75,10 @@ func (f *updateFilter) stage(u ZonedAlarmUpdate) bool {
 		return false
 	}
 
-	if firedLevel, ok := f.fired[id]; ok == true &&
-		(firedLevel == api.AlarmLevel_EMERGENCY || u.Update.Level == api.AlarmLevel_WARNING) {
-		return false
+	if firedLevel, ok := f.fired[id]; ok == true {
+		if firedLevel == api.AlarmLevel_EMERGENCY || u.Update.Level == api.AlarmLevel_WARNING {
+			return false
+		}
 	}
 
 	staged, ok := f.staged[id]
@@ -105,6 +109,10 @@ func (f *updateFilter) unstage(outgoing chan<- ZonedAlarmUpdate, now time.Time) 
 		if uTime.Before(oldest) == true {
 			oldest = uTime
 		}
+	}
+
+	for _, s := range toDelete {
+		delete(f.staged, s)
 	}
 
 	return oldest
