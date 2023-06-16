@@ -63,15 +63,15 @@ type WebPushData struct {
 }
 
 type WebPushNotification struct {
-	Title   string          `json:"title,omitempty"`
-	Body    string          `json:"body,omitempty"`
+	Title   string          `json:"title,omitempty"` // Mandatory
+	Body    string          `json:"body,omitempty"`  // Mandatory
 	Actions []WebPushAction `json:"actions,omitempty"`
 	Data    WebPushData     `json:"data,omitempty"`
-	Icon    string          `json:"icon,omitempty"`
-	Image   string          `json:"image,omitempty"`
-	Badge   string          `json:"badge,omitempty"`
-	Vibrate []int           `json:"vibrate,omitempty"`
-	Sound   string          `json:"sound.omitempty"`
+	Icon    string          `json:"icon,omitempty"`    // Yes we would like something : https://web.dev/push-notifications-display-a-notification/#icon
+	Image   string          `json:"image,omitempty"`   // Preferably not see https://web.dev/push-notifications-display-a-notification/#image
+	Badge   string          `json:"badge,omitempty"`   // Yes we would like something : https://web.dev/push-notifications-display-a-notification/#badge
+	Vibrate []int           `json:"vibrate,omitempty"` // Seems uneffective
+	Sound   string          `json:"sound.omitempty"`   // Doesn't work
 }
 
 func NewWebPushNotification(updates []ZonedAlarmUpdate) (WebPushNotification, error) {
