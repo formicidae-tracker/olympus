@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/formicidae-tracker/olympus/api"
+	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -188,4 +189,9 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 	}
 
 	return serveLoop[api.TrackingUpStream, api.TrackingDownStream](stream, handleMessage, o.Context())
+}
+
+func (o *OlympusGRPCWrapper) SendAlarm(ctx context.Context, update *api.AlarmUpdate) (*empty.Empty, error) {
+	go (*Olympus)(o).NotifyAlarm("fake.zone", update)
+	return &empty.Empty{}, nil
 }

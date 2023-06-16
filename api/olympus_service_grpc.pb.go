@@ -8,6 +8,7 @@ package api
 
 import (
 	context "context"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -24,6 +25,7 @@ const _ = grpc.SupportPackageIsVersion7
 type OlympusClient interface {
 	Climate(ctx context.Context, opts ...grpc.CallOption) (Olympus_ClimateClient, error)
 	Tracking(ctx context.Context, opts ...grpc.CallOption) (Olympus_TrackingClient, error)
+	SendAlarm(ctx context.Context, in *AlarmUpdate, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
 type olympusClient struct {
@@ -96,12 +98,22 @@ func (x *olympusTrackingClient) Recv() (*TrackingDownStream, error) {
 	return m, nil
 }
 
+func (c *olympusClient) SendAlarm(ctx context.Context, in *AlarmUpdate, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/fort.olympus.Olympus/SendAlarm", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OlympusServer is the server API for Olympus service.
 // All implementations must embed UnimplementedOlympusServer
 // for forward compatibility
 type OlympusServer interface {
 	Climate(Olympus_ClimateServer) error
 	Tracking(Olympus_TrackingServer) error
+	SendAlarm(context.Context, *AlarmUpdate) (*empty.Empty, error)
 	mustEmbedUnimplementedOlympusServer()
 }
 
@@ -114,6 +126,9 @@ func (UnimplementedOlympusServer) Climate(Olympus_ClimateServer) error {
 }
 func (UnimplementedOlympusServer) Tracking(Olympus_TrackingServer) error {
 	return status.Errorf(codes.Unimplemented, "method Tracking not implemented")
+}
+func (UnimplementedOlympusServer) SendAlarm(context.Context, *AlarmUpdate) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendAlarm not implemented")
 }
 func (UnimplementedOlympusServer) mustEmbedUnimplementedOlympusServer() {}
 
@@ -180,13 +195,36 @@ func (x *olympusTrackingServer) Recv() (*TrackingUpStream, error) {
 	return m, nil
 }
 
+func _Olympus_SendAlarm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AlarmUpdate)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OlympusServer).SendAlarm(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fort.olympus.Olympus/SendAlarm",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OlympusServer).SendAlarm(ctx, req.(*AlarmUpdate))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Olympus_ServiceDesc is the grpc.ServiceDesc for Olympus service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Olympus_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "fort.olympus.Olympus",
 	HandlerType: (*OlympusServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SendAlarm",
+			Handler:    _Olympus_SendAlarm_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Climate",

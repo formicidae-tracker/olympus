@@ -4,6 +4,7 @@ option  go_package = ".;api";
 package fort.olympus;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 
 message ClimateReport {
 	repeated float            temperatures = 2;
@@ -99,4 +100,5 @@ message TrackingDownStream {}
 service Olympus {
 	rpc Climate(stream ClimateUpStream) returns (stream ClimateDownStream);
 	rpc Tracking(stream TrackingUpStream) returns (stream TrackingDownStream);
+	rpc SendAlarm(AlarmUpdate) returns (google.protobuf.Empty);
 }

@@ -499,6 +499,13 @@ func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 	return nil
 }
 
+func (o *Olympus) NotifyAlarm(zone string, update *api.AlarmUpdate) {
+	o.mx.Lock()
+	defer o.mx.Unlock()
+
+	o.notifier.Incoming() <- ZonedAlarmUpdate{Zone: zone, Update: update}
+}
+
 func (o *Olympus) setRoutes(router *mux.Router) {
 	o.setFetchRoutes(router)
 	if o.csrfHandler != nil {
