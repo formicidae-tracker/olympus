@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build-node
+FROM node:20.2-alpine AS build-node
 
 COPY --from=golang:1.20-alpine /usr/local/go/ /usr/local/go/
 

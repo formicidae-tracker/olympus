@@ -127,9 +127,15 @@ func NewOlympus() (*Olympus, error) {
 	minimumOn := 1 * time.Minute
 	batchPeriod := 5 * time.Minute
 
-	if len(os.Getenv("OLYMPUS_DEBUG_WEBPUSH")) > 0 {
+	debugWebpush := os.Getenv("OLYMPUS_DEBUG_WEBPUSH")
+	if len(debugWebpush) > 0 {
 		minimumOn = 1 * time.Second
-		batchPeriod = 5 * time.Second
+
+		var err error
+		batchPeriod, err = time.ParseDuration(debugWebpush)
+		if err != nil {
+			batchPeriod = 5 * time.Second
+		}
 	}
 
 	res := &Olympus{
@@ -544,7 +550,7 @@ func (o *Olympus) setFetchRoutes(router *mux.Router) {
 		vars := mux.Vars(r)
 		res, err := o.GetClimateTimeSerie(vars["hname"], vars["zname"], r.URL.Query().Get("window"))
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
 		JSONify(w, &res)
@@ -554,7 +560,7 @@ func (o *Olympus) setFetchRoutes(router *mux.Router) {
 		vars := mux.Vars(r)
 		res, err := o.GetAlarmReports(vars["hname"], vars["zname"])
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
 		JSONify(w, &res)
@@ -564,7 +570,7 @@ func (o *Olympus) setFetchRoutes(router *mux.Router) {
 		vars := mux.Vars(r)
 		res, err := o.GetZoneReport(vars["hname"], vars["zname"])
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
 		JSONify(w, &res)

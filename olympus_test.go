@@ -227,7 +227,7 @@ func (s *OlympusSuite) TestRoute(c *C) {
 				http.StatusOK,
 				Commentf("%s: '%s' returned: %s", d.Method, d.URL, string(rerr)))
 		} else {
-			c.Check(w.Result().StatusCode, Equals, http.StatusInternalServerError, comment)
+			c.Check(w.Result().StatusCode, Equals, http.StatusNotFound, comment)
 			res, err := ioutil.ReadAll(w.Result().Body)
 			c.Check(err, IsNil, comment)
 			c.Check(string(res), Matches, d.Error, comment)
