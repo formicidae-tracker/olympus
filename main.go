@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net"
@@ -26,7 +28,8 @@ import (
 
 type Options struct {
 	Version           bool `long:"version" description:"print current version and exit"`
-	GenerateVAPIDKeys bool `long:"generate-vapid-keys" description:"generate and outputs on stdout a new pair of VAPID Keys"`
+	GenerateVAPIDKeys bool `long:"generate-vapid-keys" description:"generate and output on stdout a new pair of VAPID Keys"`
+	GenerateSecret    bool `long:"generate-secret" description:"generate and output on stdout a secret for HMAC signature"`
 
 	Address   string   `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
 	RPC       int      `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
@@ -114,6 +117,19 @@ func outputNewVAPIDKeys() error {
 	return nil
 }
 
+func outputNewSecret() error {
+	secret := make([]byte, 64)
+	_, err := rand.Read(secret)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Printf("OLYMPUS_SECRET=%s\n", base64.URLEncoding.EncodeToString(secret))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func Execute() error {
 	opts := Options{}
 
@@ -128,6 +144,10 @@ func Execute() error {
 
 	if opts.GenerateVAPIDKeys == true {
 		return outputNewVAPIDKeys()
+	}
+
+	if opts.GenerateSecret == true {
+		return outputNewSecret()
 	}
 
 	o, err := NewOlympus()
