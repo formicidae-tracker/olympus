@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/api"
 	"github.com/gorilla/mux"
 )
@@ -78,7 +81,8 @@ type Olympus struct {
 	subscriptionWg sync.WaitGroup
 	notificationWg sync.WaitGroup
 
-	log *log.Logger
+	log         *log.Logger
+	csrfHandler *CSRFHandler
 
 	cancelSubscription  context.CancelFunc
 	subscriptionContext context.Context
@@ -89,6 +93,8 @@ type Olympus struct {
 	unfilteredAlarms   chan ZonedAlarmUpdate
 	notifier           Notifier
 	notificationSender NotificationSender
+	serverPublicKey    string
+	serverSecret       []byte
 
 	hostname string
 }
@@ -117,7 +123,7 @@ func NewOlympus() (*Olympus, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	res := &Olympus{
-		log:                 log.New(os.Stderr, "[olympus] :", log.LstdFlags),
+		log:                 log.New(os.Stderr, "[olympus]: ", log.LstdFlags),
 		subscriptionContext: ctx,
 		cancelSubscription:  cancel,
 		subscriptions:       make(map[string]*subscription),
@@ -125,8 +131,12 @@ func NewOlympus() (*Olympus, error) {
 		unfilteredAlarms:    make(chan ZonedAlarmUpdate, 100),
 		notifier:            NewNotifier(5 * time.Minute),
 		notificationSender:  NewNotificationSender(),
+		serverPublicKey:     os.Getenv("OLYMPUS_VAPID_PUBLIC"),
 	}
 	var err error
+
+	res.buildCSRFHandler()
+
 	res.hostname, err = os.Hostname()
 	if err != nil {
 		return nil, err
@@ -153,6 +163,30 @@ func NewOlympus() (*Olympus, error) {
 	}()
 
 	return res, nil
+}
+
+func getOlympusSecret() ([]byte, error) {
+	secret64 := os.Getenv("OLYMPUS_SECRET")
+	if len(secret64) == 0 {
+		return nil, errors.New("OLYMPUS_SECRET environment variable is not set")
+	}
+	secret, err := base64.URLEncoding.DecodeString(secret64)
+	if err != nil {
+		return nil, errors.New("could not decode OLYMPUS_SECRET")
+	}
+	return secret, nil
+}
+
+func (o *Olympus) buildCSRFHandler() {
+	secret, err := getOlympusSecret()
+	if err != nil {
+		o.log.Printf("could not get olympus secret: %s", err)
+		return
+	}
+	o.csrfHandler, err = NewCSRFHandler(secret)
+	if err != nil {
+		o.log.Printf("could not set CSRF Handler: %s", err)
+	}
 }
 
 func (o *Olympus) Close() (err error) {
@@ -466,6 +500,15 @@ func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 }
 
 func (o *Olympus) setRoutes(router *mux.Router) {
+	o.setFetchRoutes(router)
+	if o.csrfHandler != nil {
+		o.setNotificationRoutes(router)
+	} else {
+		o.log.Printf("No CSRF handler set, notifications routes are disabled")
+	}
+}
+
+func (o *Olympus) setFetchRoutes(router *mux.Router) {
 	router.HandleFunc("/api/zones", func(w http.ResponseWriter, r *http.Request) {
 		res := o.GetZones()
 		JSONify(w, &res)
@@ -513,4 +556,59 @@ func (o *Olympus) setRoutes(router *mux.Router) {
 		version := Version{Version: OLYMPUS_VERSION}
 		JSONify(w, &version)
 	}).Methods("GET")
+}
+
+func (o *Olympus) setNotificationRoutes(router *mux.Router) {
+	router.Handle("/api/notifications/key",
+		o.csrfHandler.SetCSRFCookie(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if len(o.serverPublicKey) == 0 {
+					http.Error(w, "no key available", http.StatusNotFound)
+					return
+				}
+
+				type publicKey struct {
+					Key string `json:"serverPublicKey"`
+				}
+
+				JSONify(w, &publicKey{o.serverPublicKey})
+			}))).Methods("GET")
+
+	subrouter := router.PathPrefix("/api/notifications").Subrouter()
+
+	subrouter.HandleFunc("/settings", func(w http.ResponseWriter, r *http.Request) {
+		update, err := Golangify[api.NotificationSettingsUpdate](r)
+		if err != nil {
+			o.log.Printf("invalid notification settings update: %s", err)
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+
+		if err := o.notifier.UpdatePushSubscription(update); err != nil {
+			o.log.Printf("could not update notification settings: %s", err)
+			http.Error(w, "notification settings error", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}).Methods("POST")
+
+	subrouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		sub, err := Golangify[webpush.Subscription](r)
+		if err != nil {
+			o.log.Printf("invalid push subscription: %s", err)
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+
+		if err := o.notifier.RegisterPushSubscription(sub); err != nil {
+			o.log.Printf("could not register push subscription: %s", err)
+			http.Error(w, "push subscription error", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}).Methods("POST")
+
+	subrouter.Use(o.csrfHandler.CheckCSRFCookie)
 }

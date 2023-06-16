@@ -77,8 +77,9 @@ func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
 	router := mux.NewRouter()
 	o.setRoutes(router)
 	setAngularRoute(router)
-	router.Use(HTTPLogWrap)
-	router.Use(RecoverWrap)
+	logger := log.New(os.Stderr, "[http]: ", log.LstdFlags)
+	router.Use(RecoverWrap(logger))
+	router.Use(HTTPLogWrap(logger))
 	if len(opts.AllowCORS) > 0 {
 		router.Use(EnableCORS(opts.AllowCORS))
 	}
