@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/SherClockHolmes/webpush-go"
 	olympuspb "github.com/formicidae-tracker/olympus/api"
 	"github.com/gorilla/mux"
 	"github.com/jessevdk/go-flags"
@@ -24,7 +25,9 @@ import (
 //go:generate go run ./api/examples/generate.go
 
 type Options struct {
-	Version   bool     `long:"version" description:"print current version and exit"`
+	Version           bool `long:"version" description:"print current version and exit"`
+	GenerateVAPIDKeys bool `long:"generate-vapid-keys" description:"generate and outputs on stdout a new pair of VAPID Keys"`
+
 	Address   string   `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
 	RPC       int      `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
 	AllowCORS []string `long:"allow-cors" description:"allow cors from domain"`
@@ -92,6 +95,24 @@ func setUpRpcServer(o *Olympus, opts Options) *grpc.Server {
 	return server
 }
 
+func outputNewVAPIDKeys() error {
+	private, public, err := webpush.GenerateVAPIDKeys()
+	if err != nil {
+		return fmt.Errorf("could not generate VAPID Keys: %w", err)
+	}
+
+	_, err = fmt.Printf("OLYMPUS_VAPID_PRIVATE=%s\n", private)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Printf("OLYMPUS_VAPID_PUBLIC=%s\n", public)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Execute() error {
 	opts := Options{}
 
@@ -102,6 +123,10 @@ func Execute() error {
 	if opts.Version == true {
 		fmt.Println(OLYMPUS_VERSION)
 		return nil
+	}
+
+	if opts.GenerateVAPIDKeys == true {
+		return outputNewVAPIDKeys()
 	}
 
 	o, err := NewOlympus()
