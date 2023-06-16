@@ -57,14 +57,20 @@ export class OlympusService {
 
   getPushServerPublicKey(): Observable<string> {
     return this.httpClient
-      .get<any>('/api/notifications/server_public_key')
+      .get<any>('/api/notifications/key')
       .pipe(map((plain: any) => plain.public_key || ''));
+  }
+
+  registerPushSubscription(s: PushSubscription): Observable<void> {
+    return this.httpClient
+      .post<PushSubscription>('/api/notifications', s)
+      .pipe(map(() => void 0));
   }
 
   updateNotificationSettings(
     endpoint: string,
     notifications: NotificationSettings
-  ): Observable<boolean> {
+  ): Observable<void> {
     return throwError(new Error(`Not Yet Implemented`));
   }
 }
