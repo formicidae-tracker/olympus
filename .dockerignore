@@ -4,8 +4,9 @@ webapp/.angular
 .git
 npm-debug.log
 **/cover.out
-.env
 .aws
-Dockerfile.*
+Dockerfile
+docker/
 .dockerignore
 .github
+*.env

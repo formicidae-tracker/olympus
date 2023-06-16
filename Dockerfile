@@ -6,9 +6,7 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 WORKDIR /app
 
-COPY . .
-
-WORKDIR /app/webapp
+COPY ./webapp .
 
 RUN npm install
 
@@ -28,7 +26,7 @@ FROM alpine
 
 WORKDIR /app
 
-COPY --from=build-node /app/webapp/dist/olympus/browser /app/webapp/dist/olympus/browser
+COPY --from=build-node /app/dist/olympus/browser /app/webapp/dist/olympus/browser
 
 COPY --from=build-golang /app/olympus /app/olympus
 

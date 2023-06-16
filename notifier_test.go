@@ -92,10 +92,14 @@ func (s *NotifierSuite) TestSendOnlyToSubscribed(c *C) {
 	go func() {
 		s.notifier.Loop()
 	}()
-	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "a"}), IsNil)
-	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "b"}), IsNil)
-	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "c"}), IsNil)
-	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "d"}), IsNil)
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "a",
+		Keys: webpush.Keys{Auth: "a", P256dh: "a"}}), IsNil)
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "b",
+		Keys: webpush.Keys{Auth: "a", P256dh: "a"}}), IsNil)
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "c",
+		Keys: webpush.Keys{Auth: "a", P256dh: "a"}}), IsNil)
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "d",
+		Keys: webpush.Keys{Auth: "a", P256dh: "a"}}), IsNil)
 
 	c.Check(s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{Endpoint: "a"}), IsNil)
 	c.Check(s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
@@ -160,7 +164,8 @@ func (s *NotifierSuite) TestSendOnlyToSubscribed(c *C) {
 }
 
 func (s *NotifierSuite) TestSubscriptionPersistence(c *C) {
-	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "a"}), IsNil)
+	c.Check(s.notifier.RegisterPushSubscription(&webpush.Subscription{Endpoint: "a",
+		Keys: webpush.Keys{Auth: "a", P256dh: "a"}}), IsNil)
 	c.Check(s.notifier.UpdatePushSubscription(&api.NotificationSettingsUpdate{
 		Endpoint: "a",
 		Settings: api.NotificationSettings{

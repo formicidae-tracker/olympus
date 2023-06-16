@@ -1,7 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"errors"
+	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -58,6 +60,7 @@ type notifier struct {
 	outgoing map[string]chan<- ZonedAlarmUpdate
 
 	batchPeriod time.Duration
+	log         *log.Logger
 }
 
 func NewNotifier(batchPeriod time.Duration) Notifier {
@@ -68,6 +71,7 @@ func NewNotifier(batchPeriod time.Duration) Notifier {
 		outgoing:             make(map[string]chan<- ZonedAlarmUpdate),
 		outgoingNotification: make(chan NotificationFor, 100),
 		batchPeriod:          batchPeriod,
+		log:                  log.New(os.Stderr, "[notifications]: ", log.LstdFlags),
 	}
 	for _, sub := range res.subscriptions.Map {
 		res.ensureOutgoing(sub.Push)
@@ -84,6 +88,10 @@ func (n *notifier) Outgoing() <-chan NotificationFor {
 }
 
 func (n *notifier) RegisterPushSubscription(s *webpush.Subscription) error {
+	if len(s.Keys.Auth) == 0 || len(s.Keys.P256dh) == 0 {
+		return errors.New("invalid push subscription: missing keys")
+	}
+
 	n.mx.Lock()
 	defer n.mx.Unlock()
 
@@ -92,6 +100,8 @@ func (n *notifier) RegisterPushSubscription(s *webpush.Subscription) error {
 	}
 
 	n.ensureOutgoing(s)
+
+	n.log.Printf("new push subscription to %s", s.Endpoint)
 
 	return n.subscriptions.SaveKey(s.Endpoint)
 }
@@ -102,7 +112,7 @@ func (n *notifier) UpdatePushSubscription(update *api.NotificationSettingsUpdate
 
 	subscription, ok := n.subscriptions.Map[update.Endpoint]
 	if ok == false {
-		return fmt.Errorf("Unknow PushSubscription Endpoint")
+		return UnknownEndpointError
 	}
 
 	subscription.Settings = update.Settings

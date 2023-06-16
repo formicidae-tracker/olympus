@@ -3,7 +3,10 @@ import { SwPush } from '@angular/service-worker';
 import { NotificationSettingsService } from './notification-settings.service';
 import {
   Observable,
+  RetryConfig,
+  catchError,
   concat,
+  delay,
   filter,
   from,
   map,
@@ -15,6 +18,7 @@ import {
 import { NotificationSettings } from '../notification-settings';
 import { OlympusService } from 'src/app/olympus-api/services/olympus.service';
 import { NotificationSettingsUpdate } from 'src/app/olympus-api/notification-settings-update';
+import { HttpErrorResponse } from '@angular/common/http';
 
 export type PushSubscriptionStatus = 'non-accepted' | 'not-updated' | 'updated';
 
@@ -25,6 +29,7 @@ export class PushNotificationService {
   private serverPublicKey: string = '';
 
   public retryDelay: number = 2000;
+  public retryIncrease: boolean = true;
 
   constructor(
     private push: SwPush,
@@ -53,33 +58,41 @@ export class PushNotificationService {
         if (subscription == null) {
           return of('non-accepted' as PushSubscriptionStatus);
         }
-        return this.notifications.getSettings().pipe(
-          switchMap((settings: NotificationSettings) =>
-            this.updateNotificationSettings(
-              subscription.endpoint,
-              settings
-            ).pipe(
-              retry({
-                delay: this.retryDelay,
-              })
+        return this.notifications
+          .getSettings()
+          .pipe(
+            switchMap((settings: NotificationSettings) =>
+              this.updateNotificationSettings(subscription, settings).pipe(
+                retry(this.retryConfig())
+              )
             )
-          )
-        );
+          );
       })
     );
   }
 
   private updateNotificationSettings(
-    endpoint: string,
+    subscription: PushSubscription,
     settings: Required<NotificationSettings>
   ): Observable<PushSubscriptionStatus> {
     return concat(
       of('not-updated' as PushSubscriptionStatus),
       this.olympus
         .updateNotificationSettings(
-          new NotificationSettingsUpdate(endpoint, settings)
+          new NotificationSettingsUpdate(subscription.endpoint, settings)
         )
-        .pipe(map(() => 'updated' as PushSubscriptionStatus))
+        .pipe(
+          catchError((err: HttpErrorResponse, caught: Observable<void>) => {
+            if (err.status == 404) {
+              return concat(
+                this.olympus.registerPushSubscription(subscription),
+                caught
+              );
+            }
+            throw err;
+          }),
+          map(() => 'updated' as PushSubscriptionStatus)
+        )
     );
   }
 
@@ -126,5 +139,29 @@ export class PushNotificationService {
         return void 0;
       })
     );
+  }
+
+  private retryConfig(): RetryConfig {
+    if (this.retryIncrease == false) {
+      return { delay: this.retryDelay };
+    }
+    return {
+      delay: (err: any, retryCount: number) => {
+        return of(null).pipe(
+          delay(Math.min(30000, 2 ** retryCount * this.retryDelay))
+        );
+      },
+    };
+  }
+}
+
+@Injectable()
+export class NullPushNotificationService {
+  public updateNotificationsOnDemand(): Observable<PushSubscriptionStatus> {
+    return of();
+  }
+
+  public requestSubscriptionOnDemand(): Observable<void> {
+    return of();
   }
 }

@@ -52,7 +52,9 @@ export class AppComponent implements OnInit, OnDestroy {
       this.push.requestSubscriptionOnDemand().subscribe()
     );
     this._subscriptions.push(
-      this.push.updateNotificationsOnDemand().subscribe()
+      this.push
+        .updateNotificationsOnDemand()
+        .subscribe((s) => console.log('nofitification status: ' + s))
     );
   }
 

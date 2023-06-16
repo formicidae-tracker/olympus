@@ -12,11 +12,15 @@ import { AppShellComponent } from './app-shell/app-shell.component';
 import {
   LocalStorageService,
   NullLocalStorageService,
-} from './core/local-storage.service';
+} from './core/services/local-storage.service';
 import {
   NetworkStatusService,
   ServerNetworkStatusService,
-} from './core/network-status.service';
+} from './core/services/network-status.service';
+import {
+  NullPushNotificationService,
+  PushNotificationService,
+} from './core/services/push-notification.service';
 
 const routes: Routes = [{ path: 'shell', component: AppShellComponent }];
 
@@ -32,6 +36,7 @@ const routes: Routes = [{ path: 'shell', component: AppShellComponent }];
   providers: [
     { provide: LocalStorageService, useClass: NullLocalStorageService },
     { provide: NetworkStatusService, useClass: ServerNetworkStatusService },
+    { provide: PushNotificationService, useClass: NullPushNotificationService },
   ],
 })
 export class AppServerModule {}

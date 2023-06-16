@@ -281,6 +281,7 @@ describe('PushNotificationService', () => {
 
     it('should retry if something goes wrong', (done: DoneFn) => {
       service.retryDelay = 10;
+      service.retryIncrease = false;
       notifications.getSettings.and.returnValue(of(new NotificationSettings()));
 
       let count = 0;

@@ -155,9 +155,13 @@ func (h *CSRFHandler) setCSRFCookie(w http.ResponseWriter) error {
 	http.SetCookie(w, &http.Cookie{
 		Name:  "XSRF-TOKEN",
 		Value: token,
+		// Important see: https://stackoverflow.com/a/50511663/5688007
+		Path: "/",
 
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
+		// Important see: https://stackoverflow.com/a/50511663/5688007
+		HttpOnly: false,
 	})
 	return nil
 }
@@ -168,6 +172,7 @@ func (h *CSRFHandler) checkXSRFToken(r *http.Request) error {
 		return err
 	}
 	token := r.Header.Get("X-XSRF-TOKEN")
+
 	if cookie.Value != token {
 		return errors.New("cookie and token doesn't match")
 	}

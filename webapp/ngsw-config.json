@@ -26,5 +26,16 @@
         ]
       }
     }
+  ],
+  "dataGroups": [
+    {
+      "name": "data",
+      "urls": ["/api/**","!/api/notifications/**"],
+      "cacheConfig": {
+        "maxSize": 200,
+        "maxAge": "2d",
+        "strategy":"freshness"
+      }
+    }
   ]
 }

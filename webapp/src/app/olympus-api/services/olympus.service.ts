@@ -58,7 +58,7 @@ export class OlympusService {
   getPushServerPublicKey(): Observable<string> {
     return this.httpClient
       .get<any>('/api/notifications/key')
-      .pipe(map((plain: any) => plain.public_key || ''));
+      .pipe(map((plain: any) => plain.serverPublicKey || ''));
   }
 
   registerPushSubscription(s: PushSubscription): Observable<void> {

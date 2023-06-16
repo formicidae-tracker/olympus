@@ -10,6 +10,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3001:3001"
+    environment:
+      - OLYMPUS_DATA_HOME=/data/olympus
+    env_file:
+      - .vapid.env
+      - .secret.env
+    volumes:
+      - olympus-data:/data/olympus
 
   rtmp:
     build:
@@ -31,3 +38,4 @@ services:
 
 volumes:
   srv-data:
+  olympus-data:

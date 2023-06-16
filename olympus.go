@@ -17,6 +17,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var UnknownEndpointError = errors.New("unknown PushSubscription endpoint")
+
 type ZoneNotFoundError string
 
 func (z ZoneNotFoundError) Error() string {
@@ -122,6 +124,14 @@ type subscription struct {
 func NewOlympus() (*Olympus, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
+	minimumOn := 1 * time.Minute
+	batchPeriod := 5 * time.Minute
+
+	if len(os.Getenv("OLYMPUS_DEBUG_WEBPUSH")) > 0 {
+		minimumOn = 1 * time.Second
+		batchPeriod = 5 * time.Second
+	}
+
 	res := &Olympus{
 		log:                 log.New(os.Stderr, "[olympus]: ", log.LstdFlags),
 		subscriptionContext: ctx,
@@ -129,8 +139,7 @@ func NewOlympus() (*Olympus, error) {
 		subscriptions:       make(map[string]*subscription),
 		serviceLogger:       NewServiceLogger(),
 		unfilteredAlarms:    make(chan ZonedAlarmUpdate, 100),
-		notifier:            NewNotifier(5 * time.Minute),
-		notificationSender:  NewNotificationSender(),
+		notifier:            NewNotifier(batchPeriod),
 		serverPublicKey:     os.Getenv("OLYMPUS_VAPID_PUBLIC"),
 	}
 	var err error
@@ -142,10 +151,15 @@ func NewOlympus() (*Olympus, error) {
 		return nil, err
 	}
 
+	res.notificationSender, err = NewNotificationSender()
+	if err != nil {
+		res.log.Printf("push notifications will be disabled: %s", err)
+	}
+
 	res.notificationWg.Add(3)
 	go func() {
 		defer res.notificationWg.Done()
-		FilterAlarmUpdates(1*time.Minute)(res.notifier.Incoming(), res.unfilteredAlarms)
+		FilterAlarmUpdates(minimumOn)(res.notifier.Incoming(), res.unfilteredAlarms)
 	}()
 
 	go func() {
@@ -574,6 +588,8 @@ func (o *Olympus) setNotificationRoutes(router *mux.Router) {
 					return
 				}
 
+				w.Header().Add("Cache-Control", "no-store")
+
 				type publicKey struct {
 					Key string `json:"serverPublicKey"`
 				}
@@ -584,6 +600,8 @@ func (o *Olympus) setNotificationRoutes(router *mux.Router) {
 	subrouter := router.PathPrefix("/api/notifications").Subrouter()
 
 	subrouter.HandleFunc("/settings", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Cache-Control", "no-store")
+
 		update, err := Golangify[api.NotificationSettingsUpdate](r)
 		if err != nil {
 			o.log.Printf("invalid notification settings update: %s", err)
@@ -593,14 +611,20 @@ func (o *Olympus) setNotificationRoutes(router *mux.Router) {
 
 		if err := o.notifier.UpdatePushSubscription(update); err != nil {
 			o.log.Printf("could not update notification settings: %s", err)
-			http.Error(w, "notification settings error", http.StatusInternalServerError)
+			if err == UnknownEndpointError {
+				http.Error(w, "unknown subscription endpoint", http.StatusNotFound)
+			} else {
+				http.Error(w, "notification settings error", http.StatusInternalServerError)
+			}
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
 	}).Methods("POST")
 
-	subrouter.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	subrouter.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Cache-Control", "no-store")
+
 		sub, err := Golangify[webpush.Subscription](r)
 		if err != nil {
 			o.log.Printf("invalid push subscription: %s", err)
@@ -614,7 +638,6 @@ func (o *Olympus) setNotificationRoutes(router *mux.Router) {
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
 	}).Methods("POST")
 
 	subrouter.Use(o.csrfHandler.CheckCSRFCookie)
