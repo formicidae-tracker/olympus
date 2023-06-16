@@ -145,6 +145,18 @@ func generateUnitTestData() map[string][]interface{} {
 				Alarms: []api.AlarmReport{{Identification: "error"}},
 			},
 		},
+		"unit-testdata/NotificationSettingsUpdate.json": {
+			api.NotificationSettingsUpdate{},
+			api.NotificationSettingsUpdate{
+				Endpoint: "https://update.web.push/abcdef",
+				Settings: api.NotificationSettings{
+					NotifyOnWarning:   true,
+					NotifyNonGraceful: true,
+					SubscribeToAll:    true,
+					Subscriptions:     []string{"a", "b"},
+				},
+			},
+		},
 	}
 }
 

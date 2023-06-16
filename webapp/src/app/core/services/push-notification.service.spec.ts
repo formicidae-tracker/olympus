@@ -198,7 +198,7 @@ describe('PushNotificationService', () => {
 
       olympus.updateNotificationSettings.and.callFake(() => {
         push.complete();
-        return of(true);
+        return of(void 0);
       });
 
       service.requestSubscriptionOnDemand().subscribe({
@@ -243,7 +243,7 @@ describe('PushNotificationService', () => {
         )
       );
 
-      olympus.updateNotificationSettings.and.returnValue(of(true));
+      olympus.updateNotificationSettings.and.returnValue(of(void 0));
 
       service.requestSubscriptionOnDemand().subscribe({
         next: (value) => {
@@ -282,13 +282,13 @@ describe('PushNotificationService', () => {
 
       let count = 0;
       const httpFakeCall = () =>
-        new Promise<boolean>((resolve, reject) => {
+        new Promise<void>((resolve, reject) => {
           count += 1;
           if (count < 3) {
             reject('500');
           }
           push.complete();
-          resolve(true);
+          resolve(void 0);
         });
 
       olympus.updateNotificationSettings.and.returnValue(defer(httpFakeCall));
@@ -341,7 +341,7 @@ describe('PushNotificationService', () => {
             return defer(() => throwError('500'));
           }
           push.complete();
-          return of(true);
+          return of(void 0);
         }
       );
 

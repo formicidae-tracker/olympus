@@ -16,19 +16,28 @@ export class NotificationSettings {
     this.subscriptions = subscriptions;
   }
 
-  public serialize(): string {
+  public toPlain(): any {
     let plain: any = Object.assign({}, this);
     plain.subscriptions = Array.from(this.subscriptions);
-    return JSON.stringify(plain);
+    return plain;
   }
 
-  static deserialize(jsondata: string) {
-    let plain = JSON.parse(jsondata);
+  public serialize(): string {
+    return JSON.stringify(this.toPlain());
+  }
+
+  static fromPlain(plain: any): NotificationSettings {
+    // make a deep copy to preserve the plain object
+    plain = Object.assign({}, plain);
     const subscriptions = plain.subscriptions;
     if (subscriptions != undefined) {
       plain.subscriptions = new Set<string>(subscriptions);
     }
     return new NotificationSettings(plain as Partial<NotificationSettings>);
+  }
+
+  static deserialize(jsondata: string) {
+    return NotificationSettings.fromPlain(JSON.parse(jsondata));
   }
 
   public hasSubscription(zone: string): boolean {

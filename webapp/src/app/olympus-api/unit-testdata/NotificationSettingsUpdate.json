@@ -1,0 +1,17 @@
+[
+  {
+    "settings": {}
+  },
+  {
+    "endpoint": "https://update.web.push/abcdef",
+    "settings": {
+      "notifyOnWarning": true,
+      "notifyNonGraceful": true,
+      "subscribeToAll": true,
+      "subscriptions": [
+        "a",
+        "b"
+      ]
+    }
+  }
+]
