@@ -14,6 +14,7 @@ import {
 } from 'rxjs';
 import { NotificationSettings } from '../notification-settings';
 import { OlympusService } from 'src/app/olympus-api/services/olympus.service';
+import { NotificationSettingsUpdate } from 'src/app/olympus-api/notification-settings-update';
 
 export type PushSubscriptionStatus = 'non-accepted' | 'not-updated' | 'updated';
 
@@ -39,7 +40,7 @@ export class PushNotificationService {
     return this.updatePushSubscription();
   }
 
-  public requestSubscriptionOnDemand(): Observable<boolean> {
+  public requestSubscriptionOnDemand(): Observable<void> {
     if (this.push.isEnabled == false) {
       return of();
     }
@@ -53,10 +54,10 @@ export class PushNotificationService {
           return of('non-accepted' as PushSubscriptionStatus);
         }
         return this.notifications.getSettings().pipe(
-          switchMap((notifications: NotificationSettings) =>
+          switchMap((settings: NotificationSettings) =>
             this.updateNotificationSettings(
               subscription.endpoint,
-              notifications
+              settings
             ).pipe(
               retry({
                 delay: this.retryDelay,
@@ -70,22 +71,31 @@ export class PushNotificationService {
 
   private updateNotificationSettings(
     endpoint: string,
-    notifications: Required<NotificationSettings>
+    settings: Required<NotificationSettings>
   ): Observable<PushSubscriptionStatus> {
     return concat(
       of('not-updated' as PushSubscriptionStatus),
       this.olympus
-        .updateNotificationSettings(endpoint, notifications)
+        .updateNotificationSettings(
+          new NotificationSettingsUpdate(endpoint, settings)
+        )
         .pipe(map(() => 'updated' as PushSubscriptionStatus))
     );
   }
 
-  private requestPushSubscriptionWhenHasKey(): Observable<boolean> {
+  private requestPushSubscriptionWhenHasKey(): Observable<void> {
     return this.olympus.getPushServerPublicKey().pipe(
       switchMap((key: string) => {
         this.serverPublicKey = key;
         if (key.length == 0) {
           return of();
+        }
+        const savedKey = localStorage.getItem('serverPublicKey') || key;
+        if (savedKey != key) {
+          return concat(
+            from(this.push.unsubscribe()),
+            this.pushSubscriptionRequired()
+          );
         }
         return this.pushSubscriptionRequired();
       }),
@@ -93,20 +103,28 @@ export class PushNotificationService {
     );
   }
 
-  private pushSubscriptionRequired(): Observable<null> {
+  private pushSubscriptionRequired(): Observable<void> {
     return this.notifications.getSettings().pipe(
       filter((settings) => settings.needPushSubscription()),
       take(1),
       switchMap(() => this.push.subscription),
       filter((sub: PushSubscription | null) => sub == null),
       take(1),
-      map(() => null)
+      map(() => void 0)
     );
   }
 
-  private requestPushSubscription(): Observable<boolean> {
+  private requestPushSubscription(): Observable<void> {
     return from(
       this.push.requestSubscription({ serverPublicKey: this.serverPublicKey })
-    ).pipe(map(() => true));
+    ).pipe(
+      switchMap((s: PushSubscription) => {
+        return this.olympus.registerPushSubscription(s);
+      }),
+      map(() => {
+        localStorage.setItem('serverPublicKey', this.serverPublicKey);
+        return void 0;
+      })
+    );
   }
 }

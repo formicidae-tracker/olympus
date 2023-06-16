@@ -5,7 +5,7 @@ import { Observable, map, throwError } from 'rxjs';
 import { ZoneReport } from '../zone-report';
 import { ClimateTimeSeries } from '../climate-time-series';
 import { ServiceLog } from '../service-event';
-import { NotificationSettings } from 'src/app/core/notification-settings';
+import { NotificationSettingsUpdate } from '../notification-settings-update';
 
 @Injectable({
   providedIn: 'root',
@@ -67,10 +67,11 @@ export class OlympusService {
       .pipe(map(() => void 0));
   }
 
-  updateNotificationSettings(
-    endpoint: string,
-    notifications: NotificationSettings
-  ): Observable<void> {
-    return throwError(new Error(`Not Yet Implemented`));
+  updateNotificationSettings(u: NotificationSettingsUpdate): Observable<void> {
+    return this.httpClient
+      .post<string>('/api/notifications/settings', u.serialize(), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+      .pipe(map(() => void 0));
   }
 }

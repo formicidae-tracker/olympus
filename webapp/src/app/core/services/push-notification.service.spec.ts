@@ -75,7 +75,10 @@ describe('PushNotificationService', () => {
     olympus = jasmine.createSpyObj('OlympusService', [
       'getPushServerPublicKey',
       'updateNotificationSettings',
+      'registerPushSubscription',
     ]);
+
+    olympus.registerPushSubscription.and.returnValue(of(void 0));
 
     TestBed.configureTestingModule({
       imports: [HttpClientModule],
@@ -203,7 +206,7 @@ describe('PushNotificationService', () => {
 
       service.requestSubscriptionOnDemand().subscribe({
         next: (v) => {
-          expect(v).toBeTrue();
+          expect(v).toBeUndefined();
         },
         error: (e) => {
           fail('unexpected subscription error: ' + e);
@@ -334,16 +337,13 @@ describe('PushNotificationService', () => {
         )
       );
 
-      olympus.updateNotificationSettings.and.callFake(
-        (endpoint, notification) => {
-          console.log(notification);
-          if (notification.subscribeToAll == true) {
-            return defer(() => throwError('500'));
-          }
-          push.complete();
-          return of(void 0);
+      olympus.updateNotificationSettings.and.callFake((update) => {
+        if (update.settings.subscribeToAll == true) {
+          return defer(() => throwError('500'));
         }
-      );
+        push.complete();
+        return of(void 0);
+      });
 
       service.requestSubscriptionOnDemand().subscribe({
         next: (value) => {
