@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          lfs: true
       - run: git fetch --prune --unshallow --tags --force
       - uses: actions/setup-go@v4
         with:
