@@ -9,9 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/SherClockHolmes/webpush-go"
 	olympuspb "github.com/formicidae-tracker/olympus/api"
@@ -36,50 +34,9 @@ type Options struct {
 	AllowCORS []string `long:"allow-cors" description:"allow cors from domain"`
 }
 
-type spaHandler struct {
-	root       string
-	index      string
-	fileServer http.Handler
-}
-
-func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path, err := filepath.Abs(r.URL.Path)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	path = filepath.Join(h.root, path)
-	_, err = os.Stat(path)
-	if os.IsNotExist(err) {
-		http.ServeFile(w, r, filepath.Join(h.root, h.index))
-		return
-	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	h.fileServer.ServeHTTP(w, r)
-}
-
-func NewSpaHandler(root string, cacheTTL time.Duration) http.Handler {
-	return spaHandler{
-		root:       root,
-		index:      "index.html",
-		fileServer: CacheControl(cacheTTL)(http.FileServer(http.Dir(root))),
-	}
-
-}
-
-func setAngularRoute(router *mux.Router) {
-	router.PathPrefix("/").Handler(
-		NewSpaHandler("./webapp/dist/olympus/browser", 7*24*time.Hour))
-}
-
 func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
 	router := mux.NewRouter()
 	o.setRoutes(router)
-	setAngularRoute(router)
 	logger := log.New(os.Stderr, "[http]: ", log.LstdFlags)
 	router.Use(RecoverWrap(logger))
 	router.Use(HTTPLogWrap(logger))
