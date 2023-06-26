@@ -5,7 +5,7 @@ webapp/.angular
 npm-debug.log
 **/cover.out
 .aws
-Dockerfile
+docker-compose.yml
 docker/
 .dockerignore
 .github
