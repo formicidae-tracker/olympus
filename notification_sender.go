@@ -97,30 +97,29 @@ func buildURL(zone string) string {
 }
 
 func getIconURL(level api.AlarmLevel) string {
-	return ""
+	return "/assets/fort.svg"
 }
 
-func getImageURL(level api.AlarmLevel) string {
-	return ""
+func getBadgeURL(level api.AlarmLevel) string {
+	return "/assets/badge.png"
 }
 
 func NewSingleWebPushNotification(update ZonedAlarmUpdate) WebPushNotification {
 	return WebPushNotification{
-		Title: fmt.Sprintf("One %s on *%s*",
+		Title: fmt.Sprintf("One %s on %s",
 			cases.Title(language.English).String(update.Update.Level.String()),
 			update.Zone),
 		Body: update.Update.Description,
 		Data: WebPushData{
 			OnActionClick: map[string]WebPushTargetAction{
-				"default": WebPushTargetAction{
+				"default": {
 					Operation: "navigateLastFocusedOrOpen",
 					URL:       buildURL(update.Zone),
 				},
 			},
 		},
-		Image:   getImageURL(update.Update.Level),
+		Badge:   getBadgeURL(update.Update.Level),
 		Icon:    getIconURL(update.Update.Level),
-		Sound:   "/assets/notification.mp3",
 		Vibrate: []int{10, 20, 50, 100, 50, 20, 10},
 	}
 }
@@ -137,9 +136,8 @@ func NewMultiWebPushNotification(updates []ZonedAlarmUpdate) WebPushNotification
 		Body:    buildMultiBody(zones),
 		Actions: actions,
 		Data:    data,
-		Image:   getImageURL(level),
+		Badge:   getBadgeURL(level),
 		Icon:    getIconURL(level),
-		Sound:   "/assets/notification.mp3",
 		Vibrate: []int{10, 20, 50, 100, 50, 20, 10},
 	}
 }
@@ -148,7 +146,7 @@ func buildMultiActions(zones []string) ([]WebPushAction, WebPushData) {
 	if len(zones) == 1 {
 		return nil, WebPushData{
 			OnActionClick: map[string]WebPushTargetAction{
-				"default": WebPushTargetAction{
+				"default": {
 					Operation: "navigateLastFocusedOrOpen",
 					URL:       buildURL(zones[0]),
 				},
@@ -158,7 +156,7 @@ func buildMultiActions(zones []string) ([]WebPushAction, WebPushData) {
 	if len(zones) > 2 {
 		return nil, WebPushData{
 			OnActionClick: map[string]WebPushTargetAction{
-				"default": WebPushTargetAction{
+				"default": {
 					Operation: "navigateLastFocusedOrOpen",
 					URL:       "/",
 				},
@@ -169,7 +167,7 @@ func buildMultiActions(zones []string) ([]WebPushAction, WebPushData) {
 	actions := make([]WebPushAction, 0, 2)
 	data := WebPushData{
 		OnActionClick: map[string]WebPushTargetAction{
-			"default": WebPushTargetAction{
+			"default": {
 				Operation: "navigateLastFocusedOrOpen",
 				URL:       "/",
 			},
@@ -237,15 +235,15 @@ func buildMultiTitle(emergencies, warnings int) string {
 func buildMultiBody(zones []string) string {
 
 	if len(zones) == 1 {
-		return fmt.Sprintf("*%s* has new alarms", zones[0])
+		return fmt.Sprintf("%s has new alarms", zones[0])
 	}
 	if len(zones) == 2 {
-		return fmt.Sprintf("*%s* and *%s* have alarms", zones[0], zones[1])
+		return fmt.Sprintf("%s and %s have alarms", zones[0], zones[1])
 	}
 	if len(zones) == 3 {
-		return fmt.Sprintf("*%s*, *%s* and another zone have alarms", zones[0], zones[1])
+		return fmt.Sprintf("%s, %s and one another have alarms", zones[0], zones[1])
 	}
-	return fmt.Sprintf("*%s*, *%s* and %d others have alarms", zones[0], zones[1], len(zones)-2)
+	return fmt.Sprintf("%s, %s and %d others have alarms", zones[0], zones[1], len(zones)-2)
 }
 
 func BuildNotificationPayload(updates []ZonedAlarmUpdate) ([]byte, error) {
