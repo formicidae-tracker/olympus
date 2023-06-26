@@ -80,6 +80,8 @@ func serveLoop[UpStream any, DownStream any](
 
 func mapError(err error) error {
 	switch err.(type) {
+	case UnexpectedStreamServerError:
+		return status.Error(codes.InvalidArgument, err.Error())
 	case AlreadyExistError:
 		return status.Error(codes.AlreadyExists, err.Error())
 	case NoClimateRunningError:

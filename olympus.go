@@ -19,6 +19,14 @@ import (
 
 var UnknownEndpointError = errors.New("unknown PushSubscription endpoint")
 
+type UnexpectedStreamServerError struct {
+	Got, Expected string
+}
+
+func (e UnexpectedStreamServerError) Error() string {
+	return fmt.Sprintf("unexpected stream server %s. expected: %s", e.Got, e.Expected)
+}
+
 type ZoneNotFoundError string
 
 func (z ZoneNotFoundError) Error() string {
@@ -454,7 +462,8 @@ func (o *Olympus) UnregisterClimate(host, name string, graceful bool) error {
 
 func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (*GrpcSubscription[TrackingLogger], error) {
 	if declaration.StreamServer != o.hostname+".local" {
-		return nil, fmt.Errorf("unexpected server %s (expect: %s)", declaration.StreamServer, o.hostname+".local")
+		return nil, UnexpectedStreamServerError{Got: declaration.StreamServer,
+			Expected: o.hostname + ".local"}
 	}
 
 	o.mx.Lock()
