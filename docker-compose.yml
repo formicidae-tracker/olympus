@@ -7,7 +7,6 @@ services:
   olympus:
     build:
       context: .
-      dockerfile: docker/Dockerfile.olympus
     ports:
       - "3001:3001"
     environment:
@@ -28,17 +27,25 @@ services:
       dockerfile: Dockerfile.rtmp
     ports:
       - "1935:1935"
+      - "8888:8888"
     volumes:
       - srv-data:/srv
     labels:
       - traefik.http.routers.rtmp.rule=PathPrefix("/olympus")
-      - traefik.http.services.rtmp.loadbalancer.server.port=80
+      - traefik.http.services.rtmp.loadbalancer.server.port=8888
+
+  thumbnails:
+    image: caddy:latest
+    volumes:
+      - srv-data:/usr/share/caddy
+    labels:
+      - traefik.http.routers.thumbnails.rule=PathPrefix("/thumbnails/olympus/")
+      - traefik.http.services.thumbnails.loadbalancer.server.port=80
 
 
   webapp:
     build:
-      context: .
-      dockerfile: docker/Dockerfile.webapp
+      context: webapp
     labels:
       - traefik.http.routers.webapp.rule=PathPrefix("/")
       - traefik.http.services.webapp.loadbalancer.server.port=80

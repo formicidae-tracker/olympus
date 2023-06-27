@@ -1,5 +1,5 @@
-webapp/node_modules/
-webapp/.angular
+webapp/
+webapp/
 **/dist
 .git
 npm-debug.log

@@ -2,11 +2,11 @@ FROM node:20.2-alpine AS build
 
 WORKDIR /app
 
-COPY ./webapp/package.json ./webapp/package-lock.json ./
+COPY package.json package-lock.json ./
 
 RUN npm ci
 
-COPY ./webapp .
+COPY . .
 
 RUN npm run ng run olympus:app-shell:production
 
