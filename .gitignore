@@ -1,5 +1,6 @@
 /olympus
 cover.out
-version.go
+/internal/olympus/version.go
 webapp/sr/environments/version.ts
 *.env
+/cmd/olympus/olympus
