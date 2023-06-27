@@ -3,7 +3,6 @@
 MTX_PATH=$1
 
 
-
 DIR=$(/usr/bin/dirname $1)
 
 mkdir -p /srv/thumbnails/$DIR
