@@ -8,12 +8,14 @@ RUN go mod download
 
 COPY . .
 
+WORKDIR /app/cmd/olympus
+
 RUN go build
 
 FROM alpine
 
 WORKDIR /app
 
-COPY --from=build /app/olympus /app/olympus
+COPY --from=build /app/cmd/olympus /app/olympus
 
 ENTRYPOINT ["./olympus"]
