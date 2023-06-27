@@ -16,6 +16,6 @@ FROM alpine
 
 WORKDIR /app
 
-COPY --from=build /app/cmd/olympus /app/olympus
+COPY --from=build /app/cmd/olympus/olympus /app/olympus
 
 ENTRYPOINT ["./olympus"]
