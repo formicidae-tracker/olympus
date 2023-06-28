@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"sort"
 	"strings"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/pkg/api"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -44,7 +44,7 @@ type discardNotification struct{}
 
 type webpushSender struct {
 	public, private, subscriber string
-	log                         *log.Logger
+	log                         *logrus.Entry
 	ctx                         context.Context
 }
 
@@ -270,11 +270,13 @@ func NewNotificationSender() (NotificationSender, error) {
 		private:    private,
 	}
 
-	if len(os.Getenv("OLYMPUS_DEBUG_WEBPUSH")) > 0 {
-		res.log = log.New(os.Stderr, "[webpush]: ", log.LstdFlags)
-	} else {
-		res.log = log.New(io.Discard, "", 0)
+	logger := logrus.New()
+
+	if len(os.Getenv("OLYMPUS_DEBUG_WEBPUSH")) == 0 {
+		logger.SetOutput(io.Discard)
 	}
+
+	res.log = logger.WithField("group", "webpush")
 
 	return res, nil
 }
@@ -283,7 +285,20 @@ func (l discardNotification) Send(NotificationFor) error {
 	return nil
 }
 
-func (s *webpushSender) Send(n NotificationFor) error {
+func (s *webpushSender) Send(n NotificationFor) (err error) {
+	defer func() {
+		entry := s.log.WithFields(logrus.Fields{
+			"endpoint": n.Subscription.Endpoint,
+			"updates":  n.Updates,
+		})
+
+		if err != nil {
+			entry.WithField("error", err).Errorf("could not send notification")
+		} else {
+			entry.Debugf("sent")
+		}
+	}()
+
 	if len(n.Updates) == 0 {
 		return nil
 	}
@@ -292,8 +307,6 @@ func (s *webpushSender) Send(n NotificationFor) error {
 	if err != nil {
 		return err
 	}
-
-	s.log.Printf("sending to %s: %s", n.Subscription.Endpoint, n.Updates)
 
 	topic := n.Updates[0].ID()
 	if len(n.Updates) > 1 {

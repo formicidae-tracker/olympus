@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/gorilla/mux"
 	"github.com/jessevdk/go-flags"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -33,7 +33,7 @@ type Options struct {
 func setUpHttpServer(o *Olympus, opts Options) GracefulServer {
 	router := mux.NewRouter()
 	o.setRoutes(router)
-	logger := log.New(os.Stderr, "[http]: ", log.LstdFlags)
+	logger := logrus.WithField("group", "http")
 	router.Use(RecoverWrap(logger))
 	router.Use(HTTPLogWrap(logger))
 	if len(opts.AllowCORS) > 0 {
@@ -110,29 +110,39 @@ func Execute() error {
 
 	httpServer := setUpHttpServer(o, opts)
 	rpcServer := setUpRpcServer(o, opts)
+
+	httpLog := logrus.WithFields(logrus.Fields{
+		"group":   "http",
+		"address": opts.Address,
+	})
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		log.Printf("[http]: listening on %s", opts.Address)
+		httpLog.Infof("listening")
 		err := httpServer.Run()
 		if err != nil {
-			log.Printf("[http]: unhandled error: %s", err)
+			httpLog.WithField("error", err).Errorf("unhandled error")
 		}
 		wg.Done()
 	}()
+
+	rpcLog := logrus.WithFields(logrus.Fields{
+		"group": "rpc",
+		"port":  opts.RPC,
+	})
 
 	wg.Add(1)
 	go func() {
 		l, err := net.Listen("tcp", fmt.Sprintf(":%d", opts.RPC))
 		if err != nil {
-			log.Printf("[rpc]: could not listen on :%d : %s", opts.RPC, err)
+			rpcLog.WithField("error", err).Errorf("could not listen")
 			return
 		}
 
-		log.Printf("[rpc]: listening on :%d", opts.RPC)
+		rpcLog.Infof("listening")
 		err = rpcServer.Serve(l)
 		if err != nil && err != grpc.ErrServerStopped {
-			log.Printf("[rpc]: unhandled error: %s", err)
+			rpcLog.WithField("error", err).Errorf("unhandled error")
 		}
 		wg.Done()
 	}()
@@ -148,11 +158,11 @@ func Execute() error {
 	}()
 
 	if err := httpServer.Close(); err != nil {
-		log.Printf("[http]: stop error: %s", err)
+		httpLog.WithField("error", err).Errorf("stop error")
 	}
 
 	if err := o.Close(); err != nil {
-		log.Printf("[olympus]: close failure: %s", err)
+		logrus.WithField("error", err).Errorf("olympus stop error")
 	}
 
 	wg.Wait()

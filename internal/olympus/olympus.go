@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"sort"
@@ -15,6 +14,7 @@ import (
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 var UnknownEndpointError = errors.New("unknown PushSubscription endpoint")
@@ -91,7 +91,7 @@ type Olympus struct {
 	subscriptionWg sync.WaitGroup
 	notificationWg sync.WaitGroup
 
-	log         *log.Logger
+	log         *logrus.Entry
 	csrfHandler *CSRFHandler
 
 	cancelSubscription  context.CancelFunc
@@ -147,7 +147,7 @@ func NewOlympus() (*Olympus, error) {
 	}
 
 	res := &Olympus{
-		log:                 log.New(os.Stderr, "[olympus]: ", log.LstdFlags),
+		log:                 logrus.WithField("group", "olympus"),
 		subscriptionContext: ctx,
 		cancelSubscription:  cancel,
 		subscriptions:       make(map[string]*subscription),
@@ -167,7 +167,7 @@ func NewOlympus() (*Olympus, error) {
 
 	res.notificationSender, err = NewNotificationSender()
 	if err != nil {
-		res.log.Printf("push notifications will be disabled: %s", err)
+		res.log.WithField("error", err).Warnf("push notifications will be disabled")
 	}
 
 	res.notificationWg.Add(3)
@@ -185,7 +185,7 @@ func NewOlympus() (*Olympus, error) {
 		defer res.notificationWg.Done()
 		for n := range res.notifier.Outgoing() {
 			if err := res.notificationSender.Send(n); err != nil {
-				res.log.Printf("could not send notificaton: %s", err)
+				res.log.WithField("error", err).Errorf("could not send notification")
 			}
 		}
 	}()
@@ -396,14 +396,28 @@ func (o *Olympus) GetAlarmReports(host, zone string) ([]api.AlarmReport, error) 
 	return a.GetReports(), nil
 }
 
-func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration) (*GrpcSubscription[ClimateLogger], error) {
+func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration) (csub *GrpcSubscription[ClimateLogger], err error) {
+	zoneIdentifier := ZoneIdentifier(declaration.Host, declaration.Name)
+
+	defer func() {
+		entry := o.log.WithFields(logrus.Fields{
+			"zone":        zoneIdentifier,
+			"declaration": declaration,
+		})
+
+		if err != nil {
+			entry.WithField("error", err).Errorf("could not register climate")
+		} else {
+			entry.Infof("registered climate")
+		}
+	}()
+
 	o.mx.Lock()
 	defer o.mx.Unlock()
 	if o.subscriptions == nil {
 		return nil, ClosedOlympusServerError{}
 	}
 
-	zoneIdentifier := ZoneIdentifier(declaration.Host, declaration.Name)
 	sub, ok := o.subscriptions[zoneIdentifier]
 	if ok == true && sub.climate != nil {
 		return nil, AlreadyExistError("zone '" + zoneIdentifier + "'")
@@ -432,8 +446,22 @@ func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration) (*GrpcSub
 	return sub.climate, nil
 }
 
-func (o *Olympus) UnregisterClimate(host, name string, graceful bool) error {
+func (o *Olympus) UnregisterClimate(host, name string, graceful bool) (err error) {
 	zoneIdentifier := ZoneIdentifier(host, name)
+
+	defer func() {
+		entry := o.log.WithFields(logrus.Fields{
+			"zone":     zoneIdentifier,
+			"graceful": graceful,
+		})
+
+		if err != nil {
+			entry.WithField("error", err).Errorf("could not unregister climate")
+		} else {
+			entry.Infof("unregistered climate")
+		}
+	}()
+
 	o.mx.Lock()
 	defer o.mx.Unlock()
 
@@ -460,7 +488,20 @@ func (o *Olympus) UnregisterClimate(host, name string, graceful bool) error {
 	return nil
 }
 
-func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (*GrpcSubscription[TrackingLogger], error) {
+func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (tsub *GrpcSubscription[TrackingLogger], err error) {
+	var zoneIdentifier string
+	defer func() {
+		entry := o.log.WithFields(logrus.Fields{
+			"declaration": declaration,
+			"zone":        zoneIdentifier,
+		})
+		if err != nil {
+			entry.WithField("error", err).Errorf("could not register tracking")
+		} else {
+			entry.Infof("registered tracking")
+		}
+	}()
+
 	if declaration.StreamServer != o.hostname+".local" {
 		return nil, UnexpectedStreamServerError{Got: declaration.StreamServer,
 			Expected: o.hostname + ".local"}
@@ -473,7 +514,7 @@ func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (*GrpcS
 		return nil, ClosedOlympusServerError{}
 	}
 
-	zoneIdentifier := ZoneIdentifier(declaration.Hostname, "box")
+	zoneIdentifier = ZoneIdentifier(declaration.Hostname, "box")
 
 	sub, ok := o.subscriptions[zoneIdentifier]
 	if ok == true && sub.tracking != nil {
@@ -503,7 +544,19 @@ func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (*GrpcS
 	return sub.tracking, nil
 }
 
-func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
+func (o *Olympus) UnregisterTracker(host string, graceful bool) (err error) {
+	defer func() {
+		entry := o.log.WithFields(logrus.Fields{
+			"host":     host,
+			"graceful": graceful,
+		})
+
+		if err != nil {
+			entry.WithField("error", err).Errorf("could not unregister tracking")
+		} else {
+			entry.Infof("unregistered tracking")
+		}
+	}()
 	o.mx.Lock()
 	defer o.mx.Unlock()
 
@@ -531,7 +584,10 @@ func (o *Olympus) UnregisterTracker(host string, graceful bool) error {
 func (o *Olympus) NotifyAlarm(zone string, update *api.AlarmUpdate) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
-
+	o.log.WithFields(logrus.Fields{
+		"zone":   zone,
+		"update": update,
+	}).Infof("manual zone alarm update")
 	o.notifier.Incoming() <- ZonedAlarmUpdate{Zone: zone, Update: update}
 }
 

@@ -1,14 +1,13 @@
 package olympus
 
 import (
-	"log"
-	"os"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/pkg/api"
+	"github.com/sirupsen/logrus"
 )
 
 type ServiceLogger interface {
@@ -22,7 +21,7 @@ type serviceLogger struct {
 	mx sync.RWMutex
 
 	logs   *PersistentMap[*api.ServiceLog]
-	logger *log.Logger
+	logger *logrus.Entry
 }
 
 func (l *serviceLogger) Log(zone string, on, graceful bool) {
@@ -93,14 +92,17 @@ func (l *serviceLogger) OffServices() []string {
 
 func (l *serviceLogger) save(zone string) {
 	if err := l.logs.SaveKey(zone); err != nil {
-		l.logger.Printf("%s", err)
+		l.logger.WithFields(logrus.Fields{
+			"zone":  zone,
+			"error": err,
+		}).Errorf("could not save to persistent storage")
 	}
 }
 
 func NewServiceLogger() ServiceLogger {
 	res := &serviceLogger{
 		logs:   NewPersistentMap[*api.ServiceLog]("services"),
-		logger: log.New(os.Stderr, "[services]: ", log.LstdFlags),
+		logger: logrus.WithField("group", "services"),
 	}
 	res.mx.Lock()
 	defer res.mx.Unlock()

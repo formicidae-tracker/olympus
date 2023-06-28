@@ -13,4 +13,4 @@ check:
 clean:
 	rm -Rf cover.out
 
-.PHONY: olympus check clean
+.PHONY: olympus check clean version.go

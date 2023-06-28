@@ -2,6 +2,7 @@ package olympus
 
 import (
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -11,9 +12,14 @@ import (
 
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
 )
+
+func init() {
+	logrus.SetOutput(io.Discard)
+}
 
 type OlympusSuite struct {
 	o                                      *Olympus
@@ -123,7 +129,7 @@ func (s *OlympusSuite) TestReportClimate(c *C) {
 	c.Check(r.Climate, IsNil)
 	if c.Check(r.Tracking, NotNil) == true {
 		if c.Check(r.Tracking.Stream, NotNil) == true {
-			c.Check(r.Tracking.Stream.StreamURL, Matches, "/olympus/hls/fifou.m3u8")
+			c.Check(r.Tracking.Stream.StreamURL, Matches, "/olympus/fifou/index.m3u8")
 		}
 	}
 
@@ -162,16 +168,16 @@ func (s *OlympusSuite) TestZoneSummary(c *C) {
 	c.Check(summary[2].Name, Matches, "box")
 	c.Check(summary[2].Climate, IsNil)
 	if c.Check(summary[2].Tracking, NotNil) == true {
-		c.Check(summary[2].Tracking.Stream.StreamURL, Matches, "/olympus/hls/fifou.m3u8")
-		c.Check(summary[2].Tracking.Stream.ThumbnailURL, Matches, "/olympus/fifou.png")
+		c.Check(summary[2].Tracking.Stream.StreamURL, Matches, "/olympus/fifou/index.m3u8")
+		c.Check(summary[2].Tracking.Stream.ThumbnailURL, Matches, "/thumbnails/olympus/fifou.jpg")
 	}
 
 	c.Check(summary[3].Host, Matches, "somehost")
 	c.Check(summary[3].Name, Matches, "box")
 	c.Check(summary[3].Climate, NotNil)
 	if c.Check(summary[3].Tracking.Stream, NotNil) == true {
-		c.Check(summary[3].Tracking.Stream.StreamURL, Matches, "/olympus/hls/somehost.m3u8")
-		c.Check(summary[3].Tracking.Stream.ThumbnailURL, Matches, "/olympus/somehost.png")
+		c.Check(summary[3].Tracking.Stream.StreamURL, Matches, "/olympus/somehost/index.m3u8")
+		c.Check(summary[3].Tracking.Stream.ThumbnailURL, Matches, "/thumbnails/olympus/somehost.jpg")
 	}
 
 }

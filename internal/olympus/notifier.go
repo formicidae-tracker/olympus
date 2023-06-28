@@ -2,13 +2,12 @@ package olympus
 
 import (
 	"errors"
-	"log"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/pkg/api"
+	"github.com/sirupsen/logrus"
 )
 
 func MayBeSubscribedTo(zone string, settings api.NotificationSettings) bool {
@@ -60,7 +59,7 @@ type notifier struct {
 	outgoing map[string]chan<- ZonedAlarmUpdate
 
 	batchPeriod time.Duration
-	log         *log.Logger
+	log         *logrus.Entry
 }
 
 func NewNotifier(batchPeriod time.Duration) Notifier {
@@ -71,7 +70,7 @@ func NewNotifier(batchPeriod time.Duration) Notifier {
 		outgoing:             make(map[string]chan<- ZonedAlarmUpdate),
 		outgoingNotification: make(chan NotificationFor, 100),
 		batchPeriod:          batchPeriod,
-		log:                  log.New(os.Stderr, "[notifications]: ", log.LstdFlags),
+		log:                  logrus.WithField("group", "notifications"),
 	}
 	for _, sub := range res.subscriptions.Map {
 		res.ensureOutgoing(sub.Push)
@@ -87,7 +86,17 @@ func (n *notifier) Outgoing() <-chan NotificationFor {
 	return n.outgoingNotification
 }
 
-func (n *notifier) RegisterPushSubscription(s *webpush.Subscription) error {
+func (n *notifier) RegisterPushSubscription(s *webpush.Subscription) (err error) {
+	defer func() {
+		entry := n.log.WithField("endpoint", s.Endpoint)
+
+		if err != nil {
+			entry.WithField("error", err).Errorf("could not register endpoint")
+		} else {
+			entry.Infof("new push subscription ")
+		}
+	}()
+
 	if len(s.Keys.Auth) == 0 || len(s.Keys.P256dh) == 0 {
 		return errors.New("invalid push subscription: missing keys")
 	}
@@ -101,12 +110,22 @@ func (n *notifier) RegisterPushSubscription(s *webpush.Subscription) error {
 
 	n.ensureOutgoing(s)
 
-	n.log.Printf("new push subscription to %s", s.Endpoint)
-
 	return n.subscriptions.SaveKey(s.Endpoint)
 }
 
-func (n *notifier) UpdatePushSubscription(update *api.NotificationSettingsUpdate) error {
+func (n *notifier) UpdatePushSubscription(update *api.NotificationSettingsUpdate) (err error) {
+	defer func() {
+		entry := n.log.WithFields(logrus.Fields{
+			"endpoint": update.Endpoint,
+			"settings": update.Settings,
+		})
+		if err != nil {
+			entry.WithField("error", err).Errorf("could not update subscription")
+		} else {
+			entry.Debugf("updated settings")
+		}
+	}()
+
 	n.mx.Lock()
 	defer n.mx.Unlock()
 

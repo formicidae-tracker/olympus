@@ -9,6 +9,7 @@ services:
       context: .
     ports:
       - "3001:3001"
+    hostname: olympus-dev
     environment:
       - OLYMPUS_DATA_HOME=/data/olympus
     env_file:
