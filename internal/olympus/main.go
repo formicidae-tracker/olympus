@@ -21,7 +21,10 @@ import (
 //go:generate go run generate_version.go
 
 type Options struct {
-	Version           bool `long:"version" description:"print current version and exit"`
+	Version bool `long:"version" description:"print current version and exit"`
+
+	Verbose []bool `long:"verbose" short:"v" description:"enables verbose logging, set multiple time to increase the level"`
+
 	GenerateVAPIDKeys bool `long:"generate-vapid-keys" description:"generate and output on stdout a new pair of VAPID Keys"`
 	GenerateSecret    bool `long:"generate-secret" description:"generate and output on stdout a secret for HMAC signature"`
 
@@ -101,6 +104,17 @@ func Execute() error {
 
 	if opts.GenerateSecret == true {
 		return outputNewSecret()
+	}
+
+	switch len(opts.Verbose) {
+	case 1:
+		logrus.SetLevel(logrus.InfoLevel)
+	case 2:
+		logrus.SetLevel(logrus.DebugLevel)
+	case 3:
+		logrus.SetLevel(logrus.TraceLevel)
+	default:
+		logrus.SetLevel(logrus.WarnLevel)
 	}
 
 	o, err := NewOlympus()

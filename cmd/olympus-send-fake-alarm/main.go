@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/formicidae-tracker/olympus/api"
+	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/jessevdk/go-flags"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"

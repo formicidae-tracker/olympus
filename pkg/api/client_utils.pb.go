@@ -4,9 +4,9 @@ package api
 
 import (
 	"context"
-	"log"
 
 	"github.com/barkimedes/go-deepcopy"
+	"github.com/sirupsen/logrus"
 	grpc "google.golang.org/grpc"
 )
 
@@ -49,12 +49,20 @@ func (c *ClimateConnection) Send(m *ClimateUpStream) (*ClimateDownStream, error)
 
 // CloseStream close only the bi-directional string, but keeps the tcp
 // connection alive. If logger is non-nil, will log any error to it.
-func (c *ClimateConnection) CloseStream(logger *log.Logger) {
+func (c *ClimateConnection) CloseStream(logger *logrus.Entry) {
+	var err error
+	if logger != nil {
+		defer func() {
+			if err != nil {
+				logger.WithField("error", err).Errorf("could not CloseSend()")
+			} else {
+				logger.Tracef("CloseSend()")
+			}
+		}()
+	}
+
 	if c.stream != nil {
-		err := c.stream.CloseSend()
-		if err != nil && logger != nil {
-			logger.Printf("gRPC CloseSend() failure: %s", err)
-		}
+		err = c.stream.CloseSend()
 	}
 	c.stream = nil
 	c.acknowledge = nil
@@ -63,13 +71,21 @@ func (c *ClimateConnection) CloseStream(logger *log.Logger) {
 // CloseAll() close completely the ClimateConnection, avoiding any
 // leaking routine. If logger is non-nil, will use it to log any
 // error.
-func (c *ClimateConnection) CloseAll(logger *log.Logger) {
+func (c *ClimateConnection) CloseAll(logger *logrus.Entry) {
+	var err error
+	if logger != nil {
+		defer func() {
+			if err != nil {
+				logger.WithField("error", err).Errorf("could not CloseAll()")
+			} else {
+				logger.Tracef("CloseAll()")
+			}
+		}()
+	}
+
 	c.CloseStream(logger)
 	if c.conn != nil {
-		err := c.conn.Close()
-		if err != nil && logger != nil {
-			logger.Printf("gRPC Close() failure: %s", err)
-		}
+		err = c.conn.Close()
 	}
 	c.conn = nil
 }
@@ -79,7 +95,7 @@ func (c *ClimateConnection) CloseAll(logger *log.Logger) {
 func ConnectClimate(conn *grpc.ClientConn,
 	address string,
 	declaration *ClimateDeclaration,
-	logger *log.Logger,
+	logger *logrus.Entry,
 	opts ...grpc.DialOption) (res *ClimateConnection, err error) {
 
 	res = &ClimateConnection{}
@@ -93,7 +109,7 @@ func ConnectClimate(conn *grpc.ClientConn,
 	if conn == nil {
 		dialOptions := append(DefaultDialOptions, opts...)
 		if logger != nil {
-			logger.Printf("Dialing '%s'", address)
+			logger.WithField("address", address).Infof("dialing")
 		}
 		res.conn, err = grpc.Dial(address, dialOptions...)
 		if err != nil {
@@ -119,7 +135,7 @@ func ConnectClimate(conn *grpc.ClientConn,
 func ConnectClimateAsync(conn *grpc.ClientConn,
 	address string,
 	declaration *ClimateDeclaration,
-	logger *log.Logger,
+	logger *logrus.Entry,
 	opts ...grpc.DialOption) (<-chan *ClimateConnection, <-chan error) {
 
 	errors := make(chan error)
@@ -137,7 +153,7 @@ func ConnectClimateAsync(conn *grpc.ClientConn,
 			case errors <- err:
 			default:
 				if logger != nil {
-					logger.Printf("gRPC connection failed after shutdown: %s", err)
+					logger.WithField("error", err).Error("gRPC connection failed after shutdown")
 				}
 			}
 		} else {
@@ -145,7 +161,7 @@ func ConnectClimateAsync(conn *grpc.ClientConn,
 			case connections <- c:
 			default:
 				if logger != nil {
-					logger.Printf("gRPC connection established after shutdown. Closing it")
+					logger.Warn("gRPC connection established after shutdown. Closing it")
 				}
 				c.CloseAll(logger)
 			}
@@ -194,12 +210,20 @@ func (c *TrackingConnection) Send(m *TrackingUpStream) (*TrackingDownStream, err
 
 // CloseStream close only the bi-directional string, but keeps the tcp
 // connection alive. If logger is non-nil, will log any error to it.
-func (c *TrackingConnection) CloseStream(logger *log.Logger) {
+func (c *TrackingConnection) CloseStream(logger *logrus.Entry) {
+	var err error
+	if logger != nil {
+		defer func() {
+			if err != nil {
+				logger.WithField("error", err).Errorf("could not CloseSend()")
+			} else {
+				logger.Tracef("CloseSend()")
+			}
+		}()
+	}
+
 	if c.stream != nil {
-		err := c.stream.CloseSend()
-		if err != nil && logger != nil {
-			logger.Printf("gRPC CloseSend() failure: %s", err)
-		}
+		err = c.stream.CloseSend()
 	}
 	c.stream = nil
 	c.acknowledge = nil
@@ -208,13 +232,21 @@ func (c *TrackingConnection) CloseStream(logger *log.Logger) {
 // CloseAll() close completely the TrackingConnection, avoiding any
 // leaking routine. If logger is non-nil, will use it to log any
 // error.
-func (c *TrackingConnection) CloseAll(logger *log.Logger) {
+func (c *TrackingConnection) CloseAll(logger *logrus.Entry) {
+	var err error
+	if logger != nil {
+		defer func() {
+			if err != nil {
+				logger.WithField("error", err).Errorf("could not CloseAll()")
+			} else {
+				logger.Tracef("CloseAll()")
+			}
+		}()
+	}
+
 	c.CloseStream(logger)
 	if c.conn != nil {
-		err := c.conn.Close()
-		if err != nil && logger != nil {
-			logger.Printf("gRPC Close() failure: %s", err)
-		}
+		err = c.conn.Close()
 	}
 	c.conn = nil
 }
@@ -224,7 +256,7 @@ func (c *TrackingConnection) CloseAll(logger *log.Logger) {
 func ConnectTracking(conn *grpc.ClientConn,
 	address string,
 	declaration *TrackingDeclaration,
-	logger *log.Logger,
+	logger *logrus.Entry,
 	opts ...grpc.DialOption) (res *TrackingConnection, err error) {
 
 	res = &TrackingConnection{}
@@ -238,7 +270,7 @@ func ConnectTracking(conn *grpc.ClientConn,
 	if conn == nil {
 		dialOptions := append(DefaultDialOptions, opts...)
 		if logger != nil {
-			logger.Printf("Dialing '%s'", address)
+			logger.WithField("address", address).Infof("dialing")
 		}
 		res.conn, err = grpc.Dial(address, dialOptions...)
 		if err != nil {
@@ -264,7 +296,7 @@ func ConnectTracking(conn *grpc.ClientConn,
 func ConnectTrackingAsync(conn *grpc.ClientConn,
 	address string,
 	declaration *TrackingDeclaration,
-	logger *log.Logger,
+	logger *logrus.Entry,
 	opts ...grpc.DialOption) (<-chan *TrackingConnection, <-chan error) {
 
 	errors := make(chan error)
@@ -282,7 +314,7 @@ func ConnectTrackingAsync(conn *grpc.ClientConn,
 			case errors <- err:
 			default:
 				if logger != nil {
-					logger.Printf("gRPC connection failed after shutdown: %s", err)
+					logger.WithField("error", err).Error("gRPC connection failed after shutdown")
 				}
 			}
 		} else {
@@ -290,7 +322,7 @@ func ConnectTrackingAsync(conn *grpc.ClientConn,
 			case connections <- c:
 			default:
 				if logger != nil {
-					logger.Printf("gRPC connection established after shutdown. Closing it")
+					logger.Warn("gRPC connection established after shutdown. Closing it")
 				}
 				c.CloseAll(logger)
 			}

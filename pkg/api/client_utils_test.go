@@ -2,10 +2,10 @@ package api
 
 import (
 	"io"
-	"log"
 	"net"
 	"testing"
 
+	"github.com/sirupsen/logrus/hooks/test"
 	"google.golang.org/grpc"
 	. "gopkg.in/check.v1"
 )
@@ -73,7 +73,9 @@ func (s *StarConnectionSuite) TestConnect(c *C) {
 }
 
 func (s *StarConnectionSuite) TestConnectAsync(c *C) {
-	connections, errors := ConnectTrackingAsync(nil, s.address, &TrackingDeclaration{}, log.Default())
+	logger, hook := test.NewNullLogger()
+	defer hook.Reset()
+	connections, errors := ConnectTrackingAsync(nil, s.address, &TrackingDeclaration{}, logger.WithField("group", "gRPC"))
 
 	conn, ok := <-connections
 	c.Assert(conn, Not(IsNil))
