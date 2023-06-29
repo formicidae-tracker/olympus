@@ -58,14 +58,12 @@ func serveLoop[UpStream any, DownStream any](
 			// we were asked to stop the connection
 			return nil
 		case err := <-errors:
-			entry.WithField("error", err).Warnf("got error")
 			if err == io.EOF {
 				// we received an EOF : Simply end loop
 				return nil
 			}
 			return err
 		case m := <-messages:
-			entry.WithField("message", m).Tracef("got message")
 			out, err := handleMessage(m)
 			if err != nil {
 				return err

@@ -37,6 +37,8 @@ type OtelProviderArgs struct {
 	ServiceVersion string
 	// Its verbose level for logs
 	Level VerboseLevel
+	// Force a Flush before Shutdown
+	ForceFlushOnShutdown bool
 }
 
 type nullFormatter struct{}
@@ -69,9 +71,11 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 		semconv.HostIDKey.String(hostname),
 	)
 
+	spanProcessor := sdktrace.NewBatchSpanProcessor(exporter)
+
 	otel.SetTracerProvider(sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithBatcher(exporter),
+		sdktrace.WithSpanProcessor(spanProcessor),
 		sdktrace.WithResource(resources),
 	))
 
@@ -87,7 +91,17 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 		logrus.Fatalf("%s", err)
 	}
 
-	return &otelProvider{shutdown: exporter.Shutdown}
+	shutdown := exporter.Shutdown
+	if args.ForceFlushOnShutdown == true {
+		shutdown = func(ctx context.Context) error {
+			spanProcessor.ForceFlush(ctx)
+			return exporter.Shutdown(ctx)
+		}
+	}
+
+	return &otelProvider{
+		shutdown: shutdown,
+	}
 }
 
 func setUpLogstash(args OtelProviderArgs, hostname string) error {
