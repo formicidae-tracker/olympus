@@ -13,6 +13,7 @@ import (
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/pkg/api"
+	"github.com/formicidae-tracker/olympus/pkg/tm"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
@@ -147,7 +148,7 @@ func NewOlympus() (*Olympus, error) {
 	}
 
 	res := &Olympus{
-		log:                 logrus.WithField("group", "olympus"),
+		log:                 tm.NewLogger("olympus"),
 		subscriptionContext: ctx,
 		cancelSubscription:  cancel,
 		subscriptions:       make(map[string]*subscription),

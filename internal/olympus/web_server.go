@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/formicidae-tracker/olympus/pkg/tm"
 	"github.com/sirupsen/logrus"
 )
 
@@ -142,7 +143,7 @@ func NewCSRFHandler(secret []byte) (*CSRFHandler, error) {
 	}
 	return &CSRFHandler{
 		secret: secret,
-		logger: logrus.WithField("group", "csrf"),
+		logger: tm.NewLogger("csrf"),
 	}, nil
 }
 

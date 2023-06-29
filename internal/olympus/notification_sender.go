@@ -13,6 +13,7 @@ import (
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/pkg/api"
+	"github.com/formicidae-tracker/olympus/pkg/tm"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -276,7 +277,7 @@ func NewNotificationSender() (NotificationSender, error) {
 		logger.SetOutput(io.Discard)
 	}
 
-	res.log = logger.WithField("group", "webpush")
+	res.log = tm.NewLogger("webpush")
 
 	return res, nil
 }

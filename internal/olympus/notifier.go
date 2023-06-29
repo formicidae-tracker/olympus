@@ -7,6 +7,7 @@ import (
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/pkg/api"
+	"github.com/formicidae-tracker/olympus/pkg/tm"
 	"github.com/sirupsen/logrus"
 )
 
@@ -70,7 +71,7 @@ func NewNotifier(batchPeriod time.Duration) Notifier {
 		outgoing:             make(map[string]chan<- ZonedAlarmUpdate),
 		outgoingNotification: make(chan NotificationFor, 100),
 		batchPeriod:          batchPeriod,
-		log:                  logrus.WithField("group", "notifications"),
+		log:                  tm.NewLogger("notifications"),
 	}
 	for _, sub := range res.subscriptions.Map {
 		res.ensureOutgoing(sub.Push)

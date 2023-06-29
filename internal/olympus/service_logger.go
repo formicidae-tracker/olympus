@@ -7,6 +7,7 @@ import (
 
 	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/pkg/api"
+	"github.com/formicidae-tracker/olympus/pkg/tm"
 	"github.com/sirupsen/logrus"
 )
 
@@ -102,7 +103,7 @@ func (l *serviceLogger) save(zone string) {
 func NewServiceLogger() ServiceLogger {
 	res := &serviceLogger{
 		logs:   NewPersistentMap[*api.ServiceLog]("services"),
-		logger: logrus.WithField("group", "services"),
+		logger: tm.NewLogger("services"),
 	}
 	res.mx.Lock()
 	defer res.mx.Unlock()

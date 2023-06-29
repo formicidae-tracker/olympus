@@ -1,13 +1,13 @@
 package main
 
 import (
-	"log"
+	"os"
 
 	"github.com/formicidae-tracker/olympus/internal/olympus"
 )
 
 func main() {
 	if err := olympus.Execute(); err != nil {
-		log.Fatalf("%s", err)
+		os.Exit(3)
 	}
 }
