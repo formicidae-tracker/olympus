@@ -26,8 +26,10 @@ require (
 )
 
 require (
+	github.com/bshuster-repo/logrus-logstash-hook v1.1.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
+	github.com/firstrow/goautosocket v0.0.0-20161106110228-ac6bb839dc77 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect

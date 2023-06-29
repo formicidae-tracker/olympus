@@ -3,6 +3,7 @@ package olympus
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -19,40 +20,6 @@ import (
 
 //go:generate go run generate_version.go
 
-func (c *RunCommand) setUpHttpServer(o *Olympus) GracefulServer {
-	router := mux.NewRouter()
-	o.setRoutes(router)
-	logger := tm.NewLogger("http")
-	router.Use(RecoverWrap(logger))
-	if tm.Enabled() == true {
-		router.Use(otelmux.Middleware("olympus-backend"))
-	} else {
-		router.Use(HTTPLogWrap(logger))
-	}
-	if len(c.AllowCORS) > 0 {
-		router.Use(EnableCORS(c.AllowCORS))
-	}
-	httpServer := &http.Server{
-		Addr:    c.Address,
-		Handler: router,
-	}
-	return NewGracefulServer(httpServer)
-}
-
-func (c *RunCommand) setUpRpcServer(o *Olympus) *grpc.Server {
-	options := append([]grpc.ServerOption{}, api.DefaultServerOptions...)
-	if tm.Enabled() {
-		options = append(options,
-			grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
-			grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()))
-	}
-
-	server := grpc.NewServer(options...)
-
-	api.RegisterOlympusServer(server, (*OlympusGRPCWrapper)(o))
-	return server
-}
-
 func Execute() error {
 	_, err := parser.Parse()
 	return err
@@ -61,16 +28,15 @@ func Execute() error {
 type RunCommand struct {
 	Verbose []bool `long:"verbose" short:"v" description:"enables verbose logging, set multiple time to increase the level"`
 
-	Address      string   `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
-	RPC          int      `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
-	AllowCORS    []string `long:"allow-cors" description:"allow cors from domain"`
-	OtelExporter string   `long:"otel-exporter" description:"Open Telemetry exporter endpoint" env:"OLYMPUS_OTEL_ENDPOINT"`
+	Address          string   `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
+	RPC              int      `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
+	AllowCORS        []string `long:"allow-cors" description:"allow cors from domain"`
+	OtelEndpoint     string   `long:"otel-exporter" description:"Open Telemetry exporter endpoint" env:"OLYMPUS_OTEL_ENDPOINT"`
+	LogstashEndpoint string   `long:"logstash-address" description:"Open Telemetry exporter endpoint" env:"OLYMPUS_LOGSTASH_ENDPOINT"`
 }
 
 func (c *RunCommand) Execute([]string) error {
-	if _, err := parser.Parse(); err != nil {
-		return nil
-	}
+	log.Printf("%+v", c)
 
 	c.setLogger()
 	defer tm.Shutdown(context.Background())
@@ -138,15 +104,54 @@ func (c *RunCommand) Execute([]string) error {
 
 }
 
+func (c *RunCommand) setUpHttpServer(o *Olympus) GracefulServer {
+	router := mux.NewRouter()
+	o.setRoutes(router)
+	logger := tm.NewLogger("http")
+	router.Use(RecoverWrap(logger))
+	if tm.Enabled() == true {
+		router.Use(otelmux.Middleware("olympus-backend"))
+	} else {
+		router.Use(HTTPLogWrap(logger))
+	}
+	if len(c.AllowCORS) > 0 {
+		router.Use(EnableCORS(c.AllowCORS))
+	}
+	httpServer := &http.Server{
+		Addr:    c.Address,
+		Handler: router,
+	}
+	return NewGracefulServer(httpServer)
+}
+
+func (c *RunCommand) setUpRpcServer(o *Olympus) *grpc.Server {
+	options := append([]grpc.ServerOption{}, api.DefaultServerOptions...)
+	if tm.Enabled() {
+		options = append(options,
+			grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
+			grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()))
+	}
+
+	server := grpc.NewServer(options...)
+
+	api.RegisterOlympusServer(server, (*OlympusGRPCWrapper)(o))
+	return server
+}
+
 func (c *RunCommand) setLogger() {
-	if len(c.OtelExporter) > 0 {
+	if len(c.OtelEndpoint) > 0 || len(c.LogstashEndpoint) > 0 {
 		tm.SetUpTelemetry(tm.OtelProviderArgs{
-			CollectorURL:   c.OtelExporter,
-			ServiceName:    "olympus",
-			ServiceVersion: OLYMPUS_VERSION,
-			Level:          tm.VerboseLevel(len(c.Verbose)),
+			LogstashEndpoint: c.LogstashEndpoint,
+			CollectorURL:     c.OtelEndpoint,
+			ServiceName:      "olympus",
+			ServiceVersion:   OLYMPUS_VERSION,
+			Level:            tm.VerboseLevel(len(c.Verbose)),
 		})
 	} else {
 		tm.SetUpLocal(tm.VerboseLevel(len(c.Verbose)))
 	}
+}
+
+func init() {
+	parser.AddCommand("run", "run olympus service", "runs olympus service", &RunCommand{})
 }

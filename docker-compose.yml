@@ -10,10 +10,15 @@ services:
     ports:
       - "3001:3001"
     hostname: olympus-dev
+    extra_hosts:
+      - signoz:host-gateway
     environment:
       - OLYMPUS_DATA_HOME=/data/olympus
+      - OLYMPUS_OTEL_ENDPOINT=signoz:4317
+      - OLYMPUS_LOGSTASH_ENDPOINT=signoz:3333
     command:
       # In production, you would want to avoid this.
+      - run
       - -vvv
     env_file:
       - .vapid.env
@@ -55,11 +60,20 @@ services:
       - traefik.http.services.webapp.loadbalancer.server.port=80
 
   traefik:
-    image: traefik:latest
+    image: traefik:v3.0.0-beta3
+    extra_hosts:
+      - signoz:host-gateway
     command:
       - --entrypoints.web.address=:80
-      - --api.insecure=true
       - --providers.docker
+      - --metrics.openTelemetry=true
+      - --metrics.openTelemetry.address=signoz:4317
+      - --metrics.openTelemetry.insecure=true
+      - --metrics.openTelemetry.grpc=true
+      - --tracing.openTelemetry=true
+      - --tracing.openTelemetry.address=signoz:4317
+      - --tracing.openTelemetry.insecure=true
+      - --tracing.openTelemetry.grpc=true
     ports:
       - "80:80"
       - "8080:8080"

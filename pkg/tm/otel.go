@@ -2,18 +2,19 @@ package tm
 
 import (
 	"context"
-	"io"
 	"os"
 	"sync"
 
+	logrustash "github.com/bshuster-repo/logrus-logstash-hook"
+	gas "github.com/firstrow/goautosocket"
 	"github.com/sirupsen/logrus"
-	"github.com/uptrace/opentelemetry-go-extra/otellogrus"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -26,6 +27,8 @@ type otelProvider struct {
 
 // Arguments needed for Open Telemetry
 type OtelProviderArgs struct {
+	// Endpoint for logstash collection.
+	LogstashEndpoint string
 	// The Collector URL
 	CollectorURL string
 	// The Service Name
@@ -43,16 +46,17 @@ func (f nullFormatter) Format(*logrus.Entry) ([]byte, error) {
 }
 
 func newOtelProvider(args OtelProviderArgs) Provider {
+	hostname, err := os.Hostname()
+	if err != nil {
+		logrus.Fatalf("%s", err)
+	}
+
 	exporter, err := otlptrace.New(
 		context.Background(),
 		otlptracegrpc.NewClient(
 			otlptracegrpc.WithInsecure(),
 			otlptracegrpc.WithEndpoint(args.CollectorURL),
 		))
-	if err != nil {
-		logrus.Fatalf("%s", err)
-	}
-	hostname, err := os.Hostname()
 	if err != nil {
 		logrus.Fatalf("%s", err)
 	}
@@ -71,32 +75,49 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 		sdktrace.WithResource(resources),
 	))
 
-	logrus.AddHook(otellogrus.NewHook(
-		otellogrus.WithLevels(MapVerboseLevelList(args.Level)...),
-	))
-	logrus.SetFormatter(nullFormatter{})
-	logrus.SetOutput(io.Discard)
+	propagator := propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	)
+
+	otel.SetTextMapPropagator(propagator)
+
+	err = setUpLogstash(args, hostname)
+	if err != nil {
+		logrus.Fatalf("%s", err)
+	}
 
 	return &otelProvider{shutdown: exporter.Shutdown}
 }
 
-func (p *otelProvider) Shutdown(ctx context.Context) error {
-	p.mx.Lock()
-	defer p.mx.Unlock()
-
-	for _, span := range p.spans {
-		span.End()
+func setUpLogstash(args OtelProviderArgs, hostname string) error {
+	if len(args.LogstashEndpoint) == 0 {
+		return nil
 	}
+	conn, err := gas.Dial("tcp", args.LogstashEndpoint)
+	if err != nil {
+		return err
+	}
+
+	hook := logrustash.New(conn, logrustash.DefaultFormatter(logrus.Fields{
+		"service":             args.ServiceName,
+		"service_version":     args.ServiceVersion,
+		"service_instance_id": hostname,
+		"host_id":             hostname,
+	}))
+
+	logrus.SetLevel(MapVerboseLevel(args.Level))
+	logrus.AddHook(hook)
+
+	return nil
+}
+
+func (p *otelProvider) Shutdown(ctx context.Context) error {
 	return p.shutdown(ctx)
 }
 
 func (p *otelProvider) NewLogger(domain string) *logrus.Entry {
-	p.mx.Lock()
-	defer p.mx.Unlock()
-
-	ctx, span := otel.Tracer("olympus").Start(context.Background(), domain)
-	p.spans = append(p.spans, span)
-	return logrus.WithContext(ctx)
+	return logrus.WithField("domain", domain)
 }
 
 func (p *otelProvider) Enabled() bool {

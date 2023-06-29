@@ -15,7 +15,7 @@ func newLocalProvider(l VerboseLevel) Provider {
 }
 
 func (l localProvider) NewLogger(domain string) *logrus.Entry {
-	return logrus.WithField("group", domain)
+	return logrus.WithField("domain", domain)
 }
 
 func (l localProvider) Shutdown(context.Context) error {
