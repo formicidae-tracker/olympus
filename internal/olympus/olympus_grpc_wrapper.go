@@ -86,7 +86,7 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 		return ack, nil
 	}
 
-	return api.ServerLoop[api.ClimateUpStream, api.ClimateDownStream](
+	return api.ServerLoop[*api.ClimateUpStream, *api.ClimateDownStream](
 		o.SubscriptionContext(), stream, handler)
 }
 
@@ -133,7 +133,7 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 		return ack, nil
 	}
 
-	return api.ServerLoop[api.TrackingUpStream, api.TrackingDownStream](
+	return api.ServerLoop[*api.TrackingUpStream, *api.TrackingDownStream](
 		o.SubscriptionContext(), stream, handler)
 }
 

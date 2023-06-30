@@ -53,7 +53,7 @@ func (s *ServerLoopSuite) SetUpTest(c *C) {
 			s.wg.Add(1)
 			defer s.wg.Done()
 			handler := &handler{}
-			err := ServerLoop[TrackingUpStream, TrackingDownStream](s.ctx,
+			err := ServerLoop[*TrackingUpStream, *TrackingDownStream](s.ctx,
 				se, handler.handle)
 			if err != nil {
 				c.Check(err, ErrorMatches, ".*FailedPrecondition.*not yet implemented")
@@ -137,7 +137,7 @@ func (s *ServerLoopSuite) TestCancelable(c *C) {
 		waitOrTimeout(&wg, 100*time.Millisecond, c)
 	}()
 
-	tasks := make([]*ClientTask[TrackingUpStream, TrackingDownStream], 10)
+	tasks := make([]*ClientTask[*TrackingUpStream, *TrackingDownStream], 10)
 
 	for i := range tasks {
 		tasks[i] = NewTrackingTask(clientsContext,

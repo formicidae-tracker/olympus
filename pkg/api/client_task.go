@@ -5,24 +5,22 @@ import (
 	"errors"
 	"math/rand"
 	"time"
-
-	"google.golang.org/grpc"
 )
 
 // RequestResult represents the result of a Request to a ClientTask.
 type RequestResult[Down any] struct {
-	Message *Down
+	Message Down
 	Error   error
 }
 
 // Request represent a request and its expected Result to a ClientTask
 type Request[Up, Down any] struct {
-	Message  *Up
+	Message  Up
 	response chan RequestResult[Down]
 }
 
 // NewRequest prepares a new Request for a ClientTask
-func NewRequest[Up, Down any](m *Up) Request[Up, Down] {
+func NewRequest[Up, Down any](m Up) Request[Up, Down] {
 	return Request[Up, Down]{
 		Message:  m,
 		response: make(chan RequestResult[Down], 1),
@@ -34,7 +32,7 @@ func (r Request[Up, Down]) Response() <-chan RequestResult[Down] {
 	return r.response
 }
 
-func (r Request[Up, Down]) respond(m *Down, err error) {
+func (r Request[Up, Down]) respond(m Down, err error) {
 	r.response <- RequestResult[Down]{m, err}
 	close(r.response)
 }
@@ -42,7 +40,7 @@ func (r Request[Up, Down]) respond(m *Down, err error) {
 // ConfirmationResult returns the result of a new connection to a
 // Olympus stream such as OlympusClimate or OlympusTracking.
 type ConfirmationResult[Down any] struct {
-	Confirmation *Down
+	Confirmation Down
 	Error        error
 }
 
@@ -52,7 +50,7 @@ type ConfirmationResult[Down any] struct {
 // attempt result on its Confirmations() channel. Request() can be
 // used to perform an asynchronous request with this task. Run()
 // should be called to perform the task loop.
-type ClientTask[Up, Down any] struct {
+type ClientTask[Up, Down metadated] struct {
 	ctx               context.Context
 	cancel            context.CancelFunc
 	connect           func() <-chan ConnectionResult[Up, Down]
@@ -76,8 +74,9 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 
 	buffer := make([]Request[Up, Down], 0, 10)
 	defer func() {
+		var Nil Down
 		for _, req := range buffer {
-			req.respond(nil, errors.New("task ended"))
+			req.respond(Nil, errors.New("task ended"))
 		}
 	}()
 
@@ -149,7 +148,7 @@ func (c *ClientTask[Up, Down]) Stop() {
 }
 
 // Request performs an asynchronous Request on the ClientTask
-func (c *ClientTask[Up, Down]) Request(m *Up) <-chan RequestResult[Down] {
+func (c *ClientTask[Up, Down]) Request(m Up) <-chan RequestResult[Down] {
 	req := NewRequest[Up, Down](m)
 	c.inbound <- req
 	return req.Response()
@@ -161,11 +160,11 @@ func (c *ClientTask[Up, Down]) Confirmations() <-chan ConfirmationResult[Down] {
 	return c.confirmations
 }
 
-func newClientTask[Up, Down any](
+func newClientTask[Up, Down metadated](
 	ctx context.Context,
 	address string,
-	factory ConnectionFactory[Up, Down],
-	options ...grpc.DialOption) *ClientTask[Up, Down] {
+	factory connectionFactory[Up, Down],
+	options ...ConnectionOption) *ClientTask[Up, Down] {
 	cancelable, cancel := context.WithCancel(ctx)
 	return &ClientTask[Up, Down]{
 		ctx:    cancelable,
@@ -185,11 +184,11 @@ func NewClimateTask(
 	ctx context.Context,
 	address string,
 	declaration *ClimateDeclaration,
-	options ...grpc.DialOption) *ClientTask[ClimateUpStream, ClimateDownStream] {
+	options ...ConnectionOption) *ClientTask[*ClimateUpStream, *ClimateDownStream] {
 	return newClientTask(
 		ctx, address,
 		climateConnector(declaration),
-		options...)
+		append(options, withSpanBasename("fort.olympus.Olympus/Climate"))...)
 }
 
 // NewTrackingTask returns a ClimateTask that connect and call an
@@ -198,9 +197,9 @@ func NewTrackingTask(
 	ctx context.Context,
 	address string,
 	declaration *TrackingDeclaration,
-	options ...grpc.DialOption) *ClientTask[TrackingUpStream, TrackingDownStream] {
+	options ...ConnectionOption) *ClientTask[*TrackingUpStream, *TrackingDownStream] {
 	return newClientTask(
 		ctx, address,
 		trackingConnector(declaration),
-		options...)
+		append(options, withSpanBasename("fort.olympus.Olympus/Tracking"))...)
 }

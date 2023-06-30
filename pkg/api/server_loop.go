@@ -5,20 +5,20 @@ import (
 	"io"
 )
 
-type HandleFunc[Up, Down any] func(*Up) (*Down, error)
+type HandleFunc[Up, Down any] func(Up) (Down, error)
 
-type ServerStream[Up, Down any] interface {
-	Recv() (*Up, error)
-	Send(*Down) error
+type ServerStream[Up, Down metadated] interface {
+	Recv() (Up, error)
+	Send(Down) error
 	Context() context.Context
 }
 
 type recvResult[Up any] struct {
-	Message *Up
+	Message Up
 	Error   error
 }
 
-func readAll[Up, Down any](ch chan<- recvResult[Up],
+func readAll[Up, Down metadated](ch chan<- recvResult[Up],
 	s ServerStream[Up, Down]) {
 
 	defer close(ch)
@@ -36,14 +36,14 @@ func readAll[Up, Down any](ch chan<- recvResult[Up],
 	}
 }
 
-func ServerLoop[Up, Down any](
+func ServerLoop[Up, Down metadated](
 	ctx context.Context,
 	s ServerStream[Up, Down],
 	handler HandleFunc[Up, Down]) error {
 
 	recv := make(chan recvResult[Up])
 	go func() {
-		readAll[Up, Down](recv, s)
+		readAll(recv, s)
 	}()
 
 	for {
@@ -62,6 +62,7 @@ func ServerLoop[Up, Down any](
 				}
 				return m.Error
 			}
+
 			resp, err := handler(m.Message)
 			if err != nil {
 				return err

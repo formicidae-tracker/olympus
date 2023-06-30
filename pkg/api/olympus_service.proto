@@ -65,6 +65,8 @@ message ClimateUpStream {
 	optional ClimateTarget      target      = 3;
 	repeated AlarmUpdate        alarms      = 4;
 	bool                        backlog     = 5;
+
+	map<string,string> metadata = 10;
 }
 
 message ClimateRegistrationConfirmation {
@@ -74,6 +76,8 @@ message ClimateRegistrationConfirmation {
 
 message ClimateDownStream {
 	ClimateRegistrationConfirmation registration_confirmation = 1;
+
+	map<string,string> metadata = 10;
 }
 
 message TrackingDeclaration {
@@ -93,9 +97,14 @@ message TrackingUpStream {
 	optional TrackingDeclaration declaration = 1;
 	repeated AlarmUpdate         alarms      = 2;
 	optional DiskStatus          disk_status = 3;
+
+	map<string,string> metadata = 10;
 }
 
-message TrackingDownStream {}
+message TrackingDownStream {
+
+	map<string,string> metadata = 10;
+}
 
 service Olympus {
 	rpc Climate(stream ClimateUpStream) returns (stream ClimateDownStream);
