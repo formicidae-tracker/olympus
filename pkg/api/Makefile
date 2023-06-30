@@ -1,7 +1,4 @@
-all: olympus_service.pb.go olympus_service_grpc.pb.go mock_api/olympus_server.go
-
-mock_api/olympus_server.go: olympus_service.proto
-	go generate
+all: olympus_service.pb.go olympus_service_grpc.pb.go
 
 %.pb.go: olympus_service.proto
 	go generate

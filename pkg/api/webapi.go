@@ -12,7 +12,7 @@ import (
 
 //go:generate protoc --experimental_allow_proto3_optional  --go_out=. --go-grpc_out=. ./olympus_service.proto
 //go:generate go run ./examples/generate.go
-//go:generate sh -c "mockgen . OlympusServer > ./mock_api/olympus_server.go"
+//go:generate mockgen -source olympus_service_grpc.pb.go -package=api -destination=mock_olympus_service_test.go  -self_package=github.com/formicidae-tracker/olympus/pkg/api
 
 type AlarmEvent struct {
 	Start time.Time  `json:"start,omitempty"`

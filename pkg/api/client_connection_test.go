@@ -2,51 +2,66 @@ package api
 
 import (
 	"context"
-	"io"
 	"net"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"google.golang.org/grpc"
 	. "gopkg.in/check.v1"
 )
 
 func Test(t *testing.T) { TestingT(t) }
 
-type olympusStub struct {
-	UnimplementedOlympusServer
+type ClientConnectionSuite struct {
+	server  *grpc.Server
+	errors  chan error
+	address string
+	ctrl    *gomock.Controller
+	olympus *MockOlympusServer
 }
 
-func (o *olympusStub) Tracking(stream Olympus_TrackingServer) error {
+type server[Up, Down any] interface {
+	Recv() (*Up, error)
+	Send(*Down) error
+}
+
+func acknowledgeAll[Up, Down any](s server[Up, Down], conf *Down, ack *Down) error {
+	toSend := conf
 	for {
-		_, err := stream.Recv()
-		if err == io.EOF {
-			return nil
-		}
+		_, err := s.Recv()
 		if err != nil {
 			return err
 		}
-		err = stream.Send(&TrackingDownStream{})
+		err = s.Send(toSend)
+		toSend = ack
 		if err != nil {
 			return err
 		}
 	}
 }
 
-type ClientConnectionSuite struct {
-	server  *grpc.Server
-	stub    *olympusStub
-	errors  chan error
-	address string
-}
-
 var _ = Suite(&ClientConnectionSuite{})
 
+type NeverFatalReporter struct {
+	c *C
+}
+
+func (r NeverFatalReporter) Errorf(format string, args ...any) {
+	r.c.Errorf(format, args...)
+}
+
+func (r NeverFatalReporter) Fatalf(format string, args ...any) {
+	r.c.Errorf(format, args...)
+}
+
 func (s *ClientConnectionSuite) SetUpTest(c *C) {
+
+	s.ctrl = gomock.NewController(NeverFatalReporter{c})
+	s.olympus = NewMockOlympusServer(s.ctrl)
 	s.address = "localhost:12345"
-	s.stub = &olympusStub{}
 	s.errors = make(chan error)
 	s.server = grpc.NewServer()
-	RegisterOlympusServer(s.server, s.stub)
+	RegisterOlympusServer(s.server, s.olympus)
 	l, err := net.Listen("tcp", s.address)
 	c.Assert(err, IsNil)
 	go func() {
@@ -63,9 +78,25 @@ func (s *ClientConnectionSuite) TearDownTest(c *C) {
 	err, ok = <-s.errors
 	c.Check(err, IsNil)
 	c.Check(ok, Equals, false)
+	s.ctrl.Finish()
 }
 
 func (s *ClientConnectionSuite) TestConnect(c *C) {
+	done := make(chan struct{})
+	defer func() { <-done }()
+	s.olympus.EXPECT().
+		Tracking(gomock.Any()).
+		DoAndReturn(
+			func(s Olympus_TrackingServer) error {
+				err := acknowledgeAll[TrackingUpStream, TrackingDownStream](
+					s,
+					&TrackingDownStream{},
+					&TrackingDownStream{})
+				c.Check(err, ErrorMatches, "EOF")
+				close(done)
+				return err
+			})
+
 	ch := ConnectTracking(context.Background(), s.address, &TrackingDeclaration{})
 	res, ok := <-ch
 	c.Assert(res, Not(IsNil))
@@ -73,7 +104,61 @@ func (s *ClientConnectionSuite) TestConnect(c *C) {
 	_, ok = <-ch
 	c.Check(ok, Equals, false)
 
-	c.Assert(res.Connection, Not(IsNil))
 	c.Check(res.Error, IsNil)
-	c.Check(res.Connection.Close(), IsNil)
+	c.Assert(res.Connection, Not(IsNil))
+	defer func() { c.Check(res.Connection.Close(), IsNil) }()
+	c.Check(res.Connection.Established(), Equals, true)
+
+	c.Check(res.Connection.Confirmation(), Not(IsNil))
+
+	for i := 0; i < 5; i++ {
+		ack, err := res.Connection.Send(&TrackingUpStream{})
+		c.Check(ack, Not(IsNil))
+		c.Check(err, IsNil)
+	}
+
+}
+
+func (s *ClientConnectionSuite) TestComfirmation(c *C) {
+	done := make(chan struct{})
+	defer func() { <-done }()
+	s.olympus.EXPECT().
+		Climate(gomock.Any()).
+		DoAndReturn(
+			func(s Olympus_ClimateServer) error {
+				err := acknowledgeAll[ClimateUpStream, ClimateDownStream](
+					s,
+					&ClimateDownStream{
+						RegistrationConfirmation: &ClimateRegistrationConfirmation{
+							SendBacklogs: true,
+						},
+					},
+					&ClimateDownStream{})
+				c.Check(err, ErrorMatches, "EOF")
+				close(done)
+				return err
+			})
+
+	ch := ConnectClimate(context.Background(), s.address, &ClimateDeclaration{})
+	res, ok := <-ch
+	c.Assert(res, Not(IsNil))
+	c.Assert(ok, Equals, true)
+	_, ok = <-ch
+	c.Check(ok, Equals, false)
+
+	c.Check(res.Error, IsNil)
+	c.Assert(res.Connection, Not(IsNil))
+	defer func() { c.Check(res.Connection.Close(), IsNil) }()
+	c.Check(res.Connection.Established(), Equals, true)
+
+	confirmation := res.Connection.Confirmation()
+	c.Assert(confirmation, Not(IsNil))
+	c.Assert(confirmation.RegistrationConfirmation, Not(IsNil))
+
+	for i := 0; i < 5; i++ {
+		ack, err := res.Connection.Send(&ClimateUpStream{})
+		c.Check(ack, Not(IsNil))
+		c.Check(err, IsNil)
+	}
+
 }

@@ -74,6 +74,7 @@ func (c *Connection[Up, Down]) Close() (err error) {
 		errs = append(errs, cerr)
 	}
 
+	c.conn = nil
 	return
 }
 
@@ -98,8 +99,8 @@ func connect[Up, Down any](
 	defer func() {
 		if err != nil {
 			c.Close()
+			c = nil
 		}
-		c = nil
 	}()
 
 	options = append(DefaultDialOptions, options...)
@@ -123,9 +124,12 @@ func Connect[Up, Down any](
 	res := make(chan ConnectionResult[Up, Down])
 	go func() {
 		defer close(res)
+
 		var connResult ConnectionResult[Up, Down]
+
 		connResult.Connection, connResult.Error = connect(
 			ctx, address, factory, options...)
+
 		res <- connResult
 	}()
 	return res
@@ -168,6 +172,7 @@ func trackingConnector(declaration *TrackingDeclaration) ConnectionFactory[Track
 		if err != nil {
 			return stream, nil, err
 		}
+
 		acknowledge, err := stream.Recv()
 
 		return stream, acknowledge, err
