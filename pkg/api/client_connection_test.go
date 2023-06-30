@@ -12,10 +12,11 @@ import (
 
 func Test(t *testing.T) { TestingT(t) }
 
+var testAddress string = "localhost:12345"
+
 type ClientConnectionSuite struct {
 	server  *grpc.Server
 	errors  chan error
-	address string
 	ctrl    *gomock.Controller
 	olympus *MockOlympusServer
 }
@@ -58,11 +59,12 @@ func (s *ClientConnectionSuite) SetUpTest(c *C) {
 
 	s.ctrl = gomock.NewController(NeverFatalReporter{c})
 	s.olympus = NewMockOlympusServer(s.ctrl)
-	s.address = "localhost:12345"
 	s.errors = make(chan error)
-	s.server = grpc.NewServer()
+	s.server = grpc.NewServer(DefaultServerOptions...)
+
 	RegisterOlympusServer(s.server, s.olympus)
-	l, err := net.Listen("tcp", s.address)
+
+	l, err := net.Listen("tcp", testAddress)
 	c.Assert(err, IsNil)
 	go func() {
 		s.errors <- s.server.Serve(l)
@@ -97,7 +99,7 @@ func (s *ClientConnectionSuite) TestConnect(c *C) {
 				return err
 			})
 
-	ch := ConnectTracking(context.Background(), s.address, &TrackingDeclaration{})
+	ch := ConnectTracking(context.Background(), testAddress, &TrackingDeclaration{})
 	res, ok := <-ch
 	c.Assert(res, Not(IsNil))
 	c.Assert(ok, Equals, true)
@@ -139,7 +141,7 @@ func (s *ClientConnectionSuite) TestComfirmation(c *C) {
 				return err
 			})
 
-	ch := ConnectClimate(context.Background(), s.address, &ClimateDeclaration{})
+	ch := ConnectClimate(context.Background(), testAddress, &ClimateDeclaration{})
 	res, ok := <-ch
 	c.Assert(res, Not(IsNil))
 	c.Assert(ok, Equals, true)

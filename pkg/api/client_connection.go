@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"google.golang.org/grpc"
 )
@@ -50,32 +50,16 @@ func (c *Connection[Up, Down]) Send(m *Up) (*Down, error) {
 
 // Close closes the connection, and report any connection error.
 func (c *Connection[Up, Down]) Close() (err error) {
-	var errs []error = nil
-	defer func() {
-		if len(errs) == 0 {
-			err = nil
-		} else {
-			err = fmt.Errorf("multiple errors: %s", errs)
-		}
-	}()
-
+	var serr, cerr error
 	if c.stream != nil {
-		cerr := c.stream.CloseSend()
-		if cerr != nil {
-			errs = append(errs, cerr)
-		}
+		serr = c.stream.CloseSend()
+	}
+	if c.conn != nil {
+		cerr = c.conn.Close()
 	}
 	c.stream = nil
-	if c.conn == nil {
-		return
-	}
-	cerr := c.conn.Close()
-	if cerr != nil {
-		errs = append(errs, cerr)
-	}
-
 	c.conn = nil
-	return
+	return errors.Join(serr, cerr)
 }
 
 // Connection results holds the result of an attemp to create a

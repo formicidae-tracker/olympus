@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"math/rand"
 	"time"
 
@@ -34,6 +34,11 @@ func (r Request[Up, Down]) Response() <-chan RequestResult[Down] {
 	return r.response
 }
 
+func (r Request[Up, Down]) respond(m *Down, err error) {
+	r.response <- RequestResult[Down]{m, err}
+	close(r.response)
+}
+
 // ConfirmationResult returns the result of a new connection to a
 // Olympus stream such as OlympusClimate or OlympusTracking.
 type ConfirmationResult[Down any] struct {
@@ -48,34 +53,37 @@ type ConfirmationResult[Down any] struct {
 // used to perform an asynchronous request with this task. Run()
 // should be called to perform the task loop.
 type ClientTask[Up, Down any] struct {
-	ctx           context.Context
-	cancel        context.CancelFunc
-	connect       func() <-chan ConnectionResult[Up, Down]
-	inbound       chan Request[Up, Down]
-	confirmations chan ConfirmationResult[Down]
+	ctx               context.Context
+	cancel            context.CancelFunc
+	connect           func() <-chan ConnectionResult[Up, Down]
+	inbound           chan Request[Up, Down]
+	confirmations     chan ConfirmationResult[Down]
+	reconnectionGrace time.Duration
+	connection        *Connection[Up, Down]
 }
 
 // Run runs the ClientTask communication loops until Close() is called.
 func (c *ClientTask[Up, Down]) Run() (err error) {
-	var connection *Connection[Up, Down] = nil
 	defer func() {
-		if connection == nil {
+		if c.connection == nil {
 			return
 		}
-		cerr := connection.Close()
-		if err == nil {
-			err = cerr
-		} else if cerr != nil {
-			err = fmt.Errorf("multiple errors: %s", []error{err, cerr})
-		}
+		err = errors.Join(err, c.connection.Close())
 	}()
 	defer close(c.confirmations)
 
 	newConnection := c.connect()
 
+	buffer := make([]Request[Up, Down], 0, 10)
+	defer func() {
+		for _, req := range buffer {
+			req.respond(nil, errors.New("task ended"))
+		}
+	}()
+
 	for {
-		if newConnection == nil {
-			c.sleepWithJitter(2*time.Second, 0.1)
+		if c.connection == nil && newConnection == nil {
+			c.sleepWithJitter(c.reconnectionGrace, 0.1)
 			newConnection = c.connect()
 		}
 
@@ -92,8 +100,12 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 			if res.Error != nil {
 				confirmation.Error = res.Error
 			} else {
-				connection = res.Connection
-				confirmation.Confirmation = connection.acknowledge
+				c.connection = res.Connection
+				confirmation.Confirmation = c.connection.acknowledge
+				for _, req := range buffer {
+					c.handle(req)
+				}
+				buffer = nil
 			}
 
 			select {
@@ -105,15 +117,25 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 			if ok == false {
 				return
 			}
-			if connection == nil {
-				continue
+			if c.connection == nil {
+				buffer = append(buffer, req)
+			} else {
+				c.handle(req)
 			}
-			var res RequestResult[Down]
-			res.Message, res.Error = connection.Send(req.Message)
-			req.response <- res
 		}
-
 	}
+}
+
+func (c *ClientTask[Up, Down]) handle(req Request[Up, Down]) {
+	if c.connection == nil {
+		return
+	}
+	res, err := c.connection.Send(req.Message)
+	if err != nil {
+		err = errors.Join(err, c.connection.Close())
+		c.connection = nil
+	}
+	req.respond(res, err)
 }
 
 func (c *ClientTask[Up, Down]) sleepWithJitter(d time.Duration, jitter float64) {
@@ -144,15 +166,16 @@ func newClientTask[Up, Down any](
 	address string,
 	factory ConnectionFactory[Up, Down],
 	options ...grpc.DialOption) *ClientTask[Up, Down] {
-	ctx, cancel := context.WithCancel(ctx)
+	cancelable, cancel := context.WithCancel(ctx)
 	return &ClientTask[Up, Down]{
-		ctx:    ctx,
+		ctx:    cancelable,
 		cancel: cancel,
 		connect: func() <-chan ConnectionResult[Up, Down] {
 			return Connect(ctx, address, factory, options...)
 		},
-		inbound:       make(chan Request[Up, Down], 10),
-		confirmations: make(chan ConfirmationResult[Down], 2),
+		inbound:           make(chan Request[Up, Down], 10),
+		confirmations:     make(chan ConfirmationResult[Down], 2),
+		reconnectionGrace: 2 * time.Second,
 	}
 }
 

@@ -5,6 +5,6 @@ all: olympus_service.pb.go olympus_service_grpc.pb.go
 
 .PHONY: check
 
-check: *.go
+check:
 	go test
 	go vet
