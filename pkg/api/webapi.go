@@ -10,10 +10,9 @@ import (
 	"github.com/atuleu/go-lttb"
 )
 
-//go:generate go run generate_client_utils.go
-//go:generate go fmt client_utils.pb.go
 //go:generate protoc --experimental_allow_proto3_optional  --go_out=. --go-grpc_out=. ./olympus_service.proto
 //go:generate go run ./examples/generate.go
+//go:generate sh -c "mockgen . OlympusServer > ./mock_api/olympus_server.go"
 
 type AlarmEvent struct {
 	Start time.Time  `json:"start,omitempty"`

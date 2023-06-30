@@ -1,11 +1,11 @@
 package api
 
 import (
+	"context"
 	"io"
 	"net"
 	"testing"
 
-	"github.com/sirupsen/logrus/hooks/test"
 	"google.golang.org/grpc"
 	. "gopkg.in/check.v1"
 )
@@ -32,16 +32,16 @@ func (o *olympusStub) Tracking(stream Olympus_TrackingServer) error {
 	}
 }
 
-type StarConnectionSuite struct {
+type ClientConnectionSuite struct {
 	server  *grpc.Server
 	stub    *olympusStub
 	errors  chan error
 	address string
 }
 
-var _ = Suite(&StarConnectionSuite{})
+var _ = Suite(&ClientConnectionSuite{})
 
-func (s *StarConnectionSuite) SetUpTest(c *C) {
+func (s *ClientConnectionSuite) SetUpTest(c *C) {
 	s.address = "localhost:12345"
 	s.stub = &olympusStub{}
 	s.errors = make(chan error)
@@ -55,7 +55,7 @@ func (s *StarConnectionSuite) SetUpTest(c *C) {
 	}()
 }
 
-func (s *StarConnectionSuite) TearDownTest(c *C) {
+func (s *ClientConnectionSuite) TearDownTest(c *C) {
 	s.server.GracefulStop()
 	err, ok := <-s.errors
 	c.Check(err, IsNil)
@@ -65,28 +65,15 @@ func (s *StarConnectionSuite) TearDownTest(c *C) {
 	c.Check(ok, Equals, false)
 }
 
-func (s *StarConnectionSuite) TestConnect(c *C) {
-	conn, err := ConnectTracking(nil, s.address, &TrackingDeclaration{}, nil)
-	c.Assert(conn, Not(IsNil))
-	c.Check(err, IsNil)
-	conn.CloseAll(nil)
-}
-
-func (s *StarConnectionSuite) TestConnectAsync(c *C) {
-	logger, hook := test.NewNullLogger()
-	defer hook.Reset()
-	connections, errors := ConnectTrackingAsync(nil, s.address, &TrackingDeclaration{}, logger.WithField("group", "gRPC"))
-
-	conn, ok := <-connections
-	c.Assert(conn, Not(IsNil))
+func (s *ClientConnectionSuite) TestConnect(c *C) {
+	ch := ConnectTracking(context.Background(), s.address, &TrackingDeclaration{})
+	res, ok := <-ch
+	c.Assert(res, Not(IsNil))
 	c.Assert(ok, Equals, true)
-
-	_, ok = <-connections
+	_, ok = <-ch
 	c.Check(ok, Equals, false)
 
-	err, ok := <-errors
-	c.Check(err, IsNil)
-	c.Check(ok, Equals, false)
-
-	conn.CloseAll(nil)
+	c.Assert(res.Connection, Not(IsNil))
+	c.Check(res.Error, IsNil)
+	c.Check(res.Connection.Close(), IsNil)
 }

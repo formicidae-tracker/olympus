@@ -1,6 +1,9 @@
-all: olympus_service.pb.go olympus_service_grpc.pb.go
+all: olympus_service.pb.go olympus_service_grpc.pb.go mock_api/olympus_server.go
 
-%.pb.go: olympus_service.proto generate_client_utils.go
+mock_api/olympus_server.go: olympus_service.proto
+	go generate
+
+%.pb.go: olympus_service.proto
 	go generate
 
 .PHONY: check
