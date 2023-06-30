@@ -4,6 +4,7 @@ import (
 	"time"
 
 	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 )
@@ -28,6 +29,15 @@ func init() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time: 10 * time.Second,
+		}),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			MinConnectTimeout: 20 * time.Second,
+			Backoff: backoff.Config{
+				BaseDelay:  500 * time.Millisecond,
+				Multiplier: backoff.DefaultConfig.Multiplier,
+				Jitter:     backoff.DefaultConfig.Jitter,
+				MaxDelay:   2 * time.Second,
+			},
 		}),
 	}
 }
