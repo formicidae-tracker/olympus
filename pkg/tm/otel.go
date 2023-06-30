@@ -86,10 +86,8 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 
 	otel.SetTextMapPropagator(propagator)
 
-	err = setUpLogstash(args, hostname)
-	if err != nil {
-		logrus.Fatalf("%s", err)
-	}
+	setUpLogstash(args, hostname)
+	logrus.SetLevel(MapVerboseLevel(args.Level))
 
 	shutdown := exporter.Shutdown
 	if args.ForceFlushOnShutdown == true {
@@ -104,13 +102,13 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 	}
 }
 
-func setUpLogstash(args OtelProviderArgs, hostname string) error {
+func setUpLogstash(args OtelProviderArgs, hostname string) {
 	if len(args.LogstashEndpoint) == 0 {
-		return nil
+		return
 	}
 	conn, err := gas.Dial("tcp", args.LogstashEndpoint)
 	if err != nil {
-		return err
+		return
 	}
 
 	hook := logrustash.New(conn, logrustash.DefaultFormatter(logrus.Fields{
@@ -120,10 +118,7 @@ func setUpLogstash(args OtelProviderArgs, hostname string) error {
 		"host_id":             hostname,
 	}))
 
-	logrus.SetLevel(MapVerboseLevel(args.Level))
 	logrus.AddHook(hook)
-
-	return nil
 }
 
 func (p *otelProvider) Shutdown(ctx context.Context) error {
