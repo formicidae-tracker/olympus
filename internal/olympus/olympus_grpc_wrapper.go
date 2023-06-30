@@ -6,79 +6,11 @@ import (
 
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type OlympusGRPCWrapper Olympus
-
-type serverStream[UpStream any, DownStream any] interface {
-	Recv() (*UpStream, error)
-	Send(*DownStream) error
-}
-
-func readAll[UpStream any, DownStream any](
-	stream serverStream[UpStream, DownStream],
-	messages chan<- *UpStream,
-	errors chan<- error) {
-
-	// The channel arenever closed as receiving io.EOF error should
-	// simply close all goroutines.
-
-	for {
-		m, err := stream.Recv()
-		if err != nil {
-			errors <- err
-			if err == io.EOF {
-				// no more message to read after an EOF, listening
-				// goroutine should stop too.
-				return
-			}
-		} else {
-			messages <- m
-		}
-	}
-}
-
-func serveLoop[UpStream any, DownStream any](
-	stream serverStream[UpStream, DownStream],
-	handleMessage func(*UpStream) (*DownStream, error),
-	entry *logrus.Entry,
-	ctx context.Context) error {
-
-	messages := make(chan *UpStream)
-	errors := make(chan error)
-
-	go readAll(stream, messages, errors)
-
-	for {
-		select {
-		case <-ctx.Done():
-			// we were asked to stop the connection
-			return nil
-		case err := <-errors:
-			if err == io.EOF {
-				// we received an EOF : Simply end loop
-				return nil
-			}
-			return err
-		case m := <-messages:
-			out, err := handleMessage(m)
-			if err != nil {
-				return err
-			}
-			if out == nil {
-				// wait for a new message
-				break
-			}
-			err = stream.Send(out)
-			if err != nil {
-				return err
-			}
-		}
-	}
-}
 
 func mapError(err error) error {
 	switch err.(type) {
@@ -99,7 +31,7 @@ func mapError(err error) error {
 	}
 }
 
-func (o *OlympusGRPCWrapper) Context() context.Context {
+func (o *OlympusGRPCWrapper) SubscriptionContext() context.Context {
 	return (*Olympus)(o).subscriptionContext
 }
 
@@ -113,18 +45,14 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 		(*Olympus)(o).UnregisterClimate(subscription.object.Host(), subscription.object.ZoneName(), graceful)
 	}()
 
-	entry := (*Olympus)(o).log
-
 	ack := &api.ClimateDownStream{}
-	handleMessage := func(m *api.ClimateUpStream) (*api.ClimateDownStream, error) {
+	handler := func(m *api.ClimateUpStream) (*api.ClimateDownStream, error) {
 		var confirmation *api.ClimateDownStream
 		if subscription == nil {
 			if m.Declaration == nil {
-				entry.Errorf("received climate stream without declaration")
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain ZoneDeclaration")
 			}
 			var err error
-			entry = entry.WithField("zone", ZoneIdentifier(m.Declaration.Host, m.Declaration.Name))
 
 			subscription, err = (*Olympus)(o).RegisterClimate(m.Declaration)
 			if err != nil {
@@ -137,8 +65,6 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 				},
 			}
 		}
-
-		entry.WithField("message", m).Tracef("received message")
 
 		if m.Target != nil {
 			subscription.object.PushTarget(m.Target)
@@ -160,7 +86,8 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 		return ack, nil
 	}
 
-	return serveLoop[api.ClimateUpStream, api.ClimateDownStream](stream, handleMessage, entry, o.Context())
+	return api.ServerLoop[api.ClimateUpStream, api.ClimateDownStream](
+		o.SubscriptionContext(), stream, handler)
 }
 
 func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err error) {
@@ -177,7 +104,7 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 
 	entry := (*Olympus)(o).log
 
-	handleMessage := func(m *api.TrackingUpStream) (*api.TrackingDownStream, error) {
+	handler := func(m *api.TrackingUpStream) (*api.TrackingDownStream, error) {
 		if subscription == nil {
 			if m.Declaration == nil {
 				entry.Errorf("received tracking stream without a declaration")
@@ -206,7 +133,8 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 		return ack, nil
 	}
 
-	return serveLoop[api.TrackingUpStream, api.TrackingDownStream](stream, handleMessage, entry, o.Context())
+	return api.ServerLoop[api.TrackingUpStream, api.TrackingDownStream](
+		o.SubscriptionContext(), stream, handler)
 }
 
 func (o *OlympusGRPCWrapper) SendAlarm(ctx context.Context, update *api.AlarmUpdate) (*empty.Empty, error) {
