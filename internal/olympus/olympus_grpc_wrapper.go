@@ -86,8 +86,10 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 		return ack, nil
 	}
 
+	ctx := api.WithTelemetry(o.SubscriptionContext(), "fort.olympus.Olympus/Climate")
+
 	return api.ServerLoop[*api.ClimateUpStream, *api.ClimateDownStream](
-		o.SubscriptionContext(), stream, handler)
+		ctx, stream, handler)
 }
 
 func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err error) {
@@ -102,15 +104,11 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 	}()
 	ack := &api.TrackingDownStream{}
 
-	entry := (*Olympus)(o).log
-
 	handler := func(m *api.TrackingUpStream) (*api.TrackingDownStream, error) {
 		if subscription == nil {
 			if m.Declaration == nil {
-				entry.Errorf("received tracking stream without a declaration")
 				return nil, status.Error(codes.InvalidArgument, "first message of stream must contain TrackingDeclaration")
 			}
-			entry = entry.WithField("zone", m.Declaration.Hostname+".box")
 			var err error
 			subscription, err = (*Olympus)(o).RegisterTracking(m.Declaration)
 			if err != nil {
@@ -118,8 +116,6 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 			}
 			hostname = m.Declaration.Hostname
 		}
-
-		entry.WithField("message", m).Tracef("received message")
 
 		if len(m.Alarms) > 0 {
 			subscription.alarmLogger.PushAlarms(m.Alarms)
@@ -133,8 +129,10 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 		return ack, nil
 	}
 
+	ctx := api.WithTelemetry(o.SubscriptionContext(), "fort.olympus.Olympus/Tracking")
+
 	return api.ServerLoop[*api.TrackingUpStream, *api.TrackingDownStream](
-		o.SubscriptionContext(), stream, handler)
+		ctx, stream, handler)
 }
 
 func (o *OlympusGRPCWrapper) SendAlarm(ctx context.Context, update *api.AlarmUpdate) (*empty.Empty, error) {

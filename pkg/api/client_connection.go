@@ -137,6 +137,13 @@ func safeEncode(v any) string {
 	return string(res)
 }
 
+func endSpanWithError(span trace.Span, err error) {
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+	span.End()
+}
+
 // Send sends a message to the Olympus implementation and returns
 // either its response or an error.
 func (c *Connection[Up, Down]) Send(m Up) (res Down, err error) {
@@ -146,12 +153,7 @@ func (c *Connection[Up, Down]) Send(m Up) (res Down, err error) {
 
 	if c.config.tracer != nil {
 		ctx, span := c.startTrace("UpDownExchange")
-		defer func() {
-			if err != nil {
-				span.SetStatus(codes.Error, err.Error())
-			}
-			span.End()
-		}()
+		defer func() { endSpanWithError(span, err) }()
 
 		c.config.propagator.Inject(ctx, textCarrier{m})
 	}
@@ -170,12 +172,7 @@ func (c *Connection[Up, Down]) Close() (err error) {
 	if c.stream != nil {
 		if c.config.tracer != nil {
 			_, span := c.startTrace("CloseSend")
-			defer func() {
-				if err != nil {
-					span.SetStatus(codes.Error, err.Error())
-				}
-				span.End()
-			}()
+			defer func() { endSpanWithError(span, err) }()
 		}
 		serr = c.stream.CloseSend()
 	}
@@ -238,12 +235,7 @@ func connect[Up, Down metadated](
 	if c.config.tracer != nil {
 		ctx, span := c.startTrace("Declaration")
 		c.config.propagator.Inject(ctx, textCarrier{decl})
-		defer func() {
-			if err != nil {
-				span.SetStatus(codes.Error, err.Error())
-			}
-			span.End()
-		}()
+		defer func() { endSpanWithError(span, err) }()
 
 		c.links = append(c.links,
 			trace.Link{SpanContext: span.SpanContext()},
