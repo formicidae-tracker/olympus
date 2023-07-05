@@ -125,7 +125,7 @@ func (c *RunCommand) setUpRpcServer(o *Olympus) *grpc.Server {
 	if tm.Enabled() {
 		options = append(options,
 			grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
-			grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()))
+		)
 	}
 
 	server := grpc.NewServer(options...)
