@@ -165,7 +165,9 @@ func newClientTask[Up, Down metadated](
 	address string,
 	factory connectionFactory[Up, Down],
 	options ...ConnectionOption) *ClientTask[Up, Down] {
+
 	cancelable, cancel := context.WithCancel(ctx)
+
 	return &ClientTask[Up, Down]{
 		ctx:    cancelable,
 		cancel: cancel,
@@ -185,6 +187,7 @@ func NewClimateTask(
 	address string,
 	declaration *ClimateDeclaration,
 	options ...ConnectionOption) *ClientTask[*ClimateUpStream, *ClimateDownStream] {
+
 	return newClientTask(
 		ctx, address,
 		climateConnector(declaration),
@@ -198,6 +201,7 @@ func NewTrackingTask(
 	address string,
 	declaration *TrackingDeclaration,
 	options ...ConnectionOption) *ClientTask[*TrackingUpStream, *TrackingDownStream] {
+
 	return newClientTask(
 		ctx, address,
 		trackingConnector(declaration),

@@ -219,6 +219,13 @@ func connect[Up, Down metadated](
 		}
 	}()
 
+	// links with connect context
+	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() == true {
+		c.links = append(c.links, trace.Link{
+			SpanContext: sc,
+		})
+	}
+
 	c.conn, err = grpc.DialContext(ctx, address, c.config.dialOptions...)
 	if err != nil {
 		return
