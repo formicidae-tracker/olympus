@@ -3,32 +3,27 @@ package tm
 import (
 	"context"
 	"os"
-	"sync"
+	"time"
 
-	logrustash "github.com/bshuster-repo/logrus-logstash-hook"
-	gas "github.com/firstrow/goautosocket"
+	"github.com/atuleu/otelog"
 	"github.com/sirupsen/logrus"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type otelProvider struct {
-	mx       sync.Mutex
-	spans    []trace.Span
 	shutdown func(context.Context) error
 }
 
 // Arguments needed for Open Telemetry
 type OtelProviderArgs struct {
-	// Endpoint for logstash collection.
-	LogstashEndpoint string
 	// The Collector URL
 	CollectorURL string
 	// The Service Name
@@ -86,7 +81,20 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 
 	otel.SetTextMapPropagator(propagator)
 
-	setUpLogstash(args, hostname)
+	logExporter, err := otelog.NewLogExporter(
+		otelog.WithResource(resources),
+		otelog.WithScope(instrumentation.Scope{
+			Name: "github.com/formicidae-tracker/olympus/pkg/tm",
+		}),
+		otelog.WithBatchLogProcessor(otelog.WithBatchTimeout(5*time.Second)),
+		otelog.WithEndpoint(args.CollectorURL),
+		otelog.WithInsecure(),
+	)
+	if err != nil {
+		logrus.Fatalf("%s", err)
+	}
+	otelog.SetLogExporter(logExporter)
+
 	logrus.SetLevel(MapVerboseLevel(args.Level))
 
 	shutdown := exporter.Shutdown
@@ -100,25 +108,6 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 	return &otelProvider{
 		shutdown: shutdown,
 	}
-}
-
-func setUpLogstash(args OtelProviderArgs, hostname string) {
-	if len(args.LogstashEndpoint) == 0 {
-		return
-	}
-	conn, err := gas.Dial("tcp", args.LogstashEndpoint)
-	if err != nil {
-		return
-	}
-
-	hook := logrustash.New(conn, logrustash.DefaultFormatter(logrus.Fields{
-		"service":             args.ServiceName,
-		"service_version":     args.ServiceVersion,
-		"service_instance_id": hostname,
-		"host_id":             hostname,
-	}))
-
-	logrus.AddHook(hook)
 }
 
 func (p *otelProvider) Shutdown(ctx context.Context) error {
