@@ -397,19 +397,19 @@ func (o *Olympus) GetAlarmReports(host, zone string) ([]api.AlarmReport, error) 
 	return a.GetReports(), nil
 }
 
-func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration) (csub *GrpcSubscription[ClimateLogger], err error) {
+func (o *Olympus) RegisterClimate(ctx context.Context, declaration *api.ClimateDeclaration) (csub *GrpcSubscription[ClimateLogger], err error) {
 	zoneIdentifier := ZoneIdentifier(declaration.Host, declaration.Name)
 
 	defer func() {
-		entry := o.log.WithFields(logrus.Fields{
+		entry := o.log.WithContext(ctx).WithFields(logrus.Fields{
 			"zone":        zoneIdentifier,
 			"declaration": declaration,
 		})
 
 		if err != nil {
-			entry.WithField("error", err).Errorf("could not register climate")
+			entry.WithField("error", err).Error("could not register climate")
 		} else {
-			entry.Infof("registered climate")
+			entry.Info("registered climate")
 		}
 	}()
 
@@ -442,24 +442,24 @@ func (o *Olympus) RegisterClimate(declaration *api.ClimateDeclaration) (csub *Gr
 		updates:     o.unfilteredAlarms,
 	}
 
-	go o.serviceLogger.Log(zoneIdentifier+".climate", true, true)
+	go o.serviceLogger.Log(ctx, zoneIdentifier+".climate", true, true)
 
 	return sub.climate, nil
 }
 
-func (o *Olympus) UnregisterClimate(host, name string, graceful bool) (err error) {
+func (o *Olympus) UnregisterClimate(ctx context.Context, host, name string, graceful bool) (err error) {
 	zoneIdentifier := ZoneIdentifier(host, name)
 
 	defer func() {
-		entry := o.log.WithFields(logrus.Fields{
+		entry := o.log.WithContext(ctx).WithFields(logrus.Fields{
 			"zone":     zoneIdentifier,
 			"graceful": graceful,
 		})
 
 		if err != nil {
-			entry.WithField("error", err).Errorf("could not unregister climate")
+			entry.WithField("error", err).Error("could not unregister climate")
 		} else {
-			entry.Infof("unregistered climate")
+			entry.Info("unregistered climate")
 		}
 	}()
 
@@ -484,22 +484,22 @@ func (o *Olympus) UnregisterClimate(host, name string, graceful bool) (err error
 		delete(o.subscriptions, zoneIdentifier)
 	}
 
-	o.serviceLogger.Log(zoneIdentifier+".climate", false, graceful)
+	o.serviceLogger.Log(ctx, zoneIdentifier+".climate", false, graceful)
 
 	return nil
 }
 
-func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (tsub *GrpcSubscription[TrackingLogger], err error) {
+func (o *Olympus) RegisterTracking(ctx context.Context, declaration *api.TrackingDeclaration) (tsub *GrpcSubscription[TrackingLogger], err error) {
 	var zoneIdentifier string
 	defer func() {
-		entry := o.log.WithFields(logrus.Fields{
+		entry := o.log.WithContext(ctx).WithFields(logrus.Fields{
 			"declaration": declaration,
 			"zone":        zoneIdentifier,
 		})
 		if err != nil {
-			entry.WithField("error", err).Errorf("could not register tracking")
+			entry.WithField("error", err).Error("could not register tracking")
 		} else {
-			entry.Infof("registered tracking")
+			entry.Info("registered tracking")
 		}
 	}()
 
@@ -540,22 +540,22 @@ func (o *Olympus) RegisterTracking(declaration *api.TrackingDeclaration) (tsub *
 		updates:     o.unfilteredAlarms,
 	}
 
-	o.serviceLogger.Log(zoneIdentifier+".tracking", true, true)
+	o.serviceLogger.Log(ctx, zoneIdentifier+".tracking", true, true)
 
 	return sub.tracking, nil
 }
 
-func (o *Olympus) UnregisterTracker(host string, graceful bool) (err error) {
+func (o *Olympus) UnregisterTracker(ctx context.Context, host string, graceful bool) (err error) {
 	defer func() {
-		entry := o.log.WithFields(logrus.Fields{
+		entry := o.log.WithContext(ctx).WithFields(logrus.Fields{
 			"host":     host,
 			"graceful": graceful,
 		})
 
 		if err != nil {
-			entry.WithField("error", err).Errorf("could not unregister tracking")
+			entry.WithField("error", err).Error("could not unregister tracking")
 		} else {
-			entry.Infof("unregistered tracking")
+			entry.Info("unregistered tracking")
 		}
 	}()
 	o.mx.Lock()
@@ -578,17 +578,17 @@ func (o *Olympus) UnregisterTracker(host string, graceful bool) (err error) {
 		delete(o.subscriptions, zoneIdentifier)
 	}
 
-	o.serviceLogger.Log(zoneIdentifier+".tracking", false, graceful)
+	o.serviceLogger.Log(ctx, zoneIdentifier+".tracking", false, graceful)
 	return nil
 }
 
-func (o *Olympus) NotifyAlarm(zone string, update *api.AlarmUpdate) {
+func (o *Olympus) NotifyAlarm(ctx context.Context, zone string, update *api.AlarmUpdate) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
-	o.log.WithFields(logrus.Fields{
+	o.log.WithContext(ctx).WithFields(logrus.Fields{
 		"zone":   zone,
 		"update": update,
-	}).Infof("manual zone alarm update")
+	}).Info("manual zone alarm update")
 	o.notifier.Incoming() <- ZonedAlarmUpdate{Zone: zone, Update: update}
 }
 

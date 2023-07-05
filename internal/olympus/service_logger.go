@@ -1,6 +1,7 @@
 package olympus
 
 import (
+	"context"
 	"sort"
 	"sync"
 	"time"
@@ -12,7 +13,7 @@ import (
 )
 
 type ServiceLogger interface {
-	Log(identifier string, on, graceful bool)
+	Log(ctx context.Context, identifier string, on, graceful bool)
 	Logs() []api.ServiceLog
 	OnServices() []string
 	OffServices() []string
@@ -25,7 +26,7 @@ type serviceLogger struct {
 	logger *logrus.Entry
 }
 
-func (l *serviceLogger) Log(zone string, on, graceful bool) {
+func (l *serviceLogger) Log(ctx context.Context, zone string, on, graceful bool) {
 	now := time.Now()
 
 	l.mx.Lock()
@@ -43,7 +44,7 @@ func (l *serviceLogger) Log(zone string, on, graceful bool) {
 	} else {
 		log.SetOff(now, graceful)
 	}
-	l.save(zone)
+	l.save(ctx, zone)
 }
 
 func (l *serviceLogger) Logs() []api.ServiceLog {
@@ -91,12 +92,13 @@ func (l *serviceLogger) OffServices() []string {
 	return l.find(false)
 }
 
-func (l *serviceLogger) save(zone string) {
+func (l *serviceLogger) save(ctx context.Context, zone string) {
 	if err := l.logs.SaveKey(zone); err != nil {
-		l.logger.WithFields(logrus.Fields{
-			"zone":  zone,
-			"error": err,
-		}).Errorf("could not save to persistent storage")
+		l.logger.WithContext(ctx).
+			WithFields(logrus.Fields{
+				"zone":  zone,
+				"error": err,
+			}).Error("could not save to persistent storage")
 	}
 }
 

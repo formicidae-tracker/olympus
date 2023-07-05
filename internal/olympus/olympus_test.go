@@ -1,6 +1,7 @@
 package olympus
 
 import (
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -35,39 +36,44 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	var err error
 	s.o, err = NewOlympus()
 	c.Assert(err, IsNil)
-	s.somehostBox, err = s.o.RegisterClimate(&api.ClimateDeclaration{
-		Host: "somehost",
-		Name: "box",
-	})
+	s.somehostBox, err = s.o.RegisterClimate(context.Background(),
+		&api.ClimateDeclaration{
+			Host: "somehost",
+			Name: "box",
+		})
 	c.Assert(err, IsNil)
 
-	s.anotherBox, err = s.o.RegisterClimate(&api.ClimateDeclaration{
-		Host: "another",
-		Name: "box",
-	})
+	s.anotherBox, err = s.o.RegisterClimate(context.Background(),
+		&api.ClimateDeclaration{
+			Host: "another",
+			Name: "box",
+		})
 	c.Assert(err, IsNil)
 
-	s.anotherTunnel, err = s.o.RegisterClimate(&api.ClimateDeclaration{
-		Host: "another",
-		Name: "tunnel",
-	})
+	s.anotherTunnel, err = s.o.RegisterClimate(context.Background(),
+		&api.ClimateDeclaration{
+			Host: "another",
+			Name: "tunnel",
+		})
 	c.Assert(err, IsNil)
 
 	hostname, err := os.Hostname()
 	c.Assert(err, IsNil)
 
-	s.somehostTracking, err = s.o.RegisterTracking(&api.TrackingDeclaration{
-		Hostname:       "somehost",
-		StreamServer:   hostname + ".local",
-		ExperimentName: "TEST-MODE",
-	})
+	s.somehostTracking, err = s.o.RegisterTracking(context.Background(),
+		&api.TrackingDeclaration{
+			Hostname:       "somehost",
+			StreamServer:   hostname + ".local",
+			ExperimentName: "TEST-MODE",
+		})
 	c.Assert(err, IsNil)
 
-	s.fifouTracking, err = s.o.RegisterTracking(&api.TrackingDeclaration{
-		Hostname:       "fifou",
-		StreamServer:   hostname + ".local",
-		ExperimentName: "TEST-MODE",
-	})
+	s.fifouTracking, err = s.o.RegisterTracking(context.Background(),
+		&api.TrackingDeclaration{
+			Hostname:       "fifou",
+			StreamServer:   hostname + ".local",
+			ExperimentName: "TEST-MODE",
+		})
 	c.Assert(err, IsNil)
 }
 
@@ -78,12 +84,13 @@ func newInitialized[T any](v T) *T {
 }
 
 func (s *OlympusSuite) TearDownTest(c *C) {
-	c.Check(s.o.UnregisterClimate("somehost", "box", true), IsNil)
-	c.Check(s.o.UnregisterClimate("another", "box", true), IsNil)
-	c.Check(s.o.UnregisterClimate("another", "tunnel", true), IsNil)
+	ctx := context.Background()
+	c.Check(s.o.UnregisterClimate(ctx, "somehost", "box", true), IsNil)
+	c.Check(s.o.UnregisterClimate(ctx, "another", "box", true), IsNil)
+	c.Check(s.o.UnregisterClimate(ctx, "another", "tunnel", true), IsNil)
 
-	c.Check(s.o.UnregisterTracker("somehost", true), IsNil)
-	c.Check(s.o.UnregisterTracker("fifou", true), IsNil)
+	c.Check(s.o.UnregisterTracker(ctx, "somehost", true), IsNil)
+	c.Check(s.o.UnregisterTracker(ctx, "fifou", true), IsNil)
 
 	c.Check(s.o.Close(), IsNil)
 }

@@ -30,7 +30,7 @@ type handler struct {
 	declarationReceived bool
 }
 
-func (h *handler) handle(m *TrackingUpStream) (*TrackingDownStream, error) {
+func (h *handler) handle(ctx context.Context, m *TrackingUpStream) (*TrackingDownStream, error) {
 	if h.declarationReceived == false && m.Declaration == nil {
 		return nil, grpc.Errorf(codes.InvalidArgument, "missing declaration")
 	} else if len(m.Alarms) > 0 {

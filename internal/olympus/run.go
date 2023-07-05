@@ -3,7 +3,6 @@ package olympus
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -28,16 +27,13 @@ func Execute() error {
 type RunCommand struct {
 	Verbose []bool `long:"verbose" short:"v" description:"enables verbose logging, set multiple time to increase the level"`
 
-	Address          string   `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
-	RPC              int      `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
-	AllowCORS        []string `long:"allow-cors" description:"allow cors from domain"`
-	OtelEndpoint     string   `long:"otel-exporter" description:"Open Telemetry exporter endpoint" env:"OLYMPUS_OTEL_ENDPOINT"`
-	LogstashEndpoint string   `long:"logstash-address" description:"Open Telemetry exporter endpoint" env:"OLYMPUS_LOGSTASH_ENDPOINT"`
+	Address      string   `long:"http-listen" short:"l" description:"Address for the HTTP server" default:":3000"`
+	RPC          int      `long:"rpc-listen" short:"r" description:"Port for the RPC Service" default:"3001"`
+	AllowCORS    []string `long:"allow-cors" description:"allow cors from domain"`
+	OtelEndpoint string   `long:"otel-exporter" description:"Open Telemetry exporter endpoint" env:"OLYMPUS_OTEL_ENDPOINT"`
 }
 
 func (c *RunCommand) Execute([]string) error {
-	log.Printf("%+v", c)
-
 	c.setLogger()
 	defer tm.Shutdown(context.Background())
 
@@ -139,13 +135,12 @@ func (c *RunCommand) setUpRpcServer(o *Olympus) *grpc.Server {
 }
 
 func (c *RunCommand) setLogger() {
-	if len(c.OtelEndpoint) > 0 || len(c.LogstashEndpoint) > 0 {
+	if len(c.OtelEndpoint) > 0 {
 		tm.SetUpTelemetry(tm.OtelProviderArgs{
-			LogstashEndpoint: c.LogstashEndpoint,
-			CollectorURL:     c.OtelEndpoint,
-			ServiceName:      "olympus",
-			ServiceVersion:   OLYMPUS_VERSION,
-			Level:            tm.VerboseLevel(len(c.Verbose)),
+			CollectorURL:   c.OtelEndpoint,
+			ServiceName:    "olympus",
+			ServiceVersion: OLYMPUS_VERSION,
+			Level:          tm.VerboseLevel(len(c.Verbose)),
 		})
 	} else {
 		tm.SetUpLocal(tm.VerboseLevel(len(c.Verbose)))

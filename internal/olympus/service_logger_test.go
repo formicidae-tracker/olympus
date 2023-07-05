@@ -1,6 +1,8 @@
 package olympus
 
 import (
+	"context"
+
 	. "gopkg.in/check.v1"
 )
 
@@ -14,10 +16,11 @@ func (s *ServiceLoggerSuite) SetUpTest(c *C) {
 
 func (s *ServiceLoggerSuite) TestKeepsLogsSorted(c *C) {
 	l := NewServiceLogger()
-	l.Log("zeLast", true, true)
-	l.Log("aFirst", true, true)
-	l.Log("aFirst", false, false)
-	l.Log("zeLast", false, true)
+	ctx := context.Background()
+	l.Log(ctx, "zeLast", true, true)
+	l.Log(ctx, "aFirst", true, true)
+	l.Log(ctx, "aFirst", false, false)
+	l.Log(ctx, "zeLast", false, true)
 	logs := l.Logs()
 	c.Assert(logs, HasLen, 2)
 	c.Assert(logs[0].Zone, Equals, "aFirst")
@@ -35,10 +38,11 @@ func (s *ServiceLoggerSuite) TestKeepsLogsSorted(c *C) {
 
 func (s *ServiceLoggerSuite) TestEnforceGracefulCorrectness(c *C) {
 	l := NewServiceLogger()
-	l.Log("a", true, false)
-	l.Log("a", true, true)
-	l.Log("a", false, false)
-	l.Log("a", false, true)
+	ctx := context.Background()
+	l.Log(ctx, "a", true, false)
+	l.Log(ctx, "a", true, true)
+	l.Log(ctx, "a", false, false)
+	l.Log(ctx, "a", false, true)
 	logs := l.Logs()
 	c.Assert(logs, HasLen, 1)
 	c.Assert(logs[0].Events, HasLen, 1)
@@ -47,12 +51,13 @@ func (s *ServiceLoggerSuite) TestEnforceGracefulCorrectness(c *C) {
 
 func (s *ServiceLoggerSuite) TestFetchLastStatus(c *C) {
 	l := NewServiceLogger()
-	l.Log("a", true, true)
-	l.Log("b", true, true)
-	l.Log("c", true, true)
-	l.Log("a", false, true)
-	l.Log("a", true, true)
-	l.Log("b", false, true)
+	ctx := context.Background()
+	l.Log(ctx, "a", true, true)
+	l.Log(ctx, "b", true, true)
+	l.Log(ctx, "c", true, true)
+	l.Log(ctx, "a", false, true)
+	l.Log(ctx, "a", true, true)
+	l.Log(ctx, "b", false, true)
 	c.Check(l.OnServices(), DeepEquals, []string{"a", "c"})
 	c.Check(l.OffServices(), DeepEquals, []string{"b"})
 }

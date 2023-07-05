@@ -3,4 +3,4 @@
 package olympus
 
 // Current package version
-var OLYMPUS_VERSION = "v0.5.0-dev-53-gd9634e4"
+var OLYMPUS_VERSION = "v0.5.0-dev-55-gcf95c32"

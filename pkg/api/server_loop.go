@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type HandleFunc[Up, Down any] func(Up) (Down, error)
+type HandleFunc[Up, Down any] func(context.Context, Up) (Down, error)
 
 type ServerStream[Up, Down metadated] interface {
 	Recv() (Up, error)
@@ -81,14 +81,14 @@ func (tm *serverTelemetry) linkWithGRPC(ctx context.Context) {
 	tm.links = append(tm.links, trace.Link{SpanContext: grpcSpanContext})
 }
 
-func startSpan[Up metadated](tm *serverTelemetry, m Up) trace.Span {
+func startSpan[Up metadated](tm *serverTelemetry, m Up) (context.Context, trace.Span) {
 	if tm == nil {
-		return nil
+		return context.Background(), nil
 	}
 
 	ctx := tm.propagator.Extract(context.Background(), textCarrier{m})
 
-	_, span := tm.tracer.Start(ctx,
+	ctx, span := tm.tracer.Start(ctx,
 		tm.serviceName,
 		trace.WithLinks(tm.links...),
 	)
@@ -100,7 +100,7 @@ func startSpan[Up metadated](tm *serverTelemetry, m Up) trace.Span {
 		tm.linkedFirst = true
 	}
 
-	return span
+	return ctx, span
 }
 
 func ServerLoop[Up, Down metadated](
@@ -135,9 +135,9 @@ func ServerLoop[Up, Down metadated](
 				return m.Error
 			}
 
-			span := startSpan(tm, m.Message)
+			ctx, span := startSpan(tm, m.Message)
 
-			resp, err := handler(m.Message)
+			resp, err := handler(ctx, m.Message)
 
 			if span != nil {
 				endSpanWithError(span, err)

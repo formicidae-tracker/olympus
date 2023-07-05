@@ -14,15 +14,12 @@ func MapVerboseLevel(l VerboseLevel) logrus.Level {
 // MapVerboseLevelLiss maps a verbose level to a given list of
 // logrus.Level that should be enabled.
 func MapVerboseLevelList(l VerboseLevel) []logrus.Level {
-	res := []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel, logrus.WarnLevel}
+	res := []logrus.Level{logrus.PanicLevel, logrus.FatalLevel, logrus.ErrorLevel, logrus.WarnLevel, logrus.InfoLevel}
 
 	if l >= 1 {
-		res = append(res, logrus.InfoLevel)
-	}
-	if l >= 2 {
 		res = append(res, logrus.DebugLevel)
 	}
-	if l >= 3 {
+	if l >= 2 {
 		res = append(res, logrus.TraceLevel)
 	}
 	return res
