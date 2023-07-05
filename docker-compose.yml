@@ -15,7 +15,6 @@ services:
     environment:
       - OLYMPUS_DATA_HOME=/data/olympus
       - OLYMPUS_OTEL_ENDPOINT=signoz:4317
-      - OLYMPUS_LOGSTASH_ENDPOINT=signoz:3333
     command:
       # In production, you would want to avoid this.
       - run

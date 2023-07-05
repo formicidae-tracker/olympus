@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/atuleu/otelog"
+	"github.com/atuleu/otelog/pkg/hooks"
 	"github.com/sirupsen/logrus"
 
 	"go.opentelemetry.io/otel"
@@ -95,7 +96,11 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 	}
 	otelog.SetLogExporter(logExporter)
 
-	logrus.SetLevel(MapVerboseLevel(args.Level))
+	level := MapVerboseLevel(args.Level)
+	hook := hooks.NewLogrusHook(hooks.FromLogrusLevel(level))
+
+	logrus.SetLevel(level)
+	logrus.AddHook(hook)
 
 	shutdown := exporter.Shutdown
 	if args.ForceFlushOnShutdown == true {
