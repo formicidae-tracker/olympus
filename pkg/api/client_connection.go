@@ -15,22 +15,34 @@ import (
 )
 
 type metadated interface {
-	MD() map[string]string
+	MD(create bool) map[string]string
 }
 
-func (m *ClimateUpStream) MD() map[string]string {
+func (m *ClimateUpStream) MD(create bool) map[string]string {
+	if create == true && m.Metadata == nil {
+		m.Metadata = make(map[string]string)
+	}
 	return m.Metadata
 }
 
-func (m *ClimateDownStream) MD() map[string]string {
+func (m *ClimateDownStream) MD(create bool) map[string]string {
+	if create == true && m.Metadata == nil {
+		m.Metadata = make(map[string]string)
+	}
 	return m.Metadata
 }
 
-func (m *TrackingUpStream) MD() map[string]string {
+func (m *TrackingUpStream) MD(create bool) map[string]string {
+	if create == true && m.Metadata == nil {
+		m.Metadata = make(map[string]string)
+	}
 	return m.Metadata
 }
 
-func (m *TrackingDownStream) MD() map[string]string {
+func (m *TrackingDownStream) MD(create bool) map[string]string {
+	if create == true && m.Metadata == nil {
+		m.Metadata = make(map[string]string)
+	}
 	return m.Metadata
 }
 
@@ -39,15 +51,19 @@ type textCarrier struct {
 }
 
 func (c textCarrier) Get(key string) string {
-	return c.m.MD()[key]
+	md := c.m.MD(false)
+	if md == nil {
+		return ""
+	}
+	return md[key]
 }
 
 func (c textCarrier) Set(key, value string) {
-	c.m.MD()[key] = value
+	c.m.MD(true)[key] = value
 }
 
 func (c textCarrier) Keys() []string {
-	md := c.m.MD()
+	md := c.m.MD(false)
 	res := make([]string, 0, len(md))
 	for k := range md {
 		res = append(res, k)
