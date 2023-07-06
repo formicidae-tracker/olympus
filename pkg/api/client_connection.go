@@ -184,20 +184,20 @@ func (c *Connection[Up, Down]) Send(m Up) (res Down, err error) {
 
 // Close closes the connection, and report any connection error.
 func (c *Connection[Up, Down]) Close() (err error) {
-	var serr, cerr error
+	var errs []error
 	if c.stream != nil {
 		if c.config.tracer != nil {
 			_, span := c.startTrace("CloseSend")
 			defer func() { endSpanWithError(span, err) }()
 		}
-		serr = c.stream.CloseSend()
+		errs = append(errs, c.stream.CloseSend())
 	}
 	if c.conn != nil {
-		cerr = c.conn.Close()
+		errs = append(errs, c.conn.Close())
 	}
 	c.stream = nil
 	c.conn = nil
-	return errors.Join(serr, cerr)
+	return errors.Join(errs...)
 }
 
 // Connection results holds the result of an attemp to create a
@@ -249,6 +249,7 @@ func connect[Up, Down metadated](
 
 	client := NewOlympusClient(c.conn)
 	var decl Up
+
 	c.stream, decl, err = factory(ctx, client)
 
 	if err != nil {

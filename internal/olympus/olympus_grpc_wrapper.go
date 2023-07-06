@@ -2,10 +2,10 @@ package olympus
 
 import (
 	"context"
-	"io"
 
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -35,6 +35,10 @@ func (o *OlympusGRPCWrapper) SubscriptionContext() context.Context {
 	return (*Olympus)(o).subscriptionContext
 }
 
+func (o *OlympusGRPCWrapper) Log(ctx context.Context) *logrus.Entry {
+	return (*Olympus)(o).log.WithField("domain", "gRPC").WithContext(ctx)
+}
+
 func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err error) {
 	var subscription *GrpcSubscription[ClimateLogger] = nil
 	ctx := api.WithTelemetry(o.SubscriptionContext(), "fort.olympus.Olympus/Climate")
@@ -43,7 +47,10 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 		if subscription == nil {
 			return
 		}
-		graceful := err != nil && err != io.EOF && err != context.Canceled
+		if err != nil {
+			o.Log(ctx).WithError(err).Error("ungraceful climate termination")
+		}
+		graceful := err == nil
 		(*Olympus)(o).UnregisterClimate(ctx, subscription.object.Host(), subscription.object.ZoneName(), graceful)
 	}()
 
@@ -103,7 +110,12 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 		if subscription == nil {
 			return
 		}
-		graceful := err != nil && err != io.EOF && err != context.Canceled
+
+		if err != nil {
+			o.Log(ctx).WithError(err).Error("ungraceful tracking termination")
+		}
+
+		graceful := err == nil
 		(*Olympus)(o).UnregisterTracker(ctx, hostname, graceful)
 	}()
 	ack := &api.TrackingDownStream{}

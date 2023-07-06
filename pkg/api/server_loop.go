@@ -23,17 +23,14 @@ type recvResult[Up any] struct {
 	Error   error
 }
 
-func readAll[Up, Down metadated](ch chan<- recvResult[Up],
-	s ServerStream[Up, Down]) {
+func readAll[Up, Down metadated](ctx context.Context, ch chan<- recvResult[Up], s ServerStream[Up, Down]) {
 
 	defer close(ch)
 
 	for {
 		m, err := s.Recv()
-		select {
-		case ch <- recvResult[Up]{m, err}:
-		case <-s.Context().Done():
-		}
+
+		ch <- recvResult[Up]{m, err}
 
 		if err != nil {
 			return
@@ -110,7 +107,7 @@ func ServerLoop[Up, Down metadated](
 
 	recv := make(chan recvResult[Up])
 	go func() {
-		readAll(recv, s)
+		readAll(ctx, recv, s)
 	}()
 
 	tm := getTelemetry(ctx)
@@ -122,14 +119,12 @@ func ServerLoop[Up, Down metadated](
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-s.Context().Done():
-			return nil
 		case m, ok := <-recv:
 			if ok == false {
 				return nil
 			}
 			if m.Error != nil {
-				if m.Error == io.EOF || m.Error == context.Canceled {
+				if m.Error == io.EOF {
 					return nil
 				}
 				return m.Error

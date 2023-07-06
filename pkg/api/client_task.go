@@ -5,6 +5,8 @@ import (
 	"errors"
 	"math/rand"
 	"time"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 // RequestResult represents the result of a Request to a ClientTask.
@@ -142,8 +144,9 @@ func (c *ClientTask[Up, Down]) sleepWithJitter(d time.Duration, jitter float64) 
 	time.Sleep(time.Duration(toSleep))
 }
 
-// Stop stops the Run loop.
-func (c *ClientTask[Up, Down]) Stop() {
+// stop stops the Run loop. Used for unit test only. Simply terminate
+// the parent context.
+func (c *ClientTask[Up, Down]) stop() {
 	c.cancel()
 }
 
@@ -168,11 +171,16 @@ func newClientTask[Up, Down metadated](
 
 	cancelable, cancel := context.WithCancel(ctx)
 
+	connectionCtx := context.Background()
+	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() == true {
+		connectionCtx = trace.ContextWithSpanContext(connectionCtx, sc)
+	}
+
 	return &ClientTask[Up, Down]{
 		ctx:    cancelable,
 		cancel: cancel,
 		connect: func() <-chan ConnectionResult[Up, Down] {
-			return Connect(ctx, address, factory, options...)
+			return Connect(connectionCtx, address, factory, options...)
 		},
 		inbound:           make(chan Request[Up, Down], 10),
 		confirmations:     make(chan ConfirmationResult[Down], 2),

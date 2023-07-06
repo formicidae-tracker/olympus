@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"io"
 	"net"
 	"time"
 
@@ -73,7 +74,9 @@ func (s *ClientTaskSuite) TestEndsWithAnEOF(c *C) {
 	task := NewClimateTask(context.Background(),
 		testAddress, &ClimateDeclaration{})
 	done := make(chan struct{})
-	defer func() { <-done }()
+	defer func() {
+		<-done
+	}()
 	s.olympus.EXPECT().
 		Climate(gomock.Any()).
 		DoAndReturn(func(s Olympus_ClimateServer) error {
@@ -84,7 +87,7 @@ func (s *ClientTaskSuite) TestEndsWithAnEOF(c *C) {
 						SendBacklogs: true,
 					},
 				}, &ClimateDownStream{})
-			c.Check(err, ErrorMatches, "EOF")
+			c.Check(err, Equals, io.EOF)
 			return err
 		})
 
@@ -109,7 +112,7 @@ func (s *ClientTaskSuite) TestEndsWithAnEOF(c *C) {
 
 	_, ok = getOrTimeout(req, timeout, c)
 	c.Check(ok, Equals, false)
-	task.Stop()
+	task.stop()
 
 	_, ok = getOrTimeout(task.Confirmations(), timeout, c)
 	c.Check(ok, Equals, false)
@@ -150,7 +153,7 @@ func (s *ClientTaskSuite) TestReconnectionOnError(c *C) {
 							SendBacklogs: true,
 						},
 					}, &ClimateDownStream{})
-				c.Check(err, ErrorMatches, "EOF")
+				c.Check(err, Equals, io.EOF)
 				return err
 			}),
 	)
@@ -174,7 +177,7 @@ func (s *ClientTaskSuite) TestReconnectionOnError(c *C) {
 	c.Check(confirmation.Error, IsNil)
 	c.Check(ok, Equals, true)
 
-	task.Stop()
+	task.stop()
 
 	confirmation, ok = getOrTimeout(task.Confirmations(), timeout, c)
 	c.Check(confirmation.Confirmation, IsNil)
@@ -227,7 +230,7 @@ func (s *ClientTaskSuite) TestCloseAndReconnectOnError(c *C) {
 				defer close(done)
 				err := acknowledgeAll[ClimateUpStream, ClimateDownStream](s,
 					conf, ack)
-				c.Check(err, ErrorMatches, "EOF")
+				c.Check(err, Equals, io.EOF)
 				return err
 			}),
 	)
@@ -259,7 +262,7 @@ func (s *ClientTaskSuite) TestCloseAndReconnectOnError(c *C) {
 	c.Check(confirmation.Error, IsNil)
 	c.Check(ok, Equals, true)
 
-	task.Stop()
+	task.stop()
 
 	confirmation, ok = getOrTimeout(task.Confirmations(), timeout, c)
 	c.Check(confirmation.Confirmation, IsNil)

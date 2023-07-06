@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	. "gopkg.in/check.v1"
 )
 
@@ -20,8 +21,8 @@ type ServerLoopSuite struct {
 	ctrl    *gomock.Controller
 	olympus *MockOlympusServer
 
-	server *grpc.Server
-	errors chan error
+	server                         *grpc.Server
+	serverErrors, connectionErrors chan error
 }
 
 var _ = Suite(&ServerLoopSuite{})
@@ -47,6 +48,7 @@ func (s *ServerLoopSuite) SetUpTest(c *C) {
 	s.ctrl = gomock.NewController(NeverFatalReporter{c})
 	s.olympus = NewMockOlympusServer(s.ctrl)
 
+	s.connectionErrors = make(chan error, 100)
 	s.olympus.EXPECT().
 		Tracking(gomock.Any()).
 		DoAndReturn(func(se Olympus_TrackingServer) error {
@@ -55,9 +57,7 @@ func (s *ServerLoopSuite) SetUpTest(c *C) {
 			handler := &handler{}
 			err := ServerLoop[*TrackingUpStream, *TrackingDownStream](s.ctx,
 				se, handler.handle)
-			if err != nil {
-				c.Check(err, ErrorMatches, ".*FailedPrecondition.*not yet implemented")
-			}
+			s.connectionErrors <- err
 			return err
 		}).
 		AnyTimes()
@@ -65,16 +65,16 @@ func (s *ServerLoopSuite) SetUpTest(c *C) {
 	s.server = grpc.NewServer(DefaultServerOptions...)
 	RegisterOlympusServer(s.server, s.olympus)
 
-	s.errors = make(chan error)
+	s.serverErrors = make(chan error)
 	l, err := net.Listen("tcp", testAddress)
 	if c.Check(err, IsNil) == false {
-		close(s.errors)
+		close(s.serverErrors)
 		return
 	}
 
 	go func() {
-		defer close(s.errors)
-		s.errors <- s.server.Serve(l)
+		defer close(s.serverErrors)
+		s.serverErrors <- s.server.Serve(l)
 	}()
 }
 
@@ -95,10 +95,10 @@ func (s *ServerLoopSuite) TearDownTest(c *C) {
 	s.server.GracefulStop()
 	waitOrTimeout(&s.wg, 100*time.Millisecond, c)
 
-	err, ok := getOrTimeout(s.errors, 10*time.Millisecond, c)
+	err, ok := getOrTimeout(s.serverErrors, 10*time.Millisecond, c)
 	c.Check(err, IsNil)
 	c.Check(ok, Equals, true)
-	_, ok = getOrTimeout(s.errors, 10*time.Millisecond, c)
+	_, ok = getOrTimeout(s.serverErrors, 10*time.Millisecond, c)
 	c.Check(ok, Equals, false)
 
 	s.ctrl.Finish()
@@ -113,12 +113,13 @@ func (s *ServerLoopSuite) TestDoNothingConnection(c *C) {
 		errors <- task.Run()
 	}()
 	timeout := 50 * time.Millisecond
+
 	confirmation, ok := getOrTimeout(task.Confirmations(), timeout, c)
 	c.Check(ok, Equals, true)
 	c.Check(confirmation.Confirmation, Not(IsNil))
 	c.Check(confirmation.Error, IsNil)
 
-	task.Stop()
+	task.stop()
 
 	_, ok = getOrTimeout(task.Confirmations(), timeout, c)
 	c.Check(ok, Equals, false)
@@ -127,9 +128,12 @@ func (s *ServerLoopSuite) TestDoNothingConnection(c *C) {
 	c.Check(err, IsNil)
 	c.Check(ok, Equals, true)
 
+	err, ok = getOrTimeout(s.connectionErrors, 10*time.Millisecond, c)
+	c.Check(ok, Equals, true)
+	c.Check(err, IsNil)
 }
 
-func (s *ServerLoopSuite) TestCancelable(c *C) {
+func (s *ServerLoopSuite) TestServerCancelable(c *C) {
 	clientsContext, cancelClients := context.WithCancel(context.Background())
 	wg := sync.WaitGroup{}
 	defer func() {
@@ -160,9 +164,15 @@ func (s *ServerLoopSuite) TestCancelable(c *C) {
 
 	s.cancel()
 	waitOrTimeout(&s.wg, 100*time.Millisecond, c)
+
+	for range tasks {
+		err, ok := getOrTimeout(s.connectionErrors, 10*time.Millisecond, c)
+		c.Check(ok, Equals, true)
+		c.Check(err, IsNil)
+	}
 }
 
-func (s *ServerLoopSuite) TestWillCloseStream(c *C) {
+func (s *ServerLoopSuite) TestNoErrorOnCleanCloseStream(c *C) {
 	task := NewTrackingTask(context.Background(), testAddress, &TrackingDeclaration{})
 
 	done := make(chan struct{})
@@ -186,10 +196,35 @@ func (s *ServerLoopSuite) TestWillCloseStream(c *C) {
 		c.Check(res.Message, Not(IsNil))
 	}
 
-	task.Stop()
+	task.stop()
 
 	_, ok = getOrTimeout(task.Confirmations(), timeout, c)
 	c.Check(ok, Equals, false)
+
+	err, ok := getOrTimeout(s.connectionErrors, 10*time.Millisecond, c)
+	c.Check(ok, Equals, true)
+	c.Check(err, IsNil)
+}
+
+func (s *ServerLoopSuite) TestErrorsOnBadClientStream(c *C) {
+	conn, err := grpc.Dial(testAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	c.Assert(err, IsNil)
+
+	client := NewOlympusClient(conn)
+	stream, err := client.Tracking(context.Background())
+	c.Assert(err, IsNil)
+
+	err = stream.Send(&TrackingUpStream{Declaration: &TrackingDeclaration{}})
+	c.Assert(err, IsNil)
+	_, err = stream.Recv()
+	c.Assert(err, IsNil)
+
+	c.Assert(conn.Close(), IsNil)
+	err, ok := getOrTimeout(s.connectionErrors, 10*time.Millisecond, c)
+	c.Check(ok, Equals, true)
+	c.Check(err, ErrorMatches, ".*context canceled")
 
 }
 
@@ -224,9 +259,12 @@ func (s *ServerLoopSuite) TestServerError(c *C) {
 	c.Check(confirmation.Confirmation, Not(IsNil))
 	c.Check(confirmation.Error, IsNil)
 
-	task.Stop()
+	task.stop()
 
 	_, ok = getOrTimeout(task.Confirmations(), timeout, c)
 	c.Check(ok, Equals, false)
 
+	err, ok := getOrTimeout(s.connectionErrors, 10*time.Millisecond, c)
+	c.Check(ok, Equals, true)
+	c.Check(err, ErrorMatches, ".*FailedPrecondition.*not yet implemented")
 }
