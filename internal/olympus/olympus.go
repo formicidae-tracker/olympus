@@ -535,7 +535,7 @@ func (o *Olympus) RegisterTracking(ctx context.Context, declaration *api.Trackin
 
 	sub.tracking = &GrpcSubscription[TrackingLogger]{
 		zone:        zoneIdentifier,
-		object:      NewTrackingLogger(declaration),
+		object:      NewTrackingLogger(ctx, declaration),
 		alarmLogger: sub.alarmLogger,
 		updates:     o.unfilteredAlarms,
 	}
@@ -639,6 +639,7 @@ func (o *Olympus) setFetchRoutes(router *mux.Router) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+
 		JSONify(w, &res)
 	}).Methods("GET")
 

@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/formicidae-tracker/olympus/pkg/tm"
 	"github.com/sirupsen/logrus"
@@ -60,7 +59,7 @@ func (l *serviceLogger) Logs() []api.ServiceLog {
 	sort.Strings(services)
 
 	for _, idt := range services {
-		logs = append(logs, *deepcopy.MustAnything(l.logs.Map[idt]).(*api.ServiceLog))
+		logs = append(logs, *l.logs.Map[idt].Clone())
 	}
 
 	return logs

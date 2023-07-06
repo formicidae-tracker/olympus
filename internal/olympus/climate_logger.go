@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/pkg/api"
 )
 
@@ -25,8 +24,6 @@ const (
 	climateHour
 	climateDay
 	climateWeek
-	logs
-	report
 )
 
 type climateLogger struct {
@@ -194,7 +191,7 @@ func (l *climateLogger) GetClimateTimeSeries(window string) api.ClimateTimeSerie
 func (l *climateLogger) GetClimateReport() *api.ZoneClimateReport {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
-	res := deepcopy.MustAnything(l.currentReport).(*api.ZoneClimateReport)
+	res := l.currentReport.Clone()
 	if l.currentReport.NextTime != nil {
 		res.NextTime = l.currentReport.NextTime
 	}

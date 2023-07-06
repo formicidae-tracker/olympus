@@ -5,7 +5,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -156,10 +155,13 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 
 	lastReports := reports[len(reports)-1]
 
+	start := timestamppb.Now()
+
 	c.Check(stream.Send(&api.ClimateUpStream{
 		Declaration: &api.ClimateDeclaration{
-			Host: "somehost",
-			Name: "box",
+			Host:  "somehost",
+			Name:  "box",
+			Since: start,
 		},
 		Reports: reports[4:],
 		Target:  target,
@@ -179,9 +181,10 @@ func (s *GRPCSuite) TestEndToEnd(c *C) {
 			Host: "somehost",
 			Name: "box",
 			Climate: &api.ZoneClimateReport{
+				Since:             start.AsTime(),
 				Temperature:       &lastReports.Temperatures[0],
 				Humidity:          lastReports.Humidity,
-				Current:           deepcopy.MustAnything(target.Current).(*api.ClimateState),
+				Current:           target.Current.Clone(),
 				TemperatureBounds: api.Bounds{},
 				HumidityBounds:    api.Bounds{},
 			},

@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/barkimedes/go-deepcopy"
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
@@ -51,7 +50,7 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 		r := rand.Intn(2000000)
 		t := start.Add(time.Duration(r) * time.Millisecond)
 		on := i%2 == 0
-		event := deepcopy.MustAnything(eventList[i%3]).(*api.AlarmUpdate)
+		event := eventList[i%3].Clone()
 		if on {
 			event.Status = api.AlarmStatus_ON
 		} else {
