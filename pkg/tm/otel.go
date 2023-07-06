@@ -20,8 +20,10 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
+	"go.opentelemetry.io/otel/sdk/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
@@ -50,13 +52,8 @@ func (f nullFormatter) Format(*logrus.Entry) ([]byte, error) {
 	return nil, nil
 }
 
-func newOtelProvider(args OtelProviderArgs) Provider {
-	hostname, err := os.Hostname()
-	if err != nil {
-		logrus.Fatalf("%s", err)
-	}
-
-	conn, err := grpc.Dial(args.CollectorURL,
+func connectToCollector(endpoint string) (*grpc.ClientConn, error) {
+	return grpc.Dial(endpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithConnectParams(
 			grpc.ConnectParams{
@@ -69,58 +66,96 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 			Timeout: 20 * time.Second,
 		}),
 	)
-	if err != nil {
-		logrus.Fatalf("%s", err)
-	}
+}
+
+func buildTraceExporter(conn *grpc.ClientConn, resource *resource.Resource) (*trace.TracerProvider, trace.SpanProcessor, error) {
 
 	traceExporter, err := otlptrace.New(
 		context.Background(),
 		otlptracegrpc.NewClient(
 			otlptracegrpc.WithGRPCConn(conn),
 		))
-	if err != nil {
-		logrus.Fatalf("%s", err)
-	}
 
-	resources := resource.NewWithAttributes(
-		semconv.SchemaURL,
-		semconv.ServiceNameKey.String(args.ServiceName),
-		semconv.ServiceVersionKey.String(args.ServiceVersion),
-		semconv.ServiceInstanceIDKey.String(hostname),
-		semconv.HostIDKey.String(hostname),
-	)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	spanProcessor := sdktrace.NewBatchSpanProcessor(traceExporter)
 
-	otel.SetTracerProvider(sdktrace.NewTracerProvider(
+	traceProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithSpanProcessor(spanProcessor),
-		sdktrace.WithResource(resources),
-	))
-
-	propagator := propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
+		sdktrace.WithResource(resource),
 	)
+
+	return traceProvider, spanProcessor, nil
+}
+
+func buildMetricExporter(conn *grpc.ClientConn, resource *resource.Resource) (*metric.MeterProvider, sdkmetric.Reader, error) {
 
 	metricExporter, err := otlpmetricgrpc.New(
 		context.Background(),
 		otlpmetricgrpc.WithGRPCConn(conn),
 	)
 	if err != nil {
-		logrus.Fatalf("%s", err)
+		return nil, nil, err
 	}
 
 	metricReader := sdkmetric.NewPeriodicReader(metricExporter)
-	otel.SetMeterProvider(sdkmetric.NewMeterProvider(
-		sdkmetric.WithResource(resources),
+	metricProvider := sdkmetric.NewMeterProvider(
+		sdkmetric.WithResource(resource),
 		sdkmetric.WithReader(metricReader),
-	))
+	)
+
+	return metricProvider, metricReader, nil
+}
+
+func newOtelProvider(args OtelProviderArgs) Provider {
+
+	fatal := func(err error) {
+		logrus.WithError(err).Fatal("could not initialize Open Telemetry")
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		fatal(err)
+	}
+
+	conn, err := connectToCollector(args.CollectorURL)
+	if err != nil {
+		fatal(err)
+	}
+
+	resource := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNamespaceKey.String("formicidae-tracker"),
+		semconv.ServiceNameKey.String(args.ServiceName),
+		semconv.ServiceVersionKey.String(args.ServiceVersion),
+		semconv.ServiceInstanceIDKey.String(hostname),
+		semconv.HostIDKey.String(hostname),
+	)
+
+	traceProvider, spanProcessor, err := buildTraceExporter(conn, resource)
+	if err != nil {
+		fatal(err)
+	}
+	otel.SetTracerProvider(traceProvider)
+
+	propagator := propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	)
 
 	otel.SetTextMapPropagator(propagator)
 
+	meterProvider, metricReader, err := buildMetricExporter(conn, resource)
+	if err != nil {
+		fatal(err)
+	}
+	otel.SetMeterProvider(meterProvider)
+
 	logExporter, err := otelog.NewLogExporter(
-		otelog.WithResource(resources),
+		otelog.WithResource(resource),
 		otelog.WithScope(instrumentation.Scope{
 			Name: "github.com/formicidae-tracker/olympus/pkg/tm",
 		}),
@@ -128,7 +163,7 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 		otelog.WithGRPCConn(conn),
 	)
 	if err != nil {
-		logrus.Fatalf("%s", err)
+		fatal(err)
 	}
 	otelog.SetLogExporter(logExporter)
 
@@ -143,16 +178,16 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 		shutdown = func(ctx context.Context) error {
 			return errors.Join(
 				spanProcessor.ForceFlush(ctx),
-				traceExporter.Shutdown(ctx),
+				traceProvider.Shutdown(ctx),
 				metricReader.ForceFlush(ctx),
-				metricExporter.Shutdown(ctx),
+				meterProvider.Shutdown(ctx),
 			)
 		}
 	} else {
 		shutdown = func(ctx context.Context) error {
 			return errors.Join(
-				traceExporter.Shutdown(ctx),
-				metricExporter.Shutdown(ctx),
+				traceProvider.Shutdown(ctx),
+				meterProvider.Shutdown(ctx),
 			)
 		}
 	}
