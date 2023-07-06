@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"errors"
-	"math/rand"
 	"time"
 
 	"go.opentelemetry.io/otel/trace"
@@ -55,6 +54,7 @@ type ConfirmationResult[Down any] struct {
 type ClientTask[Up, Down metadated] struct {
 	ctx               context.Context
 	cancel            context.CancelFunc
+	fatal             context.CancelCauseFunc
 	connect           func() <-chan ConnectionResult[Up, Down]
 	inbound           chan Request[Up, Down]
 	confirmations     chan ConfirmationResult[Down]
@@ -84,7 +84,6 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 
 	for {
 		if c.connection == nil && newConnection == nil {
-			c.sleepWithJitter(c.reconnectionGrace, 0.1)
 			newConnection = c.connect()
 		}
 
@@ -139,15 +138,19 @@ func (c *ClientTask[Up, Down]) handle(req Request[Up, Down]) {
 	req.respond(res, err)
 }
 
-func (c *ClientTask[Up, Down]) sleepWithJitter(d time.Duration, jitter float64) {
-	toSleep := (1.0 + (2.0*rand.Float64()-1.0)*jitter) * float64(d.Nanoseconds())
-	time.Sleep(time.Duration(toSleep))
+// Fatal stops the Run loop with an error that will be propagated to
+// the server.  If err is nil, the task will be gracefully terminated
+// instead, as if the task's provided context was cancelled.
+func (c *ClientTask[Up, Down]) Fatal(err error) {
+	if err == nil {
+		c.cancel()
+	} else {
+		c.fatal(err)
+	}
 }
 
-// stop stops the Run loop. Used for unit test only. Simply terminate
-// the parent context.
 func (c *ClientTask[Up, Down]) stop() {
-	c.cancel()
+	c.Fatal(nil)
 }
 
 // Request performs an asynchronous Request on the ClientTask
@@ -171,7 +174,7 @@ func newClientTask[Up, Down metadated](
 
 	cancelable, cancel := context.WithCancel(ctx)
 
-	connectionCtx := context.Background()
+	connectionCtx, fatal := context.WithCancelCause(context.Background())
 	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() == true {
 		connectionCtx = trace.ContextWithSpanContext(connectionCtx, sc)
 	}
@@ -179,6 +182,7 @@ func newClientTask[Up, Down metadated](
 	return &ClientTask[Up, Down]{
 		ctx:    cancelable,
 		cancel: cancel,
+		fatal:  fatal,
 		connect: func() <-chan ConnectionResult[Up, Down] {
 			return Connect(connectionCtx, address, factory, options...)
 		},

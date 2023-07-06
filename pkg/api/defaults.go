@@ -31,12 +31,12 @@ func init() {
 			Time: 10 * time.Second,
 		}),
 		grpc.WithConnectParams(grpc.ConnectParams{
-			MinConnectTimeout: 20 * time.Second,
+			MinConnectTimeout: 10 * time.Second,
 			Backoff: backoff.Config{
 				BaseDelay:  500 * time.Millisecond,
 				Multiplier: backoff.DefaultConfig.Multiplier,
 				Jitter:     backoff.DefaultConfig.Jitter,
-				MaxDelay:   2 * time.Second,
+				MaxDelay:   60 * time.Second,
 			},
 		}),
 	}

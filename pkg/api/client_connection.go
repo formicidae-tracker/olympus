@@ -91,20 +91,22 @@ type ConnectionOption interface {
 	apply(*connectionConfig)
 }
 
-type withTracer string
+type connectionOptionFunc func(*connectionConfig)
 
-func (o withTracer) apply(config *connectionConfig) {
-	if tm.Enabled() == false {
-		return
-	}
-	config.name = string(o)
-	config.tracer = otel.GetTracerProvider().
-		Tracer("github.com/formicidae-tracker/olympus/pkg/tm")
-	config.propagator = otel.GetTextMapPropagator()
+func (f connectionOptionFunc) apply(c *connectionConfig) {
+	f(c)
 }
 
 func withSpanBasename(name string) ConnectionOption {
-	return withTracer(name)
+	return connectionOptionFunc(func(config *connectionConfig) {
+		if tm.Enabled() == false {
+			return
+		}
+		config.name = string(name)
+		config.tracer = otel.GetTracerProvider().
+			Tracer("github.com/formicidae-tracker/olympus/pkg/tm")
+		config.propagator = otel.GetTextMapPropagator()
+	})
 }
 
 type withDialOptions []grpc.DialOption
@@ -113,8 +115,12 @@ func (o withDialOptions) apply(config *connectionConfig) {
 	config.dialOptions = append(config.dialOptions, []grpc.DialOption(o)...)
 }
 
+// WithDialOptions adds the opts grpc.DialOption to the connection
+// config.
 func WithDialOptions(opts ...grpc.DialOption) ConnectionOption {
-	return withDialOptions(opts)
+	return connectionOptionFunc(func(config *connectionConfig) {
+		config.dialOptions = append(config.dialOptions, opts...)
+	})
 }
 
 // Connection represents a connection to a long-lived ping-pong stream
@@ -208,6 +214,18 @@ type ConnectionResult[Up, Down metadated] struct {
 	Error      error
 }
 
+func newConnectionOptions(options ...ConnectionOption) connectionConfig {
+	res := connectionConfig{
+		dialOptions: append(DefaultDialOptions, grpc.WithBlock()),
+	}
+
+	for _, option := range options {
+		option.apply(&res)
+	}
+
+	return res
+}
+
 // connectionFactory is an helper type to instantiate either
 // OlympusClimate or OlympusTracking stream.
 type connectionFactory[Up, Down metadated] func(context.Context, OlympusClient) (Stream[Up, Down], Up, error)
@@ -219,13 +237,7 @@ func connect[Up, Down metadated](
 	options ...ConnectionOption) (c *Connection[Up, Down], err error) {
 
 	c = &Connection[Up, Down]{
-		config: connectionConfig{
-			dialOptions: DefaultDialOptions,
-		},
-	}
-
-	for _, opt := range options {
-		opt.apply(&c.config)
+		config: newConnectionOptions(options...),
 	}
 
 	defer func() {
@@ -242,7 +254,8 @@ func connect[Up, Down metadated](
 		})
 	}
 
-	c.conn, err = grpc.DialContext(ctx, address, c.config.dialOptions...)
+	c.conn, err = grpc.DialContext(ctx, address,
+		c.config.dialOptions...)
 	if err != nil {
 		return
 	}
