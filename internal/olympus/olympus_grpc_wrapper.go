@@ -47,9 +47,6 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 		if subscription == nil {
 			return
 		}
-		if err != nil {
-			o.Log(ctx).WithError(err).Error("ungraceful climate termination")
-		}
 		graceful := err == nil
 		(*Olympus)(o).UnregisterClimate(ctx, subscription.object.Host(), subscription.object.ZoneName(), graceful)
 	}()
@@ -109,10 +106,6 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 	defer func() {
 		if subscription == nil {
 			return
-		}
-
-		if err != nil {
-			o.Log(ctx).WithError(err).Error("ungraceful tracking termination")
 		}
 
 		graceful := err == nil
