@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-//go:generate go run generate_version.go
+//go:generate  go run generate_version.go $VERSION
 
 func Execute() error {
 	_, err := parser.Parse()
