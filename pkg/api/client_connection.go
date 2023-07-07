@@ -14,44 +14,47 @@ import (
 	"google.golang.org/grpc"
 )
 
+// A metadated is a type that holds a map[string]string. It is used to
+// inject trace.SpanContext in Up/Down stream message.
 type metadated interface {
-	MD(create bool) map[string]string
+	md(create bool) map[string]string
 }
 
-func (m *ClimateUpStream) MD(create bool) map[string]string {
+func (m *ClimateUpStream) md(create bool) map[string]string {
 	if create == true && m.Metadata == nil {
 		m.Metadata = make(map[string]string)
 	}
 	return m.Metadata
 }
 
-func (m *ClimateDownStream) MD(create bool) map[string]string {
+func (m *ClimateDownStream) md(create bool) map[string]string {
 	if create == true && m.Metadata == nil {
 		m.Metadata = make(map[string]string)
 	}
 	return m.Metadata
 }
 
-func (m *TrackingUpStream) MD(create bool) map[string]string {
+func (m *TrackingUpStream) md(create bool) map[string]string {
 	if create == true && m.Metadata == nil {
 		m.Metadata = make(map[string]string)
 	}
 	return m.Metadata
 }
 
-func (m *TrackingDownStream) MD(create bool) map[string]string {
+func (m *TrackingDownStream) md(create bool) map[string]string {
 	if create == true && m.Metadata == nil {
 		m.Metadata = make(map[string]string)
 	}
 	return m.Metadata
 }
 
+// A textCarrier implements trace.TextCarrier for a metadated.
 type textCarrier struct {
 	m metadated
 }
 
 func (c textCarrier) Get(key string) string {
-	md := c.m.MD(false)
+	md := c.m.md(false)
 	if md == nil {
 		return ""
 	}
@@ -59,11 +62,11 @@ func (c textCarrier) Get(key string) string {
 }
 
 func (c textCarrier) Set(key, value string) {
-	c.m.MD(true)[key] = value
+	c.m.md(true)[key] = value
 }
 
 func (c textCarrier) Keys() []string {
-	md := c.m.MD(false)
+	md := c.m.md(false)
 	res := make([]string, 0, len(md))
 	for k := range md {
 		res = append(res, k)
@@ -71,9 +74,10 @@ func (c textCarrier) Keys() []string {
 	return res
 }
 
-// Stream defines a generic interface for a long-lived ping-pong stream such as
-// OlympusClimate and OlympusTracking
-type Stream[Up, Down any] interface {
+// A stream defines a generic interface for a long-lived ping-pong
+// stream such as [OlympusClient.Climate] and
+// [OlympusClient.Tracking].
+type stream[Up, Down any] interface {
 	Send(Up) error
 	Recv() (Down, error)
 	CloseSend() error
@@ -87,6 +91,8 @@ type connectionConfig struct {
 	dialOptions []grpc.DialOption
 }
 
+// A ConnectionOption represents an optional parameter to [Connect] or
+// for a [ClientTask].
 type ConnectionOption interface {
 	apply(*connectionConfig)
 }
@@ -97,6 +103,8 @@ func (f connectionOptionFunc) apply(c *connectionConfig) {
 	f(c)
 }
 
+// Adds a trace base name for stream operation (Declaration,
+// UpDownExchange, Close)
 func withSpanBasename(name string) ConnectionOption {
 	return connectionOptionFunc(func(config *connectionConfig) {
 		if tm.Enabled() == false {
@@ -123,16 +131,17 @@ func WithDialOptions(opts ...grpc.DialOption) ConnectionOption {
 	})
 }
 
-// Connection represents a connection to a long-lived ping-pong stream
-// such as OlympusTracking or OlympusClimate.
+// A Connection represents a connection to a long-lived ping-pong
+// stream provided by [OlympusClient].
 type Connection[Up, Down metadated] struct {
 	conn        *grpc.ClientConn
-	stream      Stream[Up, Down]
+	stream      stream[Up, Down]
 	acknowledge Down
 	config      connectionConfig
 	links       []trace.Link
 }
 
+// starts a trace for the connection.
 func (c *Connection[Up, Down]) startTrace(name string) (context.Context, trace.Span) {
 	return c.config.tracer.Start(
 		// explicitely use background to not endup in the grpc long-lived trace
@@ -206,9 +215,9 @@ func (c *Connection[Up, Down]) Close() (err error) {
 	return errors.Join(errs...)
 }
 
-// Connection results holds the result of an attemp to create a
-// connection to an olympus implementation. Either one of the two
-// field will be populated.
+// ConnectionResult holds the result of an attemp to create a
+// connection to an olympus implementation through [Connect]. Either
+// one of the two field will be populated.
 type ConnectionResult[Up, Down metadated] struct {
 	Connection *Connection[Up, Down]
 	Error      error
@@ -228,9 +237,10 @@ func newConnectionOptions(options ...ConnectionOption) connectionConfig {
 
 // connectionFactory is an helper type to instantiate either
 // OlympusClimate or OlympusTracking stream.
-type connectionFactory[Up, Down metadated] func(context.Context, OlympusClient) (Stream[Up, Down], Up, error)
+type connectionFactory[Up, Down metadated] func(context.Context, OlympusClient) (stream[Up, Down], Up, error)
 
-func connect[Up, Down metadated](
+// connectSync connects blockly connectSync to an [OlympusClient] stream.
+func connectSync[Up, Down metadated](
 	ctx context.Context,
 	address string,
 	factory connectionFactory[Up, Down],
@@ -294,9 +304,9 @@ func connect[Up, Down metadated](
 	return
 }
 
-// Connect connects asynchronously to an Olympus implementation and
+// connect connects asynchronously to an Olympus implementation and
 // returns the associated ConnectionResult.
-func Connect[Up, Down metadated](
+func connect[Up, Down metadated](
 	ctx context.Context,
 	address string,
 	factory connectionFactory[Up, Down],
@@ -309,7 +319,7 @@ func Connect[Up, Down metadated](
 
 		var connResult ConnectionResult[Up, Down]
 
-		connResult.Connection, connResult.Error = connect(
+		connResult.Connection, connResult.Error = connectSync(
 			ctx, address, factory, options...)
 
 		res <- connResult
@@ -320,7 +330,7 @@ func Connect[Up, Down metadated](
 func climateConnector(declaration *ClimateDeclaration) connectionFactory[*ClimateUpStream, *ClimateDownStream] {
 
 	return func(ctx context.Context,
-		client OlympusClient) (Stream[*ClimateUpStream, *ClimateDownStream], *ClimateUpStream, error) {
+		client OlympusClient) (stream[*ClimateUpStream, *ClimateDownStream], *ClimateUpStream, error) {
 
 		stream, err := client.Climate(ctx, DefaultCallOptions...)
 
@@ -333,7 +343,7 @@ func climateConnector(declaration *ClimateDeclaration) connectionFactory[*Climat
 func trackingConnector(declaration *TrackingDeclaration) connectionFactory[*TrackingUpStream, *TrackingDownStream] {
 
 	return func(ctx context.Context,
-		client OlympusClient) (Stream[*TrackingUpStream, *TrackingDownStream], *TrackingUpStream, error) {
+		client OlympusClient) (stream[*TrackingUpStream, *TrackingDownStream], *TrackingUpStream, error) {
 
 		stream, err := client.Tracking(ctx, DefaultCallOptions...)
 
@@ -341,29 +351,31 @@ func trackingConnector(declaration *TrackingDeclaration) connectionFactory[*Trac
 	}
 }
 
-// ConnectClimate asynchronously connect and call an OlympusClimate
-// stream on a given address, with the given declaration.
+// ConnectClimate asynchronously connect via an [OlympusClient] and
+// starts a Climate stream on a given address, with the given
+// declaration and options.
 func ConnectClimate(
 	ctx context.Context,
 	address string,
 	declaration *ClimateDeclaration,
 	options ...ConnectionOption) <-chan ConnectionResult[*ClimateUpStream, *ClimateDownStream] {
 
-	return Connect(ctx,
+	return connect(ctx,
 		address,
 		climateConnector(declaration),
 		append(options, withSpanBasename("fort.olympus.Olympus/Climate"))...)
 }
 
-// ConnectTracking asynchronously connect and call an OlympusTracking
-// stream on a given address, with the given declaration.
+// ConnectTracking asynchronously connect via an [OlympusClient] and
+// starts a Tracking stream on a given address, with the given
+// declaration and options.
 func ConnectTracking(
 	ctx context.Context,
 	address string,
 	declaration *TrackingDeclaration,
 	options ...ConnectionOption) <-chan ConnectionResult[*TrackingUpStream, *TrackingDownStream] {
 
-	return Connect(ctx,
+	return connect(ctx,
 		address,
 		trackingConnector(declaration),
 		append(options, withSpanBasename("fort.olympus.Olympus/Tracking"))...)

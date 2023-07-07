@@ -230,7 +230,6 @@ func (s *ServerLoopSuite) TestErrorsOnBadClientStream(c *C) {
 
 func (s *ServerLoopSuite) TestServerError(c *C) {
 	task := NewTrackingTask(context.Background(), testAddress, &TrackingDeclaration{})
-	task.reconnectionGrace = 10 * time.Millisecond
 
 	done := make(chan struct{})
 	defer func() { <-done }()

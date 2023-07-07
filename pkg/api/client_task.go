@@ -3,66 +3,88 @@ package api
 import (
 	"context"
 	"errors"
-	"time"
 
 	"go.opentelemetry.io/otel/trace"
 )
 
-// RequestResult represents the result of a Request to a ClientTask.
+// Error that could be returned within a [RequestResult].
+type Error string
+
+// Implements error interface.
+func (e Error) Error() string {
+	return string(e)
+}
+
+const (
+	// Request wasn't sent as the task is ended
+	ErrorTaskEnded = Error("task ended")
+
+	// Request wasn't sent as there was no active connection
+	ErrorNoActiveConnection = Error("no active connection")
+
+	// Request wasn't sent as the request buffer is full
+	ErrorFullBuffer = Error("full request buffer")
+)
+
+// A RequestResult represents the result of a [ClientTask.Request] or
+// [ClientTask.MayRequest].
 type RequestResult[Down any] struct {
+	// The response message from the server
 	Message Down
-	Error   error
+
+	// The potential error. Either a gRPC error, or an Error
+	Error error
 }
 
-// Request represent a request and its expected Result to a ClientTask
-type Request[Up, Down any] struct {
-	Message  Up
-	response chan RequestResult[Down]
+// request represent a request and its expected Result to a ClientTask
+type request[Up, Down any] struct {
+	Message            Up
+	response           chan RequestResult[Down]
+	disposeIfNotActive bool
 }
 
-// NewRequest prepares a new Request for a ClientTask
-func NewRequest[Up, Down any](m Up) Request[Up, Down] {
-	return Request[Up, Down]{
+// newRequest prepares a new Request for a ClientTask
+func newRequest[Up, Down any](m Up) request[Up, Down] {
+	return request[Up, Down]{
 		Message:  m,
 		response: make(chan RequestResult[Down], 1),
 	}
 }
 
-// Response returns the asynchronous RequestResult of a Request.
-func (r Request[Up, Down]) Response() <-chan RequestResult[Down] {
-	return r.response
-}
-
-func (r Request[Up, Down]) respond(m Down, err error) {
+func (r request[Up, Down]) respond(m Down, err error) {
 	r.response <- RequestResult[Down]{m, err}
 	close(r.response)
 }
 
-// ConfirmationResult returns the result of a new connection to a
-// Olympus stream such as OlympusClimate or OlympusTracking.
+// ConfirmationResult returns the result of a new connection to an
+// [OlympusClient] through a [ClientTask].
 type ConfirmationResult[Down any] struct {
 	Confirmation Down
 	Error        error
 }
 
-// ClientTask is a task that can be used to manage a long-lived
+// A ClientTask is a task that can be used to manage a long-lived
 // connection to an Olympus stream. It will attempt to reconnect
-// automatically to the Olympus server. It will sends any connection
-// attempt result on its Confirmations() channel. Request() can be
-// used to perform an asynchronous request with this task. Run()
-// should be called to perform the task loop.
+// automatically to the Olympus server via an [OlympusClient]. It will
+// sends any connection attempt result on its
+// [ClientTask.Confirmations] channel. [ClientTask.Request] and
+// [ClientTask.MayRequest] can be called to perform an asynchronous
+// request with this task. [ClientTask.Run] should be explicitely
+// called to perform the task loop in the background.
 type ClientTask[Up, Down metadated] struct {
-	ctx               context.Context
-	cancel            context.CancelFunc
-	fatal             context.CancelCauseFunc
-	connect           func() <-chan ConnectionResult[Up, Down]
-	inbound           chan Request[Up, Down]
-	confirmations     chan ConfirmationResult[Down]
-	reconnectionGrace time.Duration
-	connection        *Connection[Up, Down]
+	ctx           context.Context
+	cancel        context.CancelFunc
+	fatal         context.CancelCauseFunc
+	connect       func() <-chan ConnectionResult[Up, Down]
+	inbound       chan request[Up, Down]
+	confirmations chan ConfirmationResult[Down]
+	connection    *Connection[Up, Down]
+	buffer        []request[Up, Down]
 }
 
-// Run runs the ClientTask communication loops until Close() is called.
+// Run runs the [ClientTask] communication loop until either
+// [ClientTask.Fatal] is called or the provided context is canceled
+// (graceful exit).
 func (c *ClientTask[Up, Down]) Run() (err error) {
 	defer func() {
 		if c.connection == nil {
@@ -74,14 +96,14 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 
 	newConnection := c.connect()
 
-	buffer := make([]Request[Up, Down], 0, 10)
 	defer func() {
 		var Nil Down
-		for _, req := range buffer {
-			req.respond(Nil, errors.New("task ended"))
+		for _, req := range c.buffer {
+			req.respond(Nil, ErrorTaskEnded)
 		}
 	}()
 
+	c.resetBuffer()
 	for {
 		if c.connection == nil && newConnection == nil {
 			newConnection = c.connect()
@@ -102,10 +124,10 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 			} else {
 				c.connection = res.Connection
 				confirmation.Confirmation = c.connection.acknowledge
-				for _, req := range buffer {
+				for _, req := range c.buffer {
 					c.handle(req)
 				}
-				buffer = nil
+				c.resetBuffer()
 			}
 
 			select {
@@ -118,7 +140,7 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 				return
 			}
 			if c.connection == nil {
-				buffer = append(buffer, req)
+				c.pushOrDiscard(req)
 			} else {
 				c.handle(req)
 			}
@@ -126,8 +148,33 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 	}
 }
 
-func (c *ClientTask[Up, Down]) handle(req Request[Up, Down]) {
+var maxBufferSize = 100
+
+func (c *ClientTask[Up, Down]) resetBuffer() {
+	c.buffer = make([]request[Up, Down], 0, maxBufferSize)
+}
+
+func (c *ClientTask[Up, Down]) pushOrDiscard(req request[Up, Down]) {
+	if req.disposeIfNotActive == true {
+		var Nil Down
+		req.respond(Nil, ErrorNoActiveConnection)
+		return
+	}
+
+	for len(c.buffer) >= maxBufferSize {
+		discarded := c.buffer[0]
+		var Nil Down
+		discarded.respond(Nil, ErrorFullBuffer)
+		c.buffer = c.buffer[1:]
+	}
+
+	c.buffer = append(c.buffer, req)
+}
+
+func (c *ClientTask[Up, Down]) handle(req request[Up, Down]) {
 	if c.connection == nil {
+		var Nil Down
+		req.respond(Nil, ErrorNoActiveConnection)
 		return
 	}
 	res, err := c.connection.Send(req.Message)
@@ -138,9 +185,10 @@ func (c *ClientTask[Up, Down]) handle(req Request[Up, Down]) {
 	req.respond(res, err)
 }
 
-// Fatal stops the Run loop with an error that will be propagated to
-// the server.  If err is nil, the task will be gracefully terminated
-// instead, as if the task's provided context was cancelled.
+// Fatal stops the [ClientTask.Run] loop with an error that will be
+// propagated to the server.  If err is nil, the task will be
+// gracefully terminated instead, as if the task's provided context
+// was cancelled.
 func (c *ClientTask[Up, Down]) Fatal(err error) {
 	if err == nil {
 		c.cancel()
@@ -149,19 +197,33 @@ func (c *ClientTask[Up, Down]) Fatal(err error) {
 	}
 }
 
+// stop is a short hand for Fatal(nil) (graceful exit).
 func (c *ClientTask[Up, Down]) stop() {
 	c.Fatal(nil)
 }
 
-// Request performs an asynchronous Request on the ClientTask
+// Request performs an asynchronous request on the [ClientTask]. If the
+// underlying connection is not active yet, it will buffer the request
+// until a connection is active or the buffer is filled up. In the
+// later request are canceled in FIFO order.
 func (c *ClientTask[Up, Down]) Request(m Up) <-chan RequestResult[Down] {
-	req := NewRequest[Up, Down](m)
-	c.inbound <- req
-	return req.Response()
+	req := newRequest[Up, Down](m)
+	go func() { c.inbound <- req }()
+	return req.response
 }
 
-// Confirmations returns all Connection attempt result to the Olympus
-// stream.
+// MayRequest performs an asynchronous request on the ClientTask, like
+// [ClientTask.Request], but discard immediatly the request if there
+// is no active connection to the server.
+func (c *ClientTask[Up, Down]) MayRequest(m Up) <-chan RequestResult[Down] {
+	req := newRequest[Up, Down](m)
+	req.disposeIfNotActive = true
+	go func() { c.inbound <- req }()
+	return req.response
+}
+
+// Confirmations returns all connection attempt result to the Olympus
+// stream server.
 func (c *ClientTask[Up, Down]) Confirmations() <-chan ConfirmationResult[Down] {
 	return c.confirmations
 }
@@ -184,16 +246,15 @@ func newClientTask[Up, Down metadated](
 		cancel: cancel,
 		fatal:  fatal,
 		connect: func() <-chan ConnectionResult[Up, Down] {
-			return Connect(connectionCtx, address, factory, options...)
+			return connect(connectionCtx, address, factory, options...)
 		},
-		inbound:           make(chan Request[Up, Down], 10),
-		confirmations:     make(chan ConfirmationResult[Down], 2),
-		reconnectionGrace: 2 * time.Second,
+		inbound:       make(chan request[Up, Down], 10),
+		confirmations: make(chan ConfirmationResult[Down], 2),
 	}
 }
 
-// NewClimateTask returns a ClimateTask that connect and call an
-// OlympusClimate stream.
+// NewClimateTask returns a [ClientTask] that connect and call an
+// [OlympusClient] Climate stream.
 func NewClimateTask(
 	ctx context.Context,
 	address string,
@@ -206,8 +267,8 @@ func NewClimateTask(
 		append(options, withSpanBasename("fort.olympus.Olympus/Climate"))...)
 }
 
-// NewTrackingTask returns a ClimateTask that connect and call an
-// OlympusTracking stream.
+// NewTrackingTask returns a [ClimateTask] that connect and call an
+// [OlympusClient] Tracking stream.
 func NewTrackingTask(
 	ctx context.Context,
 	address string,

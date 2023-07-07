@@ -129,7 +129,6 @@ func (s *ClientTaskSuite) TestEndsWithAnEOF(c *C) {
 func (s *ClientTaskSuite) TestReconnectionOnError(c *C) {
 	task := NewClimateTask(context.Background(),
 		testAddress, &ClimateDeclaration{})
-	task.reconnectionGrace = 10 * time.Millisecond
 	done := make(chan struct{})
 	defer func() { <-done }()
 
@@ -205,7 +204,6 @@ func errorsOnFirstRequest[Up, Down any](s server[Up, Down], conf *Down) error {
 func (s *ClientTaskSuite) TestCloseAndReconnectOnError(c *C) {
 	task := NewClimateTask(context.Background(),
 		testAddress, &ClimateDeclaration{})
-	task.reconnectionGrace = 10 * time.Millisecond
 	done := make(chan struct{})
 	defer func() { <-done }()
 
