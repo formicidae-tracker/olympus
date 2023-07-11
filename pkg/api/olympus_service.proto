@@ -20,6 +20,7 @@ enum AlarmStatus {
 enum AlarmLevel {
 	WARNING   = 0;
 	EMERGENCY = 1;
+	FAILURE   = 2;
 }
 
 message AlarmUpdate {
