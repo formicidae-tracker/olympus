@@ -103,7 +103,8 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 		expectedWarning += 1
 	}
 
-	activeWarnings, activeEmergencies := s.l.ActiveAlarmsCount()
+	activeFailures, activeEmergencies, activeWarnings := s.l.ActiveAlarmsCount()
+	c.Check(activeFailures, Equals, 0)
 	c.Check(activeEmergencies, Equals, expectedEmergency)
 	c.Check(activeWarnings, Equals, expectedWarning)
 }

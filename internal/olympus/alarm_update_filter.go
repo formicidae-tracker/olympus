@@ -2,6 +2,7 @@ package olympus
 
 import (
 	"path"
+	"strings"
 	"time"
 
 	"github.com/formicidae-tracker/olympus/pkg/api"
@@ -12,7 +13,17 @@ type ZonedAlarmUpdate struct {
 	Update *api.AlarmUpdate
 }
 
+func AppendSuffix(str string, suffix string) string {
+	if strings.HasSuffix(str, suffix) == true {
+		return str
+	}
+	return str + suffix
+}
+
 func (u ZonedAlarmUpdate) ID() string {
+	if u.Update == nil {
+		return AppendSuffix(u.Zone, "/")
+	}
 	return path.Join(u.Zone, u.Update.Identification)
 }
 
@@ -52,7 +63,9 @@ func (f *updateFilter) filter(
 			if ok == false {
 				return
 			}
-			if f.stage(u) == true && timer == nil {
+			if u.Update == nil {
+				f.cleanUpFired(u.Zone)
+			} else if f.stage(u) == true && timer == nil {
 				wait := u.Update.Time.AsTime().Add(f.minimumOn).Sub(time.Now())
 				timer = time.After(wait)
 			}
@@ -67,6 +80,21 @@ func (f *updateFilter) filter(
 	}
 }
 
+func (f *updateFilter) cleanUpFired(zone string) {
+	zone = AppendSuffix(zone, "/")
+	toDelete := make([]string, 0, len(f.fired))
+
+	for id := range f.fired {
+		if strings.HasPrefix(id, zone) == true {
+			toDelete = append(toDelete, id)
+		}
+	}
+
+	for _, id := range toDelete {
+		delete(f.fired, id)
+	}
+}
+
 func (f *updateFilter) stage(u ZonedAlarmUpdate) bool {
 	id := u.ID()
 	if u.Update.Status == api.AlarmStatus_OFF {
@@ -76,7 +104,7 @@ func (f *updateFilter) stage(u ZonedAlarmUpdate) bool {
 	}
 
 	if firedLevel, ok := f.fired[id]; ok == true {
-		if firedLevel == api.AlarmLevel_EMERGENCY || u.Update.Level == api.AlarmLevel_WARNING {
+		if firedLevel >= u.Update.Level {
 			return false
 		}
 	}

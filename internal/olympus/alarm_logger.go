@@ -8,7 +8,7 @@ import (
 )
 
 type AlarmLogger interface {
-	ActiveAlarmsCount() (warnings int, emergencies int)
+	ActiveAlarmsCount() (failures, emergencies, warnings int)
 	GetReports() []api.AlarmReport
 	// PushAlarms adds a list of AlarmEvents to this logger.
 	PushAlarms([]*api.AlarmUpdate)
@@ -120,7 +120,7 @@ type alarmLogger struct {
 	mx   sync.RWMutex
 	logs map[string]*alarmLog
 
-	warnings, emergencies int
+	warnings, emergencies, failures int
 }
 
 func NewAlarmLogger() AlarmLogger {
@@ -129,10 +129,10 @@ func NewAlarmLogger() AlarmLogger {
 	}
 }
 
-func (l *alarmLogger) ActiveAlarmsCount() (int, int) {
+func (l *alarmLogger) ActiveAlarmsCount() (failure, emergencies, warnings int) {
 	l.mx.RLock()
 	defer l.mx.RUnlock()
-	return l.warnings, l.emergencies
+	return l.failures, l.emergencies, l.warnings
 }
 
 func (l *alarmLogger) GetReports() []api.AlarmReport {
@@ -186,6 +186,8 @@ func (l *alarmLogger) computeActives() {
 			continue
 		}
 		switch log.level {
+		case api.AlarmLevel_FAILURE:
+			l.failures += 1
 		case api.AlarmLevel_EMERGENCY:
 			l.emergencies += 1
 		case api.AlarmLevel_WARNING:

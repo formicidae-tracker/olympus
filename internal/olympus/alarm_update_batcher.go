@@ -1,6 +1,10 @@
 package olympus
 
-import "time"
+import (
+	"time"
+
+	"github.com/formicidae-tracker/olympus/pkg/api"
+)
 
 type notificationBuilder struct {
 	batchPeriod time.Duration
@@ -30,7 +34,7 @@ func (b *notificationBuilder) filter(outgoing chan<- []ZonedAlarmUpdate, incomin
 			if ok == false {
 				return
 			}
-			if timer == nil {
+			if timer == nil || u.Update.Level == api.AlarmLevel_FAILURE {
 				outgoing <- []ZonedAlarmUpdate{u}
 				timer = time.After(b.batchPeriod)
 			} else {

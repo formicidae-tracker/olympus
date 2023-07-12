@@ -286,7 +286,9 @@ func (o *Olympus) GetZones() []api.ZoneReportSummary {
 		}
 
 		if s.alarmLogger != nil {
-			sum.ActiveWarnings, sum.ActiveEmergencies = s.alarmLogger.ActiveAlarmsCount()
+			var failures int
+			failures, sum.ActiveEmergencies, sum.ActiveWarnings = s.alarmLogger.ActiveAlarmsCount()
+			sum.ActiveEmergencies += failures
 		}
 
 		res = append(res, sum)
@@ -481,7 +483,7 @@ func (o *Olympus) UnregisterClimate(ctx context.Context, host, name string, grac
 	}()
 
 	if s.tracking == nil {
-		delete(o.subscriptions, zoneIdentifier)
+		o.removeSubscription(zoneIdentifier)
 	}
 
 	o.serviceLogger.Log(ctx, zoneIdentifier+".climate", false, graceful)
@@ -575,11 +577,17 @@ func (o *Olympus) UnregisterTracker(ctx context.Context, host string, graceful b
 	}()
 
 	if s.climate == nil {
-		delete(o.subscriptions, zoneIdentifier)
+		o.removeSubscription(zoneIdentifier)
 	}
 
 	o.serviceLogger.Log(ctx, zoneIdentifier+".tracking", false, graceful)
 	return nil
+}
+
+func (o *Olympus) removeSubscription(zoneIdentifier string) {
+	delete(o.subscriptions, zoneIdentifier)
+	// clearing all fired alarm for the zone.
+	o.unfilteredAlarms <- ZonedAlarmUpdate{Zone: zoneIdentifier, Update: nil}
 }
 
 func (o *Olympus) NotifyAlarm(ctx context.Context, zone string, update *api.AlarmUpdate) {
