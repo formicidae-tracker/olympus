@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 	"time"
@@ -86,6 +87,15 @@ type Bounds struct {
 	Maximum *float32 `json:"maximum,omitempty"`
 }
 
+type mayFloat float32
+
+func (f *mayFloat) String() string {
+	if f == nil {
+		return "N.A."
+	}
+	return fmt.Sprintf("%.2f", *f)
+}
+
 type ZoneClimateReport struct {
 	Since             time.Time     `json:"since,omitempty"`
 	Temperature       *float32      `json:"temperature,omitempty"`
@@ -97,6 +107,13 @@ type ZoneClimateReport struct {
 	Next              *ClimateState `json:"next,omitempty"`
 	NextEnd           *ClimateState `json:"next_end,omitempty"`
 	NextTime          *time.Time    `json:"next_time,omitempty"`
+}
+
+func (r *ZoneClimateReport) String() string {
+	return fmt.Sprintf("{Since: %s, Temperature: %s, Humidity: %s, TemperatureBounds: %v, HumidityBounds: %v, Current: %v, CurrentEnd: %v, Next: %v, NextEnd: %v, NextTime: %s}",
+		r.Since, (*mayFloat)(r.Temperature), (*mayFloat)(r.Humidity),
+		r.TemperatureBounds, r.HumidityBounds, r.Current, r.CurrentEnd,
+		r.Next, r.NextEnd, r.NextTime)
 }
 
 type StreamInfo struct {
@@ -164,6 +181,11 @@ type ZoneReport struct {
 	Climate  *ZoneClimateReport `json:"climate,omitempty"`
 	Tracking *TrackingInfo      `json:"tracking,omitempty"`
 	Alarms   []AlarmReport      `json:"alarms,omitempty"`
+}
+
+func (r *ZoneReport) String() string {
+	return fmt.Sprintf("{Host: %s, Name: %s, Climate: %v, Tracking: %v, Alarms: %v}",
+		r.Host, r.Name, r.Climate, r.Tracking, r.Alarms)
 }
 
 type NotificationSettings struct {
