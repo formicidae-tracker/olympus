@@ -210,9 +210,9 @@ var climateDataSettingsByWindow = map[string]climateDataSettings{
 }
 
 func (s climateDataSettings) generate(reference time.Time) api.ClimateTimeSeries {
-	points := 500
-	temperatureSeries := make(api.PointSeries, 0, 500)
-	humiditySeries := make(api.PointSeries, 0, 500)
+	points := 80
+	temperatureSeries := make(api.PointSeries, 0, points)
+	humiditySeries := make(api.PointSeries, 0, points)
 
 	for i := 0; i < points; i++ {
 		t := -1.0 * float64(points-1-i) / float64(points-1) * s.Window.Seconds()

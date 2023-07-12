@@ -105,7 +105,10 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
         trigger: 'axis',
         axisPointer: {
           type: 'cross',
-          label: { show: false },
+          snap: true,
+          label: {
+            show: false,
+          },
         },
       },
       legend: { data: ['Humidity', 'Temperature'] },
@@ -117,10 +120,10 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
         name: 'Time',
         nameLocation: 'middle',
         nameGap: 24,
-        min: 'minData',
+        min: (mm) => mm.min,
         max: 0,
         axisLine: { show: true },
-        axisLabel: { formatter: '{value}s' },
+        axisLabel: { formatter: (value: number) => value.toFixed(1) + 's' },
         splitLine: { show: false },
       },
       yAxis: [
@@ -128,19 +131,19 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
           type: 'value',
           name: 'Temperature',
           position: 'right',
-          min: (mm) => mm.min - 2,
-          max: (mm) => mm.max + 2,
+          min: (mm) => Math.round(mm.min) - 2,
+          max: (mm) => Math.round(mm.max) + 2,
           alignTicks: true,
           axisLine: { show: true },
           axisLabel: { formatter: (value: number) => value.toFixed(1) + '°C' },
         },
         {
           type: 'value',
-          name: 'Relative Humidity',
+          name: 'Humidity',
           position: 'left',
           alignTicks: true,
-          min: (mm) => mm.min - 5,
-          max: (mm) => mm.max + 5,
+          min: (mm) => Math.round(mm.min) - 5,
+          max: (mm) => Math.round(mm.max) + 5,
           axisLine: { show: true },
           axisLabel: {
             formatter: (value: number) => value.toFixed(1) + '%',
@@ -154,6 +157,7 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
           yAxisIndex: 1,
           type: 'line',
           data: [],
+          showSymbol: false,
         },
         {
           symbol: 'none',
@@ -186,7 +190,7 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
       legend: { textStyle: { color: normal }, inactiveColor: light },
       xAxis: {
         axisLine: { lineStyle: { color: normal } },
-        axisLabel: { formatter: '{value}' + units },
+        axisLabel: { formatter: (value: number) => value.toFixed(0) + units },
       },
       yAxis: [
         {
@@ -201,12 +205,12 @@ export class ClimateChartComponent implements OnInit, OnDestroy, AfterViewInit {
       series: [
         {
           data: humidity,
-          lineStyle: { color: primary, width: 4 },
+          lineStyle: { color: primary, width: 2 },
           itemStyle: { color: primary },
         },
         {
           data: temperature,
-          lineStyle: { color: accent, width: 4 },
+          lineStyle: { color: accent, width: 2 },
           itemStyle: { color: accent },
         },
       ],
