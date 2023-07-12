@@ -26,9 +26,20 @@ type OlympusSuite struct {
 	o                                      *Olympus
 	somehostBox, anotherBox, anotherTunnel *GrpcSubscription[ClimateLogger]
 	somehostTracking, fifouTracking        *GrpcSubscription[TrackingLogger]
+	somehostTrackingDefinition             *api.TrackingDeclaration
+	somehostClimateDefinition              *api.ClimateDeclaration
 }
 
 var _ = Suite(&OlympusSuite{})
+
+var hostname string
+
+func init() {
+	var err error
+	if err != nil {
+		panic(err.Error())
+	}
+}
 
 func (s *OlympusSuite) SetUpTest(c *C) {
 	_datapath = c.MkDir()
@@ -36,11 +47,12 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 	var err error
 	s.o, err = NewOlympus()
 	c.Assert(err, IsNil)
+	s.somehostClimateDefinition = &api.ClimateDeclaration{
+		Host: "somehost",
+		Name: "box",
+	}
 	s.somehostBox, err = s.o.RegisterClimate(context.Background(),
-		&api.ClimateDeclaration{
-			Host: "somehost",
-			Name: "box",
-		})
+		s.somehostClimateDefinition)
 	c.Assert(err, IsNil)
 
 	s.anotherBox, err = s.o.RegisterClimate(context.Background(),
@@ -57,15 +69,16 @@ func (s *OlympusSuite) SetUpTest(c *C) {
 		})
 	c.Assert(err, IsNil)
 
-	hostname, err := os.Hostname()
+	hostname, err = os.Hostname()
 	c.Assert(err, IsNil)
 
-	s.somehostTracking, err = s.o.RegisterTracking(context.Background(),
-		&api.TrackingDeclaration{
-			Hostname:       "somehost",
-			StreamServer:   hostname + ".local",
-			ExperimentName: "TEST-MODE",
-		})
+	s.somehostTrackingDefinition = &api.TrackingDeclaration{
+		Hostname:       "somehost",
+		StreamServer:   hostname + ".local",
+		ExperimentName: "TEST-MODE",
+	}
+
+	s.somehostTracking, err = s.o.RegisterTracking(context.Background(), s.somehostTrackingDefinition)
 	c.Assert(err, IsNil)
 
 	s.fifouTracking, err = s.o.RegisterTracking(context.Background(),
@@ -247,4 +260,44 @@ func (s *OlympusSuite) TestRoute(c *C) {
 		}
 
 	}
+}
+
+func (s *OlympusSuite) TestUnregisterTracking(c *C) {
+	report, err := s.o.GetZoneReport("somehost", "box")
+	c.Check(err, IsNil)
+	c.Assert(report, Not(IsNil))
+	c.Check(report.Climate, Not(IsNil))
+	c.Check(report.Tracking, Not(IsNil))
+
+	c.Assert(s.o.UnregisterTracker(context.Background(), "somehost", true), IsNil)
+	defer func() {
+		s.somehostTracking, _ = s.o.RegisterTracking(context.Background(),
+			s.somehostTrackingDefinition)
+	}()
+	report, err = s.o.GetZoneReport("somehost", "box")
+	c.Check(err, IsNil)
+	c.Assert(report, Not(IsNil))
+	c.Check(report.Climate, Not(IsNil))
+	c.Check(report.Tracking, IsNil)
+
+}
+
+func (s *OlympusSuite) TestUnregisterClimate(c *C) {
+	report, err := s.o.GetZoneReport("somehost", "box")
+	c.Check(err, IsNil)
+	c.Assert(report, Not(IsNil))
+	c.Check(report.Climate, Not(IsNil))
+	c.Check(report.Tracking, Not(IsNil))
+
+	c.Assert(s.o.UnregisterClimate(context.Background(), "somehost", "box", true), IsNil)
+	defer func() {
+		s.somehostBox, _ = s.o.RegisterClimate(context.Background(),
+			s.somehostClimateDefinition)
+	}()
+	report, err = s.o.GetZoneReport("somehost", "box")
+	c.Check(err, IsNil)
+	c.Assert(report, Not(IsNil))
+	c.Check(report.Climate, IsNil)
+	c.Check(report.Tracking, Not(IsNil))
+
 }

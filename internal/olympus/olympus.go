@@ -566,13 +566,15 @@ func (o *Olympus) UnregisterTracker(ctx context.Context, host string, graceful b
 	if o.subscriptions == nil {
 		return ClosedOlympusServerError{}
 	}
+
 	zoneIdentifier := ZoneIdentifier(host, "box")
 	s, ok := o.subscriptions[zoneIdentifier]
 	if ok == false || s.tracking == nil {
 		return ZoneNotFoundError(zoneIdentifier)
 	}
+
 	defer func() {
-		s.climate = nil
+		s.tracking = nil
 		o.subscriptionWg.Done()
 	}()
 
