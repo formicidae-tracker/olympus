@@ -83,7 +83,7 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 			subscription.object.PushTarget(m.Target)
 		}
 		if len(m.Alarms) > 0 {
-			subscription.alarmLogger.PushAlarms(m.Alarms)
+			subscription.alarmLogger.PushAlarms(m.Alarms, "climate")
 			if m.Backlog == false {
 				subscription.NotifyAlarms(m.Alarms)
 			}
@@ -137,7 +137,7 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 		}
 
 		if len(m.Alarms) > 0 {
-			subscription.alarmLogger.PushAlarms(m.Alarms)
+			subscription.alarmLogger.PushAlarms(m.Alarms, "tracking")
 			subscription.NotifyAlarms(m.Alarms)
 		}
 

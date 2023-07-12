@@ -444,6 +444,7 @@ func (o *Olympus) RegisterClimate(ctx context.Context, declaration *api.ClimateD
 		updates:     o.unfilteredAlarms,
 	}
 
+	sub.alarmLogger.ClearDomain("climate", declaration.Since.AsTime())
 	go o.serviceLogger.Log(ctx, zoneIdentifier+".climate", true, true)
 
 	return sub.climate, nil
@@ -541,6 +542,8 @@ func (o *Olympus) RegisterTracking(ctx context.Context, declaration *api.Trackin
 		alarmLogger: sub.alarmLogger,
 		updates:     o.unfilteredAlarms,
 	}
+
+	sub.alarmLogger.ClearDomain("tracking", declaration.Since.AsTime())
 
 	o.serviceLogger.Log(ctx, zoneIdentifier+".tracking", true, true)
 

@@ -65,17 +65,19 @@ func (s *AlarmLoggerSuite) TestLogsAlarms(c *C) {
 		}
 		events[i] = event
 	}
-	s.l.PushAlarms(events)
+	s.l.PushAlarms(events, "test")
 
 	reports := s.l.GetReports()
 	for _, r := range reports {
 		switch r.Identification {
-		case "foo":
+		case "test.foo":
 			c.Check(api.AlarmLevel(r.Level), Equals, api.AlarmLevel_WARNING)
-		case "bar":
+		case "test.bar":
 			c.Check(api.AlarmLevel(r.Level), Equals, api.AlarmLevel_EMERGENCY)
-		case "baz":
+		case "test.baz":
 			c.Check(api.AlarmLevel(r.Level), Equals, api.AlarmLevel_WARNING)
+		default:
+			c.Errorf("unexpected identifier %s", r.Identification)
 		}
 		c.Check(len(r.Events) > 0, Equals, true)
 		for i, e := range r.Events {

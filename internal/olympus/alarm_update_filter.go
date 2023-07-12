@@ -20,6 +20,13 @@ func AppendSuffix(str string, suffix string) string {
 	return str + suffix
 }
 
+func PrependPrefix(str string, prefix string) string {
+	if strings.HasPrefix(str, prefix) == true {
+		return str
+	}
+	return prefix + str
+}
+
 func (u ZonedAlarmUpdate) ID() string {
 	if u.Update == nil {
 		return AppendSuffix(u.Zone, "/")

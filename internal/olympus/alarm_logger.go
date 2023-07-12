@@ -1,6 +1,7 @@
 package olympus
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -11,7 +12,8 @@ type AlarmLogger interface {
 	ActiveAlarmsCount() (failures, emergencies, warnings int)
 	GetReports() []api.AlarmReport
 	// PushAlarms adds a list of AlarmEvents to this logger.
-	PushAlarms([]*api.AlarmUpdate)
+	PushAlarms([]*api.AlarmUpdate, string)
+	ClearDomain(string, time.Time)
 }
 
 type alarmTimePoint struct {
@@ -97,6 +99,13 @@ func (l *alarmLog) on() bool {
 	return l.timepoints[len(l.timepoints)-1].on
 }
 
+func (l *alarmLog) time() time.Time {
+	if len(l.timepoints) == 0 {
+		return time.Time{}
+	}
+	return l.timepoints[len(l.timepoints)-1].time
+}
+
 func (l *alarmLog) pushUpdate(u *api.AlarmUpdate) {
 	updateTime := u.Time.AsTime()
 	l.timepoints = BackInsertionSort(l.timepoints,
@@ -145,14 +154,32 @@ func (l *alarmLogger) GetReports() []api.AlarmReport {
 	return res
 }
 
-func (l *alarmLogger) PushAlarms(updates []*api.AlarmUpdate) {
+func (l *alarmLogger) PushAlarms(updates []*api.AlarmUpdate, domain string) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
+	domain = AppendSuffix(domain, ".")
+
 	for _, e := range updates {
+		e.Identification = PrependPrefix(e.Identification, domain)
 		l.pushUpdateToLog(e)
 	}
 	l.computeActives()
 	l.decimateLogs(updates)
+}
+
+func (l *alarmLogger) ClearDomain(domain string, before time.Time) {
+	domain = AppendSuffix(domain, ".")
+	l.mx.Lock()
+	defer l.mx.Unlock()
+
+	for name, log := range l.logs {
+		if strings.HasPrefix(name, domain) == false {
+			continue
+		}
+		if log.on() && log.time().Before(before) {
+			log.timepoints = append(log.timepoints, alarmTimePoint{time: before, on: false})
+		}
+	}
 }
 
 func (l *alarmLogger) pushUpdateToLog(update *api.AlarmUpdate) {
