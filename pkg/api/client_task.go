@@ -3,6 +3,9 @@ package api
 import (
 	"context"
 	"errors"
+	"math"
+	"math/rand"
+	"time"
 
 	"go.opentelemetry.io/otel/trace"
 )
@@ -72,14 +75,15 @@ type ConfirmationResult[Down any] struct {
 // request with this task. [ClientTask.Run] should be explicitely
 // called to perform the task loop in the background.
 type ClientTask[Up, Down metadated] struct {
-	ctx           context.Context
-	cancel        context.CancelFunc
-	fatal         context.CancelCauseFunc
-	connect       func() <-chan ConnectionResult[Up, Down]
-	inbound       chan request[Up, Down]
-	confirmations chan ConfirmationResult[Down]
-	connection    *Connection[Up, Down]
-	buffer        []request[Up, Down]
+	ctx                 context.Context
+	cancel              context.CancelFunc
+	fatal               context.CancelCauseFunc
+	connect             func(time.Duration) <-chan ConnectionResult[Up, Down]
+	inbound             chan request[Up, Down]
+	confirmations       chan ConfirmationResult[Down]
+	connection          *Connection[Up, Down]
+	buffer              []request[Up, Down]
+	baseDelay, maxDelay time.Duration
 }
 
 // Run runs the [ClientTask] communication loop until either
@@ -94,7 +98,7 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 	}()
 	defer close(c.confirmations)
 
-	newConnection := c.connect()
+	newConnection := c.connect(0)
 
 	defer func() {
 		var Nil Down
@@ -103,10 +107,12 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 		}
 	}()
 
+	i := 0
+
 	c.resetBuffer()
 	for {
 		if c.connection == nil && newConnection == nil {
-			newConnection = c.connect()
+			newConnection = c.connect(c.delay(i))
 		}
 
 		select {
@@ -121,13 +127,23 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 
 			if res.Error != nil {
 				confirmation.Error = res.Error
+				i += 1
 			} else {
 				c.connection = res.Connection
 				confirmation.Confirmation = c.connection.acknowledge
-				for _, req := range c.buffer {
-					c.handle(req)
+				hasError := false
+				for i, req := range c.buffer {
+					if c.handle(req) != nil {
+						hasError = true
+						c.buffer = c.buffer[i:]
+						break
+					}
 				}
-				c.resetBuffer()
+
+				if hasError == false {
+					c.resetBuffer()
+					i = 0
+				}
 			}
 
 			select {
@@ -146,6 +162,16 @@ func (c *ClientTask[Up, Down]) Run() (err error) {
 			}
 		}
 	}
+}
+
+func (c *ClientTask[Up, Down]) delay(iteration int) time.Duration {
+	delay := time.Duration(math.Pow(1.2, float64(iteration)) * float64(c.baseDelay))
+	if delay > c.maxDelay {
+		delay = c.maxDelay
+	}
+
+	jitter := 1.0 + 0.1*(rand.Float64()*2.0-1.0)
+	return time.Duration(jitter * float64(delay))
 }
 
 var maxBufferSize = 100
@@ -171,11 +197,11 @@ func (c *ClientTask[Up, Down]) pushOrDiscard(req request[Up, Down]) {
 	c.buffer = append(c.buffer, req)
 }
 
-func (c *ClientTask[Up, Down]) handle(req request[Up, Down]) {
+func (c *ClientTask[Up, Down]) handle(req request[Up, Down]) error {
 	if c.connection == nil {
 		var Nil Down
 		req.respond(Nil, ErrorNoActiveConnection)
-		return
+		return ErrorNoActiveConnection
 	}
 	res, err := c.connection.Send(req.Message)
 	if err != nil {
@@ -183,6 +209,7 @@ func (c *ClientTask[Up, Down]) handle(req request[Up, Down]) {
 		c.connection = nil
 	}
 	req.respond(res, err)
+	return err
 }
 
 // Fatal stops the [ClientTask.Run] loop with an error that will be
@@ -245,9 +272,12 @@ func newClientTask[Up, Down metadated](
 		ctx:    cancelable,
 		cancel: cancel,
 		fatal:  fatal,
-		connect: func() <-chan ConnectionResult[Up, Down] {
-			return connect(connectionCtx, address, factory, options...)
+		connect: func(delay time.Duration) <-chan ConnectionResult[Up, Down] {
+			actualOptions := append(options, withDelay(delay))
+			return connect(connectionCtx, address, factory, actualOptions...)
 		},
+		baseDelay:     500 * time.Millisecond,
+		maxDelay:      30 * time.Second,
 		inbound:       make(chan request[Up, Down], 10),
 		confirmations: make(chan ConfirmationResult[Down], 2),
 	}

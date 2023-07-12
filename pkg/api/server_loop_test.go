@@ -106,6 +106,7 @@ func (s *ServerLoopSuite) TearDownTest(c *C) {
 
 func (s *ServerLoopSuite) TestDoNothingConnection(c *C) {
 	task := NewTrackingTask(context.Background(), testAddress, &TrackingDeclaration{})
+	task.baseDelay = time.Millisecond
 
 	errors := make(chan error)
 	go func() {
@@ -230,6 +231,7 @@ func (s *ServerLoopSuite) TestErrorsOnBadClientStream(c *C) {
 
 func (s *ServerLoopSuite) TestServerError(c *C) {
 	task := NewTrackingTask(context.Background(), testAddress, &TrackingDeclaration{})
+	task.baseDelay = time.Millisecond
 
 	done := make(chan struct{})
 	defer func() { <-done }()

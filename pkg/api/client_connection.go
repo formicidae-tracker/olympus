@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"path"
+	"time"
 
 	"github.com/formicidae-tracker/olympus/pkg/tm"
 	"go.opentelemetry.io/otel"
@@ -89,6 +90,7 @@ type connectionConfig struct {
 	tracer      trace.Tracer
 	propagator  propagation.TextMapPropagator
 	dialOptions []grpc.DialOption
+	delay       time.Duration
 }
 
 // A ConnectionOption represents an optional parameter to [Connect] or
@@ -114,6 +116,12 @@ func withSpanBasename(name string) ConnectionOption {
 		config.tracer = otel.GetTracerProvider().
 			Tracer("github.com/formicidae-tracker/olympus/pkg/tm")
 		config.propagator = otel.GetTextMapPropagator()
+	})
+}
+
+func withDelay(delay time.Duration) ConnectionOption {
+	return connectionOptionFunc(func(opts *connectionConfig) {
+		opts.delay = delay
 	})
 }
 
@@ -263,6 +271,8 @@ func connectSync[Up, Down metadated](
 			SpanContext: sc,
 		})
 	}
+
+	time.Sleep(c.config.delay)
 
 	c.conn, err = grpc.DialContext(ctx, address,
 		c.config.dialOptions...)
