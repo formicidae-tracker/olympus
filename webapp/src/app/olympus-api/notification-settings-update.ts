@@ -16,7 +16,6 @@ export class NotificationSettingsUpdate {
     let res = new NotificationSettingsUpdate();
     res.endpoint = plain.endpoint || '';
     res.settings = NotificationSettings.fromPlain(plain.settings || {});
-    console.log(plain, res);
     return res;
   }
 
