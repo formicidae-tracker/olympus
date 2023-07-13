@@ -22,6 +22,7 @@ import { HttpClientModule } from '@angular/common/http';
 import {
   PushNotificationService,
   PushSubscriptionStatus,
+  serverPublicKey,
 } from './push-notification.service';
 import { NotificationSettingsService } from './notification-settings.service';
 import { OlympusService } from 'src/app/olympus-api/services/olympus.service';
@@ -37,6 +38,11 @@ class StubSwPush {
   constructor() {
     this._subscription$ = new BehaviorSubject<PushSubscription | null>(null);
     this.subscription = this._subscription$.asObservable();
+  }
+
+  public unsubscribe(): Promise<void> {
+    this._subscription$.next(null);
+    return of(void 0).toPromise();
   }
 
   public requestSubscription({
@@ -98,6 +104,7 @@ describe('PushNotificationService', () => {
 
   describe('without service worker', () => {
     beforeEach(() => {
+      localStorage.removeItem(serverPublicKey);
       push.isEnabled = false;
       olympus.getPushServerPublicKey.and.returnValue(of(''));
     });
@@ -135,6 +142,7 @@ describe('PushNotificationService', () => {
 
   describe('with a service worker but no subscription', () => {
     beforeEach(() => {
+      localStorage.removeItem(serverPublicKey);
       push.isEnabled = true;
       push.reject = true;
       olympus.getPushServerPublicKey.and.returnValue(of('youGotTheMagicWord'));
@@ -196,7 +204,11 @@ describe('PushNotificationService', () => {
       push.reject = false;
 
       notifications.getSettings.and.returnValue(
-        of().pipe(startWith(new NotificationSettings({ subscribeToAll: true })))
+        of(new NotificationSettings({ subscribeToAll: true })).pipe(
+          map((v) => {
+            return v;
+          })
+        )
       );
 
       olympus.updateNotificationSettings.and.callFake(() => {
@@ -223,6 +235,9 @@ describe('PushNotificationService', () => {
         )
         .subscribe((statuses) => {
           expect(statuses).toEqual(['not-updated', 'updated']);
+          expect(localStorage.getItem(serverPublicKey)).toEqual(
+            'youGotTheMagicWord'
+          );
           done();
         });
     });
@@ -230,6 +245,8 @@ describe('PushNotificationService', () => {
 
   describe('with a service worker and a subscription', () => {
     beforeEach(() => {
+      localStorage.setItem(serverPublicKey, 'youGotTheMagicWord');
+
       push.isEnabled = true;
       push.reject = false;
       push
@@ -325,7 +342,7 @@ describe('PushNotificationService', () => {
     });
 
     it('should stop retrying on new settings', (done: DoneFn) => {
-      service.retryDelay = 8;
+      service.retryDelay = 11;
       const toSend = [
         new NotificationSettings({ subscribeToAll: true }),
         new NotificationSettings(),
@@ -364,12 +381,7 @@ describe('PushNotificationService', () => {
           }, [] as PushSubscriptionStatus[])
         )
         .subscribe((statuses) => {
-          expect(statuses).toEqual([
-            'not-updated',
-            'not-updated',
-            'not-updated',
-            'updated',
-          ]);
+          expect(statuses).toEqual(['not-updated', 'not-updated', 'updated']);
           done();
         });
     });

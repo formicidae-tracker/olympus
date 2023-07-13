@@ -5,14 +5,19 @@ import {
   Observable,
   RetryConfig,
   catchError,
+  combineLatest,
   concat,
   delay,
   filter,
   from,
   map,
+  mapTo,
   of,
   retry,
+  skip,
+  startWith,
   switchMap,
+  switchMapTo,
   take,
 } from 'rxjs';
 import { NotificationSettings } from '../notification-settings';
@@ -21,6 +26,8 @@ import { NotificationSettingsUpdate } from 'src/app/olympus-api/notification-set
 import { HttpErrorResponse } from '@angular/common/http';
 
 export type PushSubscriptionStatus = 'non-accepted' | 'not-updated' | 'updated';
+
+export const serverPublicKey: string = 'serverPublicKey';
 
 @Injectable({
   providedIn: 'root',
@@ -53,7 +60,7 @@ export class PushNotificationService {
   }
 
   private updatePushSubscription(): Observable<PushSubscriptionStatus> {
-    return this.push.subscription.pipe(
+    return this.updatedPushSubscription().pipe(
       switchMap((subscription: PushSubscription | null) => {
         if (subscription == null) {
           return of('non-accepted' as PushSubscriptionStatus);
@@ -67,6 +74,49 @@ export class PushNotificationService {
               )
             )
           );
+      })
+    );
+  }
+
+  private updatedPushSubscription(): Observable<PushSubscription | null> {
+    return combineLatest([
+      this.olympus.getPushServerPublicKey(),
+      this.push.subscription,
+    ]).pipe(
+      switchMap(([key, subscription]: [string, PushSubscription | null]) => {
+        this.serverPublicKey = key;
+        const localKey = localStorage.getItem(serverPublicKey);
+        if (subscription == null || localKey == this.serverPublicKey) {
+          localStorage.setItem(serverPublicKey, this.serverPublicKey);
+          return this.updateServerSubscription(1).pipe(startWith(subscription));
+        }
+
+        console.warn(
+          'mismatched local and server public key server:' +
+            this.serverPublicKey +
+            ' local: ' +
+            localKey
+        );
+
+        return from(this.push.unsubscribe()).pipe(
+          switchMapTo(this.updateServerSubscription(0))
+        );
+      })
+    );
+  }
+
+  private updateServerSubscription(
+    toSkip: number
+  ): Observable<PushSubscription | null> {
+    return this.push.subscription.pipe(
+      skip(toSkip),
+      switchMap((subscription) => {
+        if (subscription == null) {
+          return of(null);
+        }
+        return this.olympus
+          .registerPushSubscription(subscription)
+          .pipe(mapTo(subscription));
       })
     );
   }
@@ -97,47 +147,24 @@ export class PushNotificationService {
   }
 
   private requestPushSubscriptionWhenHasKey(): Observable<void> {
-    return this.olympus.getPushServerPublicKey().pipe(
-      switchMap((key: string) => {
-        this.serverPublicKey = key;
-        if (key.length == 0) {
-          return of();
-        }
-        const savedKey = localStorage.getItem('serverPublicKey') || key;
-        if (savedKey != key) {
-          return concat(
-            from(this.push.unsubscribe()),
-            this.pushSubscriptionRequired()
-          );
-        }
-        return this.pushSubscriptionRequired();
-      }),
-      switchMap(() => this.requestPushSubscription())
+    return this.pushSubscriptionRequired().pipe(
+      switchMap(() =>
+        this.push.requestSubscription({
+          serverPublicKey: this.serverPublicKey,
+        })
+      ),
+      mapTo(void 0)
     );
   }
 
   private pushSubscriptionRequired(): Observable<void> {
-    return this.notifications.getSettings().pipe(
-      filter((settings) => settings.needPushSubscription()),
-      take(1),
-      switchMap(() => this.push.subscription),
+    return this.updatedPushSubscription().pipe(
       filter((sub: PushSubscription | null) => sub == null),
       take(1),
+      switchMap(() => this.notifications.getSettings()),
+      filter((settings) => settings.needPushSubscription()),
+      take(1),
       map(() => void 0)
-    );
-  }
-
-  private requestPushSubscription(): Observable<void> {
-    return from(
-      this.push.requestSubscription({ serverPublicKey: this.serverPublicKey })
-    ).pipe(
-      switchMap((s: PushSubscription) => {
-        return this.olympus.registerPushSubscription(s);
-      }),
-      map(() => {
-        localStorage.setItem('serverPublicKey', this.serverPublicKey);
-        return void 0;
-      })
     );
   }
 
