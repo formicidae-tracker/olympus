@@ -15,6 +15,7 @@ import {
   switchMap,
   take,
 } from 'rxjs';
+
 import { NotificationSettings } from '../notification-settings';
 import { OlympusService } from 'src/app/olympus-api/services/olympus.service';
 import { NotificationSettingsUpdate } from 'src/app/olympus-api/notification-settings-update';
@@ -103,14 +104,19 @@ export class PushNotificationService {
         if (key.length == 0) {
           return of();
         }
-        const savedKey = localStorage.getItem('serverPublicKey') || key;
-        if (savedKey != key) {
-          return concat(
-            from(this.push.unsubscribe()),
-            this.pushSubscriptionRequired()
-          );
-        }
-        return this.pushSubscriptionRequired();
+        const savedKey = localStorage.getItem('serverPublicKey');
+
+        return this.push.subscription.pipe(
+          switchMap((subscription: PushSubscription | null) => {
+            if (subscription != null && key != savedKey) {
+              return concat(
+                from(this.push.unsubscribe()),
+                this.pushSubscriptionRequired()
+              );
+            }
+            return this.pushSubscriptionRequired();
+          })
+        );
       }),
       switchMap(() => this.requestPushSubscription())
     );
@@ -132,11 +138,8 @@ export class PushNotificationService {
       this.push.requestSubscription({ serverPublicKey: this.serverPublicKey })
     ).pipe(
       switchMap((s: PushSubscription) => {
-        return this.olympus.registerPushSubscription(s);
-      }),
-      map(() => {
         localStorage.setItem('serverPublicKey', this.serverPublicKey);
-        return void 0;
+        return this.olympus.registerPushSubscription(s);
       })
     );
   }

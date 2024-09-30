@@ -39,6 +39,16 @@ class StubSwPush {
     this.subscription = this._subscription$.asObservable();
   }
 
+  public unsubscribe(): Promise<void> {
+    return of(void 0)
+      .pipe(
+        map(() => {
+          this._subscription$.next(null);
+        })
+      )
+      .toPromise();
+  }
+
   public requestSubscription({
     serverPublicKey = '',
   }): Promise<PushSubscription> {
@@ -68,6 +78,7 @@ describe('PushNotificationService', () => {
   let notifications: jasmine.SpyObj<NotificationSettingsService>;
   let olympus: jasmine.SpyObj<OlympusService>;
   beforeEach(() => {
+    localStorage.removeItem('serverPublicKey');
     push = new StubSwPush();
     notifications = jasmine.createSpyObj('NotificationSettingsService', [
       'getSettings',
