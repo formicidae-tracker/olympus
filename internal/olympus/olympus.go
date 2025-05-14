@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"sync"
 	"time"
@@ -21,7 +22,8 @@ import (
 var UnknownEndpointError = errors.New("unknown PushSubscription endpoint")
 
 type UnexpectedStreamServerError struct {
-	Got, Expected string
+	Got      string
+	Expected string
 }
 
 func (e UnexpectedStreamServerError) Error() string {
@@ -506,9 +508,14 @@ func (o *Olympus) RegisterTracking(ctx context.Context, declaration *api.Trackin
 		}
 	}()
 
-	if declaration.StreamServer != o.hostname+".local" {
+	rx, err := regexp.Compile(o.hostname + `\.(local|lan)`)
+	if err != nil {
+		return nil, fmt.Errorf("Internal server error preparing regexp: %w", err)
+	}
+
+	if rx.MatchString(declaration.StreamServer) == false {
 		return nil, UnexpectedStreamServerError{Got: declaration.StreamServer,
-			Expected: o.hostname + ".local"}
+			Expected: o.hostname + ".(local|lan)"}
 	}
 
 	o.mx.Lock()
