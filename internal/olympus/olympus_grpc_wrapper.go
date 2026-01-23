@@ -2,10 +2,10 @@ package olympus
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -35,8 +35,8 @@ func (o *OlympusGRPCWrapper) SubscriptionContext() context.Context {
 	return (*Olympus)(o).subscriptionContext
 }
 
-func (o *OlympusGRPCWrapper) Log(ctx context.Context) *logrus.Entry {
-	return (*Olympus)(o).log.WithField("domain", "gRPC").WithContext(ctx)
+func (o *OlympusGRPCWrapper) Log() *slog.Logger {
+	return (*Olympus)(o).log.With("domain", "gRPC")
 }
 
 func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err error) {
@@ -49,7 +49,7 @@ func (o *OlympusGRPCWrapper) Climate(stream api.Olympus_ClimateServer) (err erro
 		}
 
 		if err != nil {
-			o.Log(ctx).WithError(err).Error("climate stream error")
+			o.Log().With("error", err).ErrorContext(ctx, "climate stream error")
 		}
 
 		graceful := err == nil
@@ -114,7 +114,7 @@ func (o *OlympusGRPCWrapper) Tracking(stream api.Olympus_TrackingServer) (err er
 		}
 
 		if err != nil {
-			o.Log(ctx).WithError(err).Error("tracking stream error")
+			o.Log().With("error", err).ErrorContext(ctx, "tracking stream error")
 		}
 
 		graceful := err == nil

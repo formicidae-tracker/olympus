@@ -2,13 +2,13 @@ package olympus
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/formicidae-tracker/olympus/pkg/tm"
-	"github.com/sirupsen/logrus"
 )
 
 func MayBeSubscribedTo(zone string, settings api.NotificationSettings) bool {
@@ -60,7 +60,7 @@ type notifier struct {
 	outgoing map[string]chan<- ZonedAlarmUpdate
 
 	batchPeriod time.Duration
-	log         *logrus.Entry
+	log         *slog.Logger
 }
 
 func NewNotifier(batchPeriod time.Duration) Notifier {
@@ -89,12 +89,12 @@ func (n *notifier) Outgoing() <-chan NotificationFor {
 
 func (n *notifier) RegisterPushSubscription(s *webpush.Subscription) (err error) {
 	defer func() {
-		entry := n.log.WithField("endpoint", s.Endpoint)
+		logger := n.log.With("endpoint", s.Endpoint)
 
 		if err != nil {
-			entry.WithField("error", err).Errorf("could not register endpoint")
+			logger.With("error", err).Error("could not register endpoint")
 		} else {
-			entry.Infof("new push subscription ")
+			logger.Info("new push subscription ")
 		}
 	}()
 
@@ -116,14 +116,13 @@ func (n *notifier) RegisterPushSubscription(s *webpush.Subscription) (err error)
 
 func (n *notifier) UpdatePushSubscription(update *api.NotificationSettingsUpdate) (err error) {
 	defer func() {
-		entry := n.log.WithFields(logrus.Fields{
-			"endpoint": update.Endpoint,
-			"settings": update.Settings,
-		})
+		logger := n.log.With("endpoint", update.Endpoint,
+			"settings", update.Settings,
+		)
 		if err != nil {
-			entry.WithField("error", err).Errorf("could not update subscription")
+			logger.With("error", err).Error("could not update subscription")
 		} else {
-			entry.Debugf("updated settings")
+			logger.Debug("updated settings")
 		}
 	}()
 

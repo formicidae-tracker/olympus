@@ -3,7 +3,6 @@ package olympus
 import (
 	"context"
 	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -13,13 +12,11 @@ import (
 
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	. "gopkg.in/check.v1"
 )
 
 func init() {
-	logrus.SetOutput(io.Discard)
 }
 
 type OlympusSuite struct {

@@ -2,13 +2,13 @@ package olympus
 
 import (
 	"context"
+	"log/slog"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/formicidae-tracker/olympus/pkg/tm"
-	"github.com/sirupsen/logrus"
 )
 
 type ServiceLogger interface {
@@ -22,7 +22,7 @@ type serviceLogger struct {
 	mx sync.RWMutex
 
 	logs   *PersistentMap[*api.ServiceLog]
-	logger *logrus.Entry
+	logger *slog.Logger
 }
 
 func (l *serviceLogger) Log(ctx context.Context, zone string, on, graceful bool) {
@@ -93,11 +93,9 @@ func (l *serviceLogger) OffServices() []string {
 
 func (l *serviceLogger) save(ctx context.Context, zone string) {
 	if err := l.logs.SaveKey(zone); err != nil {
-		l.logger.WithContext(ctx).
-			WithFields(logrus.Fields{
-				"zone":  zone,
-				"error": err,
-			}).Error("could not save to persistent storage")
+		l.logger.With(slog.String("zone", zone),
+			"error", err,
+		).ErrorContext(ctx, "could not save to persistent storage")
 	}
 }
 

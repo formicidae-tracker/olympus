@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"regexp"
@@ -16,7 +17,6 @@ import (
 	"github.com/formicidae-tracker/olympus/pkg/api"
 	"github.com/formicidae-tracker/olympus/pkg/tm"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 )
 
 var UnknownEndpointError = errors.New("unknown PushSubscription endpoint")
@@ -94,7 +94,7 @@ type Olympus struct {
 	subscriptionWg sync.WaitGroup
 	notificationWg sync.WaitGroup
 
-	log         *logrus.Entry
+	log         *slog.Logger
 	csrfHandler *CSRFHandler
 
 	cancelSubscription  context.CancelFunc
@@ -170,7 +170,7 @@ func NewOlympus() (*Olympus, error) {
 
 	res.notificationSender, err = NewNotificationSender()
 	if err != nil {
-		res.log.WithField("error", err).Warnf("push notifications will be disabled")
+		res.log.With("error", err).Warn("push notifications will be disabled")
 	}
 
 	res.notificationWg.Add(3)
@@ -188,7 +188,7 @@ func NewOlympus() (*Olympus, error) {
 		defer res.notificationWg.Done()
 		for n := range res.notifier.Outgoing() {
 			if err := res.notificationSender.Send(n); err != nil {
-				res.log.WithField("error", err).Errorf("could not send notification")
+				res.log.With("error", err).Error("could not send notification")
 			}
 		}
 	}()
@@ -211,12 +211,12 @@ func getOlympusSecret() ([]byte, error) {
 func (o *Olympus) buildCSRFHandler() {
 	secret, err := getOlympusSecret()
 	if err != nil {
-		o.log.Printf("could not get olympus secret: %s", err)
+		o.log.With("error", err).Error("could not get olympus secret")
 		return
 	}
 	o.csrfHandler, err = NewCSRFHandler(secret)
 	if err != nil {
-		o.log.Printf("could not set CSRF Handler: %s", err)
+		o.log.With("error", err).Error("could not set CSRF Handler")
 	}
 }
 
@@ -405,15 +405,15 @@ func (o *Olympus) RegisterClimate(ctx context.Context, declaration *api.ClimateD
 	zoneIdentifier := ZoneIdentifier(declaration.Host, declaration.Name)
 
 	defer func() {
-		entry := o.log.WithContext(ctx).WithFields(logrus.Fields{
-			"zone":        zoneIdentifier,
-			"declaration": declaration,
-		})
+		entry := o.log.With(slog.String(
+			"zone", zoneIdentifier),
+			"declaration", declaration,
+		)
 
 		if err != nil {
-			entry.WithField("error", err).Error("could not register climate")
+			entry.With("error", err).ErrorContext(ctx, "could not register climate")
 		} else {
-			entry.Info("registered climate")
+			entry.InfoContext(ctx, "registered climate")
 		}
 	}()
 
@@ -456,15 +456,14 @@ func (o *Olympus) UnregisterClimate(ctx context.Context, host, name string, grac
 	zoneIdentifier := ZoneIdentifier(host, name)
 
 	defer func() {
-		entry := o.log.WithContext(ctx).WithFields(logrus.Fields{
-			"zone":     zoneIdentifier,
-			"graceful": graceful,
-		})
+		entry := o.log.With(slog.String("zone", zoneIdentifier),
+			slog.Bool("graceful", graceful),
+		)
 
 		if err != nil {
-			entry.WithField("error", err).Error("could not unregister climate")
+			entry.With("error", err).ErrorContext(ctx, "could not unregister climate")
 		} else {
-			entry.Info("unregistered climate")
+			entry.InfoContext(ctx, "unregistered climate")
 		}
 	}()
 
@@ -497,14 +496,13 @@ func (o *Olympus) UnregisterClimate(ctx context.Context, host, name string, grac
 func (o *Olympus) RegisterTracking(ctx context.Context, declaration *api.TrackingDeclaration) (tsub *GrpcSubscription[TrackingLogger], err error) {
 	var zoneIdentifier string
 	defer func() {
-		entry := o.log.WithContext(ctx).WithFields(logrus.Fields{
-			"declaration": declaration,
-			"zone":        zoneIdentifier,
-		})
+		logger := o.log.With("declaration", declaration,
+			slog.String("zone", zoneIdentifier),
+		)
 		if err != nil {
-			entry.WithField("error", err).Error("could not register tracking")
+			logger.With("error", err).ErrorContext(ctx, "could not register tracking")
 		} else {
-			entry.Info("registered tracking")
+			logger.InfoContext(ctx, "registered tracking")
 		}
 	}()
 
@@ -559,15 +557,14 @@ func (o *Olympus) RegisterTracking(ctx context.Context, declaration *api.Trackin
 
 func (o *Olympus) UnregisterTracker(ctx context.Context, host string, graceful bool) (err error) {
 	defer func() {
-		entry := o.log.WithContext(ctx).WithFields(logrus.Fields{
-			"host":     host,
-			"graceful": graceful,
-		})
+		entry := o.log.With(slog.String("host", host),
+			slog.Bool("graceful", graceful),
+		)
 
 		if err != nil {
-			entry.WithField("error", err).Error("could not unregister tracking")
+			entry.With("error", err).ErrorContext(ctx, "could not unregister tracking")
 		} else {
-			entry.Info("unregistered tracking")
+			entry.InfoContext(ctx, "unregistered tracking")
 		}
 	}()
 	o.mx.Lock()
@@ -605,10 +602,9 @@ func (o *Olympus) removeSubscription(zoneIdentifier string) {
 func (o *Olympus) NotifyAlarm(ctx context.Context, zone string, update *api.AlarmUpdate) {
 	o.mx.Lock()
 	defer o.mx.Unlock()
-	o.log.WithContext(ctx).WithFields(logrus.Fields{
-		"zone":   zone,
-		"update": update,
-	}).Info("manual zone alarm update")
+	o.log.With(slog.String("zone", zone),
+		"update", update,
+	).InfoContext(ctx, "manual zone alarm update")
 	o.notifier.Incoming() <- ZonedAlarmUpdate{Zone: zone, Update: update}
 }
 
@@ -617,7 +613,7 @@ func (o *Olympus) setRoutes(router *mux.Router) {
 	if o.csrfHandler != nil {
 		o.setNotificationRoutes(router)
 	} else {
-		o.log.Printf("No CSRF handler set, notifications routes are disabled")
+		o.log.Warn("No CSRF handler set, notifications routes are disabled")
 	}
 }
 
@@ -697,13 +693,13 @@ func (o *Olympus) setNotificationRoutes(router *mux.Router) {
 
 		update, err := Golangify[api.NotificationSettingsUpdate](r)
 		if err != nil {
-			o.log.Printf("invalid notification settings update: %s", err)
+			o.log.With("error", err).Error("invalid notification settings update")
 			http.Error(w, "invalid request", http.StatusBadRequest)
 			return
 		}
 
 		if err := o.notifier.UpdatePushSubscription(update); err != nil {
-			o.log.Printf("could not update notification settings: %s", err)
+			o.log.With("error", err).Error("could not update notification settings")
 			if err == UnknownEndpointError {
 				http.Error(w, "unknown subscription endpoint", http.StatusNotFound)
 			} else {
@@ -720,13 +716,13 @@ func (o *Olympus) setNotificationRoutes(router *mux.Router) {
 
 		sub, err := Golangify[webpush.Subscription](r)
 		if err != nil {
-			o.log.Printf("invalid push subscription: %s", err)
+			o.log.With("error", err).Error("invalid push subscription")
 			http.Error(w, "invalid request", http.StatusBadRequest)
 			return
 		}
 
 		if err := o.notifier.RegisterPushSubscription(sub); err != nil {
-			o.log.Printf("could not register push subscription: %s", err)
+			o.log.With("error", err).Error("could not register push subscription")
 			http.Error(w, "push subscription error", http.StatusInternalServerError)
 			return
 		}

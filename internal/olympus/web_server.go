@@ -10,12 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/formicidae-tracker/olympus/pkg/tm"
-	"github.com/sirupsen/logrus"
 )
 
 func JSONify(w http.ResponseWriter, obj interface{}) {
@@ -49,7 +49,7 @@ func Golangify[T any](r *http.Request) (*T, error) {
 	return res, nil
 }
 
-func RecoverWrap(logger *logrus.Entry) func(h http.Handler) http.Handler {
+func RecoverWrap(logger *slog.Logger) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var err error
@@ -64,7 +64,7 @@ func RecoverWrap(logger *logrus.Entry) func(h http.Handler) http.Handler {
 					default:
 						err = errors.New("Unknown error")
 					}
-					logger.WithField("error", err).Errorf("handler did panic")
+					logger.With("error", err).Error("handler did panic")
 
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
@@ -88,18 +88,17 @@ func (w *loggingResponseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
-func HTTPLogWrap(logger *logrus.Entry) func(h http.Handler) http.Handler {
+func HTTPLogWrap(logger *slog.Logger) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			lw := newLoggingResponseWriter(w)
 			h.ServeHTTP(lw, r)
-			logger.WithFields(
-				logrus.Fields{
-					"method":     r.Method,
-					"URI":        r.RequestURI,
-					"user-agent": r.UserAgent(),
-					"status":     lw.status,
-				}).Infof("got request")
+			logger.With(
+				slog.String("method", r.Method),
+				slog.String("URI", r.RequestURI),
+				slog.String("user-agent", r.UserAgent()),
+				slog.Int("status", lw.status),
+			).Info("new request")
 		})
 	}
 }
@@ -134,7 +133,7 @@ func CacheControl(maxAge time.Duration) func(http.Handler) http.Handler {
 
 type CSRFHandler struct {
 	secret []byte
-	logger *logrus.Entry
+	logger *slog.Logger
 }
 
 func NewCSRFHandler(secret []byte) (*CSRFHandler, error) {
@@ -209,7 +208,7 @@ func (h *CSRFHandler) checkXSRFToken(r *http.Request) error {
 func (hh *CSRFHandler) SetCSRFCookie(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := hh.setCSRFCookie(w); err != nil {
-			hh.logger.WithField("error", err).Errorf("could not generate token")
+			hh.logger.With("error", err).Error("could not generate token")
 			http.Error(w, "could not generate CSRF Token", http.StatusInternalServerError)
 			return
 		}
@@ -220,12 +219,12 @@ func (hh *CSRFHandler) SetCSRFCookie(h http.Handler) http.Handler {
 func (hh *CSRFHandler) CheckCSRFCookie(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := hh.checkXSRFToken(r); err != nil {
-			hh.logger.WithFields(logrus.Fields{
-				"method":  r.Method,
-				"URI":     r.RequestURI,
-				"address": r.RemoteAddr,
-				"error":   err,
-			}).Warnf("invalid token")
+			hh.logger.With(
+				slog.String("method", r.Method),
+				slog.String("URI", r.RequestURI),
+				slog.String("address", r.RemoteAddr),
+				"error", err,
+			).Warn("invalid token")
 			http.Error(w, "invalid CSRF token", http.StatusBadRequest)
 			return
 		}

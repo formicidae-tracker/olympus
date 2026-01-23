@@ -3,6 +3,7 @@ package olympus
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -45,33 +46,33 @@ func (c *RunCommand) Execute([]string) error {
 	httpServer := c.setUpHttpServer(o)
 	rpcServer := c.setUpRpcServer(o)
 
-	httpLog := tm.NewLogger("http").WithField("address", c.Address)
+	httpLog := tm.NewLogger("http").With(slog.String("address", c.Address))
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		httpLog.Infof("listening")
+		httpLog.Info("listening")
 		err := httpServer.Run()
 		if err != nil {
-			httpLog.WithError(err).Errorf("unhandled error")
+			httpLog.With("error", err).Error("unhandled error")
 		}
 		wg.Done()
 	}()
 
-	rpcLog := tm.NewLogger("gRPC").WithField("port", c.RPC)
+	rpcLog := tm.NewLogger("gRPC").With(slog.Int("port", c.RPC))
 
 	wg.Add(1)
 	go func() {
 		l, err := net.Listen("tcp", fmt.Sprintf(":%d", c.RPC))
 		if err != nil {
-			rpcLog.WithError(err).Errorf("could not listen")
+			rpcLog.With("error", err).Error("could not listen")
 			return
 		}
 
-		rpcLog.Infof("listening")
+		rpcLog.Info("listening")
 		err = rpcServer.Serve(l)
 		if err != nil && err != grpc.ErrServerStopped {
-			rpcLog.WithError(err).Errorf("unhandled error")
+			rpcLog.With("error", err).Error("unhandled error")
 		}
 		wg.Done()
 	}()
@@ -87,11 +88,11 @@ func (c *RunCommand) Execute([]string) error {
 	}()
 
 	if err := httpServer.Close(); err != nil {
-		httpLog.WithError(err).Errorf("stop error")
+		httpLog.With("error", err).Error("stop error")
 	}
 
 	if err := o.Close(); err != nil {
-		o.log.WithError(err).Errorf("stop error")
+		o.log.With("error", err).Error("stop error")
 	}
 
 	wg.Wait()

@@ -3,12 +3,12 @@ package tm
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
 	"github.com/atuleu/otelog"
-	"github.com/atuleu/otelog/pkg/hooks"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
@@ -47,10 +47,6 @@ type OtelProviderArgs struct {
 }
 
 type nullFormatter struct{}
-
-func (f nullFormatter) Format(*logrus.Entry) ([]byte, error) {
-	return nil, nil
-}
 
 func connectToCollector(endpoint string) (*grpc.ClientConn, error) {
 	return grpc.Dial(endpoint,
@@ -113,8 +109,11 @@ func buildMetricExporter(conn *grpc.ClientConn, resource *resource.Resource) (*m
 func newOtelProvider(args OtelProviderArgs) Provider {
 
 	fatal := func(err error) {
-		logrus.WithError(err).Fatal("could not initialize Open Telemetry")
+		slog.With("error", err).Error("could not initialize Open Telemetry")
+		os.Exit(127)
 	}
+
+	fatal(fmt.Errorf("telemetry is not yet implemented with log/slog package"))
 
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -167,12 +166,6 @@ func newOtelProvider(args OtelProviderArgs) Provider {
 	}
 	otelog.SetLogExporter(logExporter)
 
-	level := MapVerboseLevel(args.Level)
-	hook := hooks.NewLogrusHook(hooks.FromLogrusLevel(level))
-
-	logrus.SetLevel(level)
-	logrus.AddHook(hook)
-
 	var shutdown func(context.Context) error
 	if args.ForceFlushOnShutdown == true {
 		shutdown = func(ctx context.Context) error {
@@ -201,8 +194,8 @@ func (p *otelProvider) Shutdown(ctx context.Context) error {
 	return p.shutdown(ctx)
 }
 
-func (p *otelProvider) NewLogger(domain string) *logrus.Entry {
-	return logrus.WithField("domain", domain)
+func (p *otelProvider) NewLogger(domain string) *slog.Logger {
+	return logger.With("domain", domain)
 }
 
 func (p *otelProvider) Enabled() bool {

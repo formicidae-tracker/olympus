@@ -3,14 +3,13 @@ package tm
 
 import (
 	"context"
-
-	"github.com/sirupsen/logrus"
+	"log/slog"
 )
 
 var defaultProvider Provider = newLocalProvider(0)
 
-// NewLogger returns a *logrus.Entry associated with a domain.
-func NewLogger(domain string) *logrus.Entry {
+// NewLogger returns a *slog.Logger associated with a domain.
+func NewLogger(domain string) *slog.Logger {
 	return defaultProvider.NewLogger(domain)
 }
 
