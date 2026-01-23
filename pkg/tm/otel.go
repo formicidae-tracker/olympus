@@ -195,7 +195,7 @@ func (p *otelProvider) Shutdown(ctx context.Context) error {
 }
 
 func (p *otelProvider) NewLogger(domain string) *slog.Logger {
-	return logger.With("domain", domain)
+	return slog.With("domain", domain)
 }
 
 func (p *otelProvider) Enabled() bool {
